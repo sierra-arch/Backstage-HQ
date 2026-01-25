@@ -58,6 +58,7 @@ type DBTask = {
   assignee_name?: string;
   due_date?: string | null;
   photo_url?: string | null;
+  // recurring?: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly'; // TODO: Add to DB schema
 };
 
 type Client = {
@@ -570,6 +571,8 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
       impact: level,
       estimate_minutes: estimate,
       due_date: deadline || null,
+      // recurring, // TODO: Add recurring column to database schema
+    });
 
     // Reset form
     setTitle("");
