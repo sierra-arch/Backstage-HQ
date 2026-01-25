@@ -98,7 +98,7 @@ type Message = {
   to?: string;
   content: string;
   timestamp: number;
-  type: "dm" | "team";
+  type: "dm" | "team" | "announcement";
   read: boolean;
   attachment?: {
     name: string;
