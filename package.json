@@ -1,8 +1,8 @@
 {
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview --strictPort --port 5173"
   },
   "dependencies": {
     "@dnd-kit/core": "^6",
