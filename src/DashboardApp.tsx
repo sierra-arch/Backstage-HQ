@@ -926,13 +926,38 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
   onSendMessage: (content: string, to?: string) => void;
 }) {
   const [newMessage, setNewMessage] = useState("");
-  const [selectedRecipient, setSelectedRecipient] = useState("Team");
+  const [activeChannel, setActiveChannel] = useState<'team' | 'kudos' | string>('team');
 
   function sendMessage() {
     if (!newMessage.trim()) return;
-    onSendMessage(newMessage, selectedRecipient !== "Team" ? selectedRecipient : undefined);
+    // If DM channel (not 'team' or 'kudos'), send to that person
+    const recipient = activeChannel !== 'team' && activeChannel !== 'kudos' ? activeChannel : undefined;
+    onSendMessage(newMessage, recipient);
     setNewMessage("");
   }
+
+  // Filter messages based on active channel
+  const filteredMessages = messages.filter(msg => {
+    if (activeChannel === 'team') {
+      return msg.type === 'team' && !msg.isKudos;
+    } else if (activeChannel === 'kudos') {
+      return msg.isKudos;
+    } else {
+      // DM channel - show messages between user and selected person
+      return (msg.from === activeChannel && msg.to === userName) || 
+             (msg.from === userName && msg.to === activeChannel);
+    }
+  });
+
+  // Get list of teammates for DMs
+  const teammates = TEAMMATES.filter(t => t !== userName);
+
+  // Check for unread DMs per person
+  const hasUnreadDM = (person: string) => {
+    return messages.some(msg => 
+      msg.from === person && msg.to === userName && !msg.read
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -941,64 +966,131 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
       initial={{ x: 400 }}
       animate={{ x: 0 }}
       exit={{ x: 400 }}
-      className="fixed right-0 top-0 bottom-0 w-96 bg-white border-l shadow-2xl z-40 flex flex-col"
+      className="fixed right-0 top-0 bottom-0 w-[600px] bg-white border-l shadow-2xl z-40 flex"
     >
-      <div className="border-b px-4 py-3 flex items-center justify-between bg-teal-50">
-        <h3 className="font-semibold text-lg">Inbox</h3>
-        <button onClick={onClose} className="text-neutral-500 hover:text-neutral-900 text-xl">×</button>
-      </div>
+      {/* Sidebar */}
+      <div className="w-48 bg-neutral-50 border-r flex flex-col">
+        <div className="border-b px-3 py-3 bg-teal-50">
+          <h3 className="font-semibold text-sm">Inbox</h3>
+        </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => (
-          <div key={msg.id} className={`rounded-xl p-3 ${
-            msg.isKudos ? 'bg-yellow-50 border border-yellow-200' :
-            msg.type === 'team' ? 'bg-teal-50 border border-teal-200' : 'bg-neutral-50'
-          }`}>
-            <div className="flex items-center gap-2 mb-1">
-              <Avatar name={msg.from} size={20} />
-              <span className="text-xs font-medium">{msg.from}</span>
-              {msg.to && <span className="text-xs text-neutral-500">→ {msg.to}</span>}
-              {msg.isKudos && <span className="text-xs">🎉</span>}
-              <span className="text-xs text-neutral-400 ml-auto">
-                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-            <p className="text-sm text-neutral-700">{msg.content}</p>
-            {msg.taskLink && (
-              <a href="#" className="text-xs text-teal-600 underline mt-1 block">
-                View completed task →
-              </a>
-            )}
+        {/* Channels */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-2 py-2">
+            <p className="text-xs font-semibold text-neutral-500 px-2 mb-1">CHANNELS</p>
+            
+            <button
+              onClick={() => setActiveChannel('team')}
+              className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
+                activeChannel === 'team' ? 'bg-teal-100 text-teal-900 font-medium' : 'hover:bg-neutral-100'
+              }`}
+            >
+              📢 Team Chat
+            </button>
+
+            <button
+              onClick={() => setActiveChannel('kudos')}
+              className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
+                activeChannel === 'kudos' ? 'bg-teal-100 text-teal-900 font-medium' : 'hover:bg-neutral-100'
+              }`}
+            >
+              🏆 Kudos
+            </button>
           </div>
-        ))}
+
+          {/* Direct Messages */}
+          <div className="px-2 py-2 border-t">
+            <p className="text-xs font-semibold text-neutral-500 px-2 mb-1">DIRECT MESSAGES</p>
+            {teammates.map(person => (
+              <button
+                key={person}
+                onClick={() => setActiveChannel(person)}
+                className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
+                  activeChannel === person ? 'bg-teal-100 text-teal-900 font-medium' : 'hover:bg-neutral-100'
+                }`}
+              >
+                <Avatar name={person} size={16} />
+                <span className="flex-1 truncate">{person}</span>
+                {hasUnreadDM(person) && (
+                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="border-t p-4 space-y-2">
-        <select
-          value={selectedRecipient}
-          onChange={(e) => setSelectedRecipient(e.target.value)}
-          className="w-full rounded-xl border px-3 py-2 text-sm"
-        >
-          <option value="Team">📢 Team Chat</option>
-          {TEAMMATES.filter(t => t !== userName).map((t) => (
-            <option key={t} value={t}>💬 {t} (Direct Message)</option>
-          ))}
-        </select>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            placeholder="Type a message..."
-            className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
-          />
-          <button
-            onClick={sendMessage}
-            className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium"
-          >
-            Send
-          </button>
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <div className="border-b px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {activeChannel === 'team' && <span className="text-lg">📢</span>}
+            {activeChannel === 'kudos' && <span className="text-lg">🏆</span>}
+            {activeChannel !== 'team' && activeChannel !== 'kudos' && (
+              <Avatar name={activeChannel} size={24} />
+            )}
+            <h3 className="font-semibold">
+              {activeChannel === 'team' && 'Team Chat'}
+              {activeChannel === 'kudos' && 'Kudos'}
+              {activeChannel !== 'team' && activeChannel !== 'kudos' && activeChannel}
+            </h3>
+          </div>
+          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-900 text-xl">×</button>
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {filteredMessages.length === 0 ? (
+            <div className="text-center text-neutral-400 text-sm mt-8">
+              No messages yet. Start the conversation! 💬
+            </div>
+          ) : (
+            filteredMessages.map((msg) => (
+              <div key={msg.id} className={`rounded-xl p-3 ${
+                msg.isKudos ? 'bg-yellow-50 border border-yellow-200' : 'bg-neutral-50'
+              }`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Avatar name={msg.from} size={20} />
+                  <span className="text-xs font-medium">{msg.from}</span>
+                  {msg.isKudos && <span className="text-xs">🎉</span>}
+                  <span className="text-xs text-neutral-400 ml-auto">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+                <p className="text-sm text-neutral-700">{msg.content}</p>
+                {msg.taskLink && (
+                  <a href="#" className="text-xs text-teal-600 underline mt-1 block">
+                    View completed task →
+                  </a>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Input Area */}
+        <div className="border-t p-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              placeholder={
+                activeChannel === 'team' ? 'Message team...' :
+                activeChannel === 'kudos' ? 'Send kudos...' :
+                `Message ${activeChannel}...`
+              }
+              className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            />
+            <button
+              onClick={sendMessage}
+              className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </motion.div>
