@@ -1,4 +1,4 @@
-// Production Ready!
+// DashboardApp.tsx - COMPLETE MULTI-BRAND VERSION
 // ✨ Full client/product management, cover photos, smart navigation
 import "./styles.css";
 import React, { useState } from "react";
@@ -952,7 +952,7 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
         {messages.map((msg) => (
           <div key={msg.id} className={`rounded-xl p-3 ${
             msg.isKudos ? 'bg-yellow-50 border border-yellow-200' :
-            msg.type === 'announcement' ? 'bg-teal-50 border border-teal-200' : 'bg-neutral-50'
+            msg.type === 'team' ? 'bg-teal-50 border border-teal-200' : 'bg-neutral-50'
           }`}>
             <div className="flex items-center gap-2 mb-1">
               <Avatar name={msg.from} size={20} />
