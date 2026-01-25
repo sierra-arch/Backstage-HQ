@@ -1,17 +1,15 @@
 // DashboardApp.tsx - COMPLETE MULTI-BRAND VERSION
 // ✨ Full client/product management, cover photos, smart navigation
 import "./styles.css";
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabase";
 import {
   useTasks,
   useProfile,
-  useCompanies,
   createTask as dbCreateTask,
   updateTask as dbUpdateTask,
   completeTask as dbCompleteTask,
-  deleteTask as dbDeleteTask,
   getCompanyByName,
 } from "./useDatabase";
 
