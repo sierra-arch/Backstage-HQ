@@ -926,12 +926,12 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
   onSendMessage: (content: string, to?: string) => void;
 }) {
   const [newMessage, setNewMessage] = useState("");
-  const [activeChannel, setActiveChannel] = useState<'team' | 'kudos' | string>('team');
+  const [activeChannel, setActiveChannel] = useState<'team' | string>('team');
 
   function sendMessage() {
     if (!newMessage.trim()) return;
-    // If DM channel (not 'team' or 'kudos'), send to that person
-    const recipient = activeChannel !== 'team' && activeChannel !== 'kudos' ? activeChannel : undefined;
+    // If DM channel (not 'team'), send to that person
+    const recipient = activeChannel !== 'team' ? activeChannel : undefined;
     onSendMessage(newMessage, recipient);
     setNewMessage("");
   }
@@ -939,11 +939,10 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
   // Filter messages based on active channel
   const filteredMessages = messages.filter(msg => {
     if (activeChannel === 'team') {
+      // Show team messages only (not DMs, not highlights)
       return msg.type === 'team' && !msg.isKudos;
-    } else if (activeChannel === 'kudos') {
-      return msg.isKudos;
     } else {
-      // DM channel - show messages between user and selected person
+      // DM channel - show messages between user and selected person (including highlights)
       return (msg.from === activeChannel && msg.to === userName) || 
              (msg.from === userName && msg.to === activeChannel);
     }
@@ -985,16 +984,7 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
                 activeChannel === 'team' ? 'bg-teal-100 text-teal-900 font-medium' : 'hover:bg-neutral-100'
               }`}
             >
-              📢 Team Chat
-            </button>
-
-            <button
-              onClick={() => setActiveChannel('kudos')}
-              className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
-                activeChannel === 'kudos' ? 'bg-teal-100 text-teal-900 font-medium' : 'hover:bg-neutral-100'
-              }`}
-            >
-              🏆 Kudos
+              Team Chat
             </button>
           </div>
 
@@ -1025,15 +1015,11 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
         {/* Header */}
         <div className="border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {activeChannel === 'team' && <span className="text-lg">📢</span>}
-            {activeChannel === 'kudos' && <span className="text-lg">🏆</span>}
-            {activeChannel !== 'team' && activeChannel !== 'kudos' && (
+            {activeChannel !== 'team' && (
               <Avatar name={activeChannel} size={24} />
             )}
             <h3 className="font-semibold">
-              {activeChannel === 'team' && 'Team Chat'}
-              {activeChannel === 'kudos' && 'Kudos'}
-              {activeChannel !== 'team' && activeChannel !== 'kudos' && activeChannel}
+              {activeChannel === 'team' ? 'Team Chat' : activeChannel}
             </h3>
           </div>
           <button onClick={onClose} className="text-neutral-500 hover:text-neutral-900 text-xl">×</button>
@@ -1043,7 +1029,7 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {filteredMessages.length === 0 ? (
             <div className="text-center text-neutral-400 text-sm mt-8">
-              No messages yet. Start the conversation! 💬
+              No messages yet. Start the conversation!
             </div>
           ) : (
             filteredMessages.map((msg) => (
@@ -1053,7 +1039,7 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
                 <div className="flex items-center gap-2 mb-1">
                   <Avatar name={msg.from} size={20} />
                   <span className="text-xs font-medium">{msg.from}</span>
-                  {msg.isKudos && <span className="text-xs">🎉</span>}
+                  {msg.isKudos && <span className="text-xs text-yellow-600 font-medium">Task Highlight</span>}
                   <span className="text-xs text-neutral-400 ml-auto">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
@@ -1078,9 +1064,7 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
               placeholder={
-                activeChannel === 'team' ? 'Message team...' :
-                activeChannel === 'kudos' ? 'Send kudos...' :
-                `Message ${activeChannel}...`
+                activeChannel === 'team' ? 'Message team...' : `Message ${activeChannel}...`
               }
               className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
