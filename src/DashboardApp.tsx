@@ -1,4 +1,4 @@
-// DashboardApp.tsx - COMPLETE MULTI-BRAND VERSION
+// DashboardApp.tsx 
 // ✨ Full client/product management, cover photos, smart navigation
 import "./styles.css";
 import React, { useState } from "react";
