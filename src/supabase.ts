@@ -1,17 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
 
-// Direct access to window variables (set in index.html)
-const SUPABASE_URL =
-  (typeof window !== "undefined" && (window as any).VITE_SUPABASE_URL) || "";
+// Get environment variables using Vite's import.meta.env
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
-const SUPABASE_ANON_KEY =
-  (typeof window !== "undefined" && (window as any).VITE_SUPABASE_ANON_KEY) ||
-  "";
-
+// Validate that credentials are present
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error(
-    "❌ Supabase credentials missing! Check that index.html has the window.VITE_SUPABASE_* variables."
+  throw new Error(
+    "Missing Supabase credentials! Make sure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your environment variables."
   );
 }
 
+// Create and export the Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
