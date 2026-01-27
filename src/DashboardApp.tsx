@@ -7,6 +7,7 @@ import { supabase } from "./supabase";
 import {
   useTasks,
   useProfile,
+  useTeamMembers,
   createTask as dbCreateTask,
   updateTask as dbUpdateTask,
   completeTask as dbCompleteTask,
@@ -35,7 +36,6 @@ function useSession() {
 const isFounder = (r: Role) => r === "Founder";
 
 const COMPANIES = ["Prose Florals", "Backstage", "Mairé"] as const;
-const TEAMMATES = ["Sierra", "Alex", "Maya"] as const;
 const XP_BY_IMPACT = { small: 5, medium: 10, large: 20 } as const;
 const LEVEL_XP_THRESHOLD = 200;
 
@@ -48,9 +48,9 @@ type DBTask = {
   description: string | null;
   company_id: string | null;
   assigned_to: string | null;
-  status: 'focus' | 'active' | 'submitted' | 'completed' | 'archived';
-  priority: 'low' | 'medium' | 'high';
-  impact: 'small' | 'medium' | 'large';
+  status: "focus" | "active" | "submitted" | "completed" | "archived";
+  priority: "low" | "medium" | "high";
+  impact: "small" | "medium" | "large";
   estimate_minutes: number;
   company_name?: string;
   assignee_name?: string;
@@ -98,7 +98,7 @@ type Message = {
   to?: string;
   content: string;
   timestamp: number;
-  type: 'dm' | 'team';
+  type: "dm" | "team";
   read: boolean;
   attachment?: {
     name: string;
@@ -120,95 +120,99 @@ type Accomplishment = {
 // Mock data - will be replaced with database
 const MOCK_CLIENTS: Client[] = [
   {
-    id: '1',
-    company: 'Prose Florals',
-    name: 'Sarah & James Wedding',
-    photo_url: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400',
-    description: 'Romantic garden wedding with blush and ivory palette',
-    contact: 'sarah.j@email.com',
-    scope: 'Full floral design, ceremony & reception',
-    quick_links: ['Contract', 'Mood Board', 'Timeline'],
-    deadline: '2026-06-15',
-    added_date: '2025-12-01',
+    id: "1",
+    company: "Prose Florals",
+    name: "Sarah & James Wedding",
+    photo_url:
+      "https://images.unsplash.com/photo-1519741497674-611481863552?w=400",
+    description: "Romantic garden wedding with blush and ivory palette",
+    contact: "sarah.j@email.com",
+    scope: "Full floral design, ceremony & reception",
+    quick_links: ["Contract", "Mood Board", "Timeline"],
+    deadline: "2026-06-15",
+    added_date: "2025-12-01",
   },
   {
-    id: '2',
-    company: 'Prose Florals',
-    name: 'Corporate Event - Tech Co',
-    photo_url: 'https://images.unsplash.com/photo-1511578314322-379afb476865?w=400',
-    description: 'Modern minimalist arrangements for tech conference',
-    contact: 'events@techco.com',
-    scope: 'Lobby installations, table centerpieces',
-    quick_links: ['Proposal', 'Venue Details'],
-    deadline: '2026-03-20',
-    added_date: '2026-01-10',
+    id: "2",
+    company: "Prose Florals",
+    name: "Corporate Event - Tech Co",
+    photo_url:
+      "https://images.unsplash.com/photo-1511578314322-379afb476865?w=400",
+    description: "Modern minimalist arrangements for tech conference",
+    contact: "events@techco.com",
+    scope: "Lobby installations, table centerpieces",
+    quick_links: ["Proposal", "Venue Details"],
+    deadline: "2026-03-20",
+    added_date: "2026-01-10",
   },
 ];
 
 const MOCK_PRODUCTS: Product[] = [
   {
-    id: '1',
-    name: 'Pressed Flower Bookmark',
-    photo_url: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300',
-    description: 'Handcrafted pressed flower bookmarks with gold leaf accents',
-    etsy_link: 'https://etsy.com/listing/12345',
-    sku: 'MRE-BM-001',
-    date_added: '2024-08-15',
+    id: "1",
+    name: "Pressed Flower Bookmark",
+    photo_url:
+      "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300",
+    description: "Handcrafted pressed flower bookmarks with gold leaf accents",
+    etsy_link: "https://etsy.com/listing/12345",
+    sku: "MRE-BM-001",
+    date_added: "2024-08-15",
     months_active: 5,
   },
   {
-    id: '2',
-    name: 'Botanical Wall Art',
-    photo_url: 'https://images.unsplash.com/photo-1513519245088-0e12902e35ca?w=300',
-    description: 'Framed pressed flowers in modern minimalist frames',
-    etsy_link: 'https://etsy.com/listing/67890',
-    sku: 'MRE-ART-002',
-    date_added: '2024-10-01',
+    id: "2",
+    name: "Botanical Wall Art",
+    photo_url:
+      "https://images.unsplash.com/photo-1513519245088-0e12902e35ca?w=300",
+    description: "Framed pressed flowers in modern minimalist frames",
+    etsy_link: "https://etsy.com/listing/67890",
+    sku: "MRE-ART-002",
+    date_added: "2024-10-01",
     months_active: 3,
   },
 ];
 
 const COMPANY_DATA: Record<string, CompanyData> = {
-  'Prose Florals': {
-    name: 'Prose Florals',
-    logo_url: '🌸',
-    description: 'High-touch creative floral design for weddings and events',
-    color: '#84cc16',
+  "Prose Florals": {
+    name: "Prose Florals",
+    logo_url: "🌸",
+    description: "High-touch creative floral design for weddings and events",
+    color: "#84cc16",
     social_links: [
-      { platform: 'Instagram', url: 'https://instagram.com/proseflorals' },
-      { platform: 'Website', url: 'https://proseflorals.com' },
+      { platform: "Instagram", url: "https://instagram.com/proseflorals" },
+      { platform: "Website", url: "https://proseflorals.com" },
     ],
     software_links: [
-      { name: 'Honeybook', url: 'https://honeybook.com' },
-      { name: 'Canva', url: 'https://canva.com' },
+      { name: "Honeybook", url: "https://honeybook.com" },
+      { name: "Canva", url: "https://canva.com" },
     ],
   },
-  'Backstage': {
-    name: 'Backstage',
-    logo_url: '🎯',
-    description: 'Business operations systems and strategic consulting',
-    color: '#14b8a6',
+  Backstage: {
+    name: "Backstage",
+    logo_url: "🎯",
+    description: "Business operations systems and strategic consulting",
+    color: "#14b8a6",
     social_links: [
-      { platform: 'LinkedIn', url: 'https://linkedin.com/company/backstage' },
-      { platform: 'Website', url: 'https://backstageop.com' },
+      { platform: "LinkedIn", url: "https://linkedin.com/company/backstage" },
+      { platform: "Website", url: "https://backstageop.com" },
     ],
     software_links: [
-      { name: 'Notion', url: 'https://notion.so' },
-      { name: 'Airtable', url: 'https://airtable.com' },
+      { name: "Notion", url: "https://notion.so" },
+      { name: "Airtable", url: "https://airtable.com" },
     ],
   },
-  'Mairé': {
-    name: 'Mairé',
-    logo_url: '✨',
-    description: 'Handcrafted botanical products and pressed flower art',
-    color: '#10b981',
+  Mairé: {
+    name: "Mairé",
+    logo_url: "✨",
+    description: "Handcrafted botanical products and pressed flower art",
+    color: "#10b981",
     social_links: [
-      { platform: 'Etsy', url: 'https://etsy.com/shop/maire' },
-      { platform: 'TikTok', url: 'https://tiktok.com/@maire' },
+      { platform: "Etsy", url: "https://etsy.com/shop/maire" },
+      { platform: "TikTok", url: "https://tiktok.com/@maire" },
     ],
     software_links: [
-      { name: 'Etsy Seller', url: 'https://etsy.com/seller' },
-      { name: 'Shipstation', url: 'https://shipstation.com' },
+      { name: "Etsy Seller", url: "https://etsy.com/seller" },
+      { name: "Shipstation", url: "https://shipstation.com" },
     ],
   },
 };
@@ -219,7 +223,9 @@ const COMPANY_DATA: Record<string, CompanyData> = {
 function Confetti({ fire }: { fire: boolean }) {
   if (!fire) return null;
   return (
-    <div style={{ pointerEvents: "none", position: "fixed", inset: 0, zIndex: 60 }}>
+    <div
+      style={{ pointerEvents: "none", position: "fixed", inset: 0, zIndex: 60 }}
+    >
       {Array.from({ length: 140 }).map((_, i) => {
         const left = Math.random() * 100;
         const delay = Math.random() * 0.2;
@@ -281,7 +287,9 @@ function Card({
       onClick={onClick}
       className={`rounded-2xl border border-neutral-200 bg-white ${
         variant === "compact" ? "p-4 md:p-5" : "p-5 md:p-6"
-      } shadow-sm ${className} ${onClick ? 'cursor-pointer hover:border-teal-300 transition-colors' : ''}`}
+      } shadow-sm ${className} ${
+        onClick ? "cursor-pointer hover:border-teal-300 transition-colors" : ""
+      }`}
     >
       {(title || subtitle) && (
         <header className="mb-2 md:mb-3">
@@ -324,7 +332,14 @@ function LevelRing({
 
   const ringSvg = (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#CDEDE6" fill="none" />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        strokeWidth={stroke}
+        stroke="#CDEDE6"
+        fill="none"
+      />
       <circle
         cx={size / 2}
         cy={size / 2}
@@ -340,7 +355,14 @@ function LevelRing({
           transformOrigin: "50% 50%",
         }}
       />
-      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize={Math.max(12, Math.round(size * 0.18))} fill="#0F172A">
+      <text
+        x="50%"
+        y="50%"
+        dominantBaseline="middle"
+        textAnchor="middle"
+        fontSize={Math.max(12, Math.round(size * 0.18))}
+        fill="#0F172A"
+      >
         L{level}
       </text>
     </svg>
@@ -358,22 +380,58 @@ function LevelRing({
   );
 }
 
-function CompanyChip({ name, showLogo = true }: { name: string; showLogo?: boolean }) {
+function CompanyChip({
+  name,
+  showLogo = true,
+}: {
+  name: string;
+  showLogo?: boolean;
+}) {
   const map: any = {
-    "Prose Florals": { bg: "bg-lime-50", text: "text-lime-900/80", border: "border-lime-200", logo: "🌸" },
-    Backstage: { bg: "bg-teal-100", text: "text-teal-900/90", border: "border-teal-300", logo: "🎯" },
-    Mairé: { bg: "bg-emerald-50", text: "text-emerald-900/80", border: "border-emerald-200", logo: "✨" },
+    "Prose Florals": {
+      bg: "bg-lime-50",
+      text: "text-lime-900/80",
+      border: "border-lime-200",
+      logo: "🌸",
+    },
+    Backstage: {
+      bg: "bg-teal-100",
+      text: "text-teal-900/90",
+      border: "border-teal-300",
+      logo: "🎯",
+    },
+    Mairé: {
+      bg: "bg-emerald-50",
+      text: "text-emerald-900/80",
+      border: "border-emerald-200",
+      logo: "✨",
+    },
   };
-  const s = map[name] || { bg: "bg-neutral-50", text: "text-neutral-800", border: "border-neutral-200", logo: "📦" };
+  const s = map[name] || {
+    bg: "bg-neutral-50",
+    text: "text-neutral-800",
+    border: "border-neutral-200",
+    logo: "📦",
+  };
   return (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border} inline-flex items-center gap-1`}>
+    <span
+      className={`text-[10px] px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border} inline-flex items-center gap-1`}
+    >
       {showLogo && <span>{s.logo}</span>}
       {name}
     </span>
   );
 }
 
-function Avatar({ name, size = 24, photoUrl }: { name: string; size?: number; photoUrl?: string }) {
+function Avatar({
+  name,
+  size = 24,
+  photoUrl,
+}: {
+  name: string;
+  size?: number;
+  photoUrl?: string;
+}) {
   if (photoUrl) {
     return (
       <img
@@ -385,10 +443,17 @@ function Avatar({ name, size = 24, photoUrl }: { name: string; size?: number; ph
       />
     );
   }
-  
-  const initials = name.split(" ").map((s) => s[0]?.toUpperCase()).join("").slice(0, 2);
+
+  const initials = name
+    .split(" ")
+    .map((s) => s[0]?.toUpperCase())
+    .join("")
+    .slice(0, 2);
   const palette = ["#0F766E", "#166534", "#065F46", "#064E3B", "#0B4D4B"];
-  const color = palette[(name.charCodeAt(0) + name.charCodeAt(name.length - 1)) % palette.length];
+  const color =
+    palette[
+      (name.charCodeAt(0) + name.charCodeAt(name.length - 1)) % palette.length
+    ];
   return (
     <div
       title={name}
@@ -408,7 +473,14 @@ function Avatar({ name, size = 24, photoUrl }: { name: string; size?: number; ph
 /* ──────────────────────────────────────────────────────────────────
    Modal System
    ────────────────────────────────────────────────────────────────── */
-function Modal({ isOpen, onClose, title, children, size = "large", coverImage }: {
+function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+  size = "large",
+  coverImage,
+}: {
   isOpen: boolean;
   onClose: () => void;
   title: string;
@@ -439,31 +511,37 @@ function Modal({ isOpen, onClose, title, children, size = "large", coverImage }:
         onClick={(e) => e.stopPropagation()}
         className={`bg-white rounded-2xl shadow-2xl ${sizeClasses[size]} w-full max-h-[90vh] overflow-auto`}
       >
-          {coverImage && (
-            <div 
-              className="h-48 bg-cover bg-center rounded-t-2xl"
-              style={{ backgroundImage: `url(${coverImage})` }}
-            />
-          )}
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
-            <h2 className="text-xl font-semibold">{title}</h2>
-            <button
-              onClick={onClose}
-              className="text-neutral-500 hover:text-neutral-900 text-2xl leading-none"
-            >
-              ×
-            </button>
-          </div>
-          <div className="p-6">{children}</div>
-        </motion.div>
+        {coverImage && (
+          <div
+            className="h-48 bg-cover bg-center rounded-t-2xl"
+            style={{ backgroundImage: `url(${coverImage})` }}
+          />
+        )}
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <button
+            onClick={onClose}
+            className="text-neutral-500 hover:text-neutral-900 text-2xl leading-none"
+          >
+            ×
+          </button>
+        </div>
+        <div className="p-6">{children}</div>
       </motion.div>
+    </motion.div>
   );
 }
 
 /* ──────────────────────────────────────────────────────────────────
    Task Modal
    ────────────────────────────────────────────────────────────────── */
-function TaskModal({ task, isOpen, onClose, onComplete, role }: {
+function TaskModal({
+  task,
+  isOpen,
+  onClose,
+  onComplete,
+  role,
+}: {
   task: DBTask | null;
   isOpen: boolean;
   onClose: () => void;
@@ -475,41 +553,69 @@ function TaskModal({ task, isOpen, onClose, onComplete, role }: {
   const buttonText = isFounder(role) ? "Mark Complete" : "Submit for Approval";
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={task.title} size="medium" coverImage={task.photo_url || undefined}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={task.title}
+      size="medium"
+      coverImage={task.photo_url || undefined}
+    >
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-neutral-700">Description</label>
-          <p className="text-sm text-neutral-600 mt-1">{task.description || "No description provided"}</p>
+          <label className="text-sm font-medium text-neutral-700">
+            Description
+          </label>
+          <p className="text-sm text-neutral-600 mt-1">
+            {task.description || "No description provided"}
+          </p>
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Company</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Company
+            </label>
             <div className="mt-1">
               <CompanyChip name={task.company_name || "Unknown"} />
             </div>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Assigned To</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Assigned To
+            </label>
             <div className="mt-1 flex items-center gap-2">
               <Avatar name={task.assignee_name || "Unassigned"} size={20} />
-              <span className="text-sm text-neutral-600">{task.assignee_name || "Unassigned"}</span>
+              <span className="text-sm text-neutral-600">
+                {task.assignee_name || "Unassigned"}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Priority</label>
-            <p className="text-sm text-neutral-600 mt-1 capitalize">{task.priority}</p>
+            <label className="text-sm font-medium text-neutral-700">
+              Priority
+            </label>
+            <p className="text-sm text-neutral-600 mt-1 capitalize">
+              {task.priority}
+            </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Impact</label>
-            <p className="text-sm text-neutral-600 mt-1 capitalize">{task.impact}</p>
+            <label className="text-sm font-medium text-neutral-700">
+              Impact
+            </label>
+            <p className="text-sm text-neutral-600 mt-1 capitalize">
+              {task.impact}
+            </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Estimate</label>
-            <p className="text-sm text-neutral-600 mt-1">{task.estimate_minutes} min</p>
+            <label className="text-sm font-medium text-neutral-700">
+              Estimate
+            </label>
+            <p className="text-sm text-neutral-600 mt-1">
+              {task.estimate_minutes} min
+            </p>
           </div>
         </div>
 
@@ -538,12 +644,20 @@ function TaskModal({ task, isOpen, onClose, onComplete, role }: {
 /* ──────────────────────────────────────────────────────────────────
    Task Creation Modal
    ────────────────────────────────────────────────────────────────── */
-function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
+function TaskCreateModal({
+  isOpen,
+  onClose,
+  onCreated,
+  role,
+  userName,
+  teamMembers = [],
+}: {
   isOpen: boolean;
   onClose: () => void;
   onCreated: () => void;
   role: Role;
   userName: string;
+  teamMembers?: { id: string; display_name: string | null }[];
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -551,15 +665,17 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
   const [assignee, setAssignee] = useState(isFounder(role) ? "" : userName);
   const [level, setLevel] = useState<"small" | "medium" | "large">("medium");
   const [deadline, setDeadline] = useState("");
-  const [recurring, setRecurring] = useState<"none" | "daily" | "weekly" | "biweekly" | "monthly" | "quarterly">("none");
+  const [recurring, setRecurring] = useState<
+    "none" | "daily" | "weekly" | "biweekly" | "monthly" | "quarterly"
+  >("none");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   async function handleCreate() {
     const companyData = await getCompanyByName(company);
-    
+
     // Auto-calculate estimate from level
     const estimate = TIME_BY_LEVEL[level];
-    
+
     await dbCreateTask({
       title,
       description,
@@ -578,21 +694,29 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
     setDeadline("");
     setRecurring("none");
     setPhotoFile(null);
-    
+
     onCreated();
     onClose();
   }
 
   // Team members can only assign to self or Founder
-  const assignOptions = isFounder(role) 
-    ? ["", ...TEAMMATES] 
+  const teamMemberNames = teamMembers.map(tm => tm.display_name || "Unknown");
+  const assignOptions = isFounder(role)
+    ? ["", ...teamMemberNames]
     : [userName, "Founder"];
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Create New Task" size="medium">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Create New Task"
+      size="medium"
+    >
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-neutral-700">Task Title *</label>
+          <label className="text-sm font-medium text-neutral-700">
+            Task Title *
+          </label>
           <input
             type="text"
             value={title}
@@ -603,7 +727,9 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Description *</label>
+          <label className="text-sm font-medium text-neutral-700">
+            Description *
+          </label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -614,19 +740,25 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Company *</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Company *
+            </label>
             <select
               value={company}
               onChange={(e) => setCompany(e.target.value)}
               className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               {COMPANIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c}>
+                  {c}
+                </option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Assign To *</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Assign To *
+            </label>
             <select
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
@@ -634,7 +766,9 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
             >
               <option value="">Unassigned</option>
               {assignOptions.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
           </div>
@@ -642,19 +776,25 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Level *</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Level *
+            </label>
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value as any)}
               className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="small">Small (~{TIME_BY_LEVEL.small} min)</option>
-              <option value="medium">Medium (~{TIME_BY_LEVEL.medium} min)</option>
+              <option value="medium">
+                Medium (~{TIME_BY_LEVEL.medium} min)
+              </option>
               <option value="large">Large (~{TIME_BY_LEVEL.large} min)</option>
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Recurring</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Recurring
+            </label>
             <select
               value={recurring}
               onChange={(e) => setRecurring(e.target.value as any)}
@@ -671,7 +811,9 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Deadline (Optional)</label>
+          <label className="text-sm font-medium text-neutral-700">
+            Deadline (Optional)
+          </label>
           <input
             type="date"
             value={deadline}
@@ -681,7 +823,9 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Photo (Optional)</label>
+          <label className="text-sm font-medium text-neutral-700">
+            Photo (Optional)
+          </label>
           <input
             type="file"
             accept="image/*"
@@ -713,7 +857,11 @@ function TaskCreateModal({ isOpen, onClose, onCreated, role, userName }: {
 /* ──────────────────────────────────────────────────────────────────
    Client/Product Modals
    ────────────────────────────────────────────────────────────────── */
-function ClientModal({ client, isOpen, onClose }: {
+function ClientModal({
+  client,
+  isOpen,
+  onClose,
+}: {
   client: Client | null;
   isOpen: boolean;
   onClose: () => void;
@@ -721,26 +869,40 @@ function ClientModal({ client, isOpen, onClose }: {
   if (!client) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={client.name} size="large" coverImage={client.photo_url}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={client.name}
+      size="large"
+      coverImage={client.photo_url}
+    >
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-neutral-700">Description</label>
+          <label className="text-sm font-medium text-neutral-700">
+            Description
+          </label>
           <p className="text-sm text-neutral-600 mt-1">{client.description}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Contact</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Contact
+            </label>
             <p className="text-sm text-neutral-600 mt-1">{client.contact}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Scope</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Scope
+            </label>
             <p className="text-sm text-neutral-600 mt-1">{client.scope}</p>
           </div>
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700">Quick Links</label>
+          <label className="text-sm font-medium text-neutral-700">
+            Quick Links
+          </label>
           <div className="flex gap-2 mt-2">
             {client.quick_links.map((link, i) => (
               <a
@@ -758,7 +920,11 @@ function ClientModal({ client, isOpen, onClose }: {
   );
 }
 
-function ProductModal({ product, isOpen, onClose }: {
+function ProductModal({
+  product,
+  isOpen,
+  onClose,
+}: {
   product: Product | null;
   isOpen: boolean;
   onClose: () => void;
@@ -766,10 +932,18 @@ function ProductModal({ product, isOpen, onClose }: {
   if (!product) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={product.name} size="large" coverImage={product.photo_url}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={product.name}
+      size="large"
+      coverImage={product.photo_url}
+    >
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-neutral-700">Description</label>
+          <label className="text-sm font-medium text-neutral-700">
+            Description
+          </label>
           <p className="text-sm text-neutral-600 mt-1">{product.description}</p>
         </div>
 
@@ -779,12 +953,20 @@ function ProductModal({ product, isOpen, onClose }: {
             <p className="text-sm text-neutral-600 mt-1">{product.sku}</p>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Active</label>
-            <p className="text-sm text-neutral-600 mt-1">{product.months_active} months</p>
+            <label className="text-sm font-medium text-neutral-700">
+              Active
+            </label>
+            <p className="text-sm text-neutral-600 mt-1">
+              {product.months_active} months
+            </p>
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Added</label>
-            <p className="text-sm text-neutral-600 mt-1">{new Date(product.date_added).toLocaleDateString()}</p>
+            <label className="text-sm font-medium text-neutral-700">
+              Added
+            </label>
+            <p className="text-sm text-neutral-600 mt-1">
+              {new Date(product.date_added).toLocaleDateString()}
+            </p>
           </div>
         </div>
 
@@ -806,7 +988,13 @@ function ProductModal({ product, isOpen, onClose }: {
 /* ──────────────────────────────────────────────────────────────────
    Company Modal
    ────────────────────────────────────────────────────────────────── */
-function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductClick }: {
+function CompanyModal({
+  companyName,
+  isOpen,
+  onClose,
+  onClientClick,
+  onProductClick,
+}: {
   companyName: string | null;
   isOpen: boolean;
   onClose: () => void;
@@ -814,10 +1002,10 @@ function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductCl
   onProductClick: (product: Product) => void;
 }) {
   if (!companyName) return null;
-  
+
   const company = COMPANY_DATA[companyName];
-  const clients = MOCK_CLIENTS.filter(c => c.company === companyName);
-  const products = companyName === 'Mairé' ? MOCK_PRODUCTS : [];
+  const clients = MOCK_CLIENTS.filter((c) => c.company === companyName);
+  const products = companyName === "Mairé" ? MOCK_PRODUCTS : [];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={companyName} size="large">
@@ -830,7 +1018,9 @@ function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductCl
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700 block mb-2">Social Links</label>
+          <label className="text-sm font-medium text-neutral-700 block mb-2">
+            Social Links
+          </label>
           <div className="flex gap-2">
             {company.social_links.map((link, i) => (
               <a
@@ -847,7 +1037,9 @@ function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductCl
         </div>
 
         <div>
-          <label className="text-sm font-medium text-neutral-700 block mb-2">Software</label>
+          <label className="text-sm font-medium text-neutral-700 block mb-2">
+            Software
+          </label>
           <div className="flex gap-2">
             {company.software_links.map((link, i) => (
               <a
@@ -865,7 +1057,9 @@ function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductCl
 
         <div>
           <label className="text-sm font-medium text-neutral-700 block mb-3">
-            {companyName === 'Mairé' ? 'All Products' : 'All Clients & Projects'}
+            {companyName === "Mairé"
+              ? "All Products"
+              : "All Clients & Projects"}
           </label>
           <div className="grid grid-cols-12 gap-2">
             {clients.map((client) => (
@@ -878,13 +1072,15 @@ function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductCl
                 className="relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   backgroundImage: `url(${client.photo_url})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-2">
-                  <p className="text-white text-xs font-medium truncate">{client.name}</p>
+                  <p className="text-white text-xs font-medium truncate">
+                    {client.name}
+                  </p>
                 </div>
               </div>
             ))}
@@ -898,13 +1094,15 @@ function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductCl
                 className="relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   backgroundImage: `url(${product.photo_url})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
                 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-2">
-                  <p className="text-white text-xs font-medium truncate">{product.name}</p>
+                  <p className="text-white text-xs font-medium truncate">
+                    {product.name}
+                  </p>
                 </div>
               </div>
             ))}
@@ -918,43 +1116,55 @@ function CompanyModal({ companyName, isOpen, onClose, onClientClick, onProductCl
 /* ──────────────────────────────────────────────────────────────────
    Chat System
    ────────────────────────────────────────────────────────────────── */
-function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
+function ChatPanel({
+  userName,
+  isOpen,
+  onClose,
+  messages,
+  onSendMessage,
+  teamMembers = [],
+}: {
   userName: string;
   isOpen: boolean;
   onClose: () => void;
   messages: Message[];
   onSendMessage: (content: string, to?: string) => void;
+  teamMembers?: { id: string; display_name: string | null }[];
 }) {
   const [newMessage, setNewMessage] = useState("");
-  const [activeChannel, setActiveChannel] = useState<'team' | string>('team');
+  const [activeChannel, setActiveChannel] = useState<"team" | string>("team");
 
   function sendMessage() {
     if (!newMessage.trim()) return;
     // If DM channel (not 'team'), send to that person
-    const recipient = activeChannel !== 'team' ? activeChannel : undefined;
+    const recipient = activeChannel !== "team" ? activeChannel : undefined;
     onSendMessage(newMessage, recipient);
     setNewMessage("");
   }
 
   // Filter messages based on active channel
-  const filteredMessages = messages.filter(msg => {
-    if (activeChannel === 'team') {
+  const filteredMessages = messages.filter((msg) => {
+    if (activeChannel === "team") {
       // Show team messages only (not DMs, not highlights)
-      return msg.type === 'team' && !msg.isKudos;
+      return msg.type === "team" && !msg.isKudos;
     } else {
       // DM channel - show messages between user and selected person (including highlights)
-      return (msg.from === activeChannel && msg.to === userName) || 
-             (msg.from === userName && msg.to === activeChannel);
+      return (
+        (msg.from === activeChannel && msg.to === userName) ||
+        (msg.from === userName && msg.to === activeChannel)
+      );
     }
   });
 
   // Get list of teammates for DMs
-  const teammates = TEAMMATES.filter(t => t !== userName);
+  const teammates = teamMembers
+    .map(tm => tm.display_name)
+    .filter((name): name is string => name !== null && name !== userName);
 
   // Check for unread DMs per person
   const hasUnreadDM = (person: string) => {
-    return messages.some(msg => 
-      msg.from === person && msg.to === userName && !msg.read
+    return messages.some(
+      (msg) => msg.from === person && msg.to === userName && !msg.read
     );
   };
 
@@ -976,12 +1186,16 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
         {/* Channels */}
         <div className="flex-1 overflow-y-auto">
           <div className="px-2 py-2">
-            <p className="text-xs font-semibold text-neutral-500 px-2 mb-1">CHANNELS</p>
-            
+            <p className="text-xs font-semibold text-neutral-500 px-2 mb-1">
+              CHANNELS
+            </p>
+
             <button
-              onClick={() => setActiveChannel('team')}
+              onClick={() => setActiveChannel("team")}
               className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
-                activeChannel === 'team' ? 'bg-teal-100 text-teal-900 font-medium' : 'hover:bg-neutral-100'
+                activeChannel === "team"
+                  ? "bg-teal-100 text-teal-900 font-medium"
+                  : "hover:bg-neutral-100"
               }`}
             >
               Team Chat
@@ -990,13 +1204,17 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
 
           {/* Direct Messages */}
           <div className="px-2 py-2 border-t">
-            <p className="text-xs font-semibold text-neutral-500 px-2 mb-1">DIRECT MESSAGES</p>
-            {teammates.map(person => (
+            <p className="text-xs font-semibold text-neutral-500 px-2 mb-1">
+              DIRECT MESSAGES
+            </p>
+            {teammates.map((person) => (
               <button
                 key={person}
                 onClick={() => setActiveChannel(person)}
                 className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
-                  activeChannel === person ? 'bg-teal-100 text-teal-900 font-medium' : 'hover:bg-neutral-100'
+                  activeChannel === person
+                    ? "bg-teal-100 text-teal-900 font-medium"
+                    : "hover:bg-neutral-100"
                 }`}
               >
                 <Avatar name={person} size={16} />
@@ -1015,14 +1233,19 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
         {/* Header */}
         <div className="border-b px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {activeChannel !== 'team' && (
+            {activeChannel !== "team" && (
               <Avatar name={activeChannel} size={24} />
             )}
             <h3 className="font-semibold">
-              {activeChannel === 'team' ? 'Team Chat' : activeChannel}
+              {activeChannel === "team" ? "Team Chat" : activeChannel}
             </h3>
           </div>
-          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-900 text-xl">×</button>
+          <button
+            onClick={onClose}
+            className="text-neutral-500 hover:text-neutral-900 text-xl"
+          >
+            ×
+          </button>
         </div>
 
         {/* Messages */}
@@ -1033,20 +1256,35 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
             </div>
           ) : (
             filteredMessages.map((msg) => (
-              <div key={msg.id} className={`rounded-xl p-3 ${
-                msg.isKudos ? 'bg-yellow-50 border border-yellow-200' : 'bg-neutral-50'
-              }`}>
+              <div
+                key={msg.id}
+                className={`rounded-xl p-3 ${
+                  msg.isKudos
+                    ? "bg-yellow-50 border border-yellow-200"
+                    : "bg-neutral-50"
+                }`}
+              >
                 <div className="flex items-center gap-2 mb-1">
                   <Avatar name={msg.from} size={20} />
                   <span className="text-xs font-medium">{msg.from}</span>
-                  {msg.isKudos && <span className="text-xs text-yellow-600 font-medium">Task Highlight</span>}
+                  {msg.isKudos && (
+                    <span className="text-xs text-yellow-600 font-medium">
+                      Task Highlight
+                    </span>
+                  )}
                   <span className="text-xs text-neutral-400 ml-auto">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </span>
                 </div>
                 <p className="text-sm text-neutral-700">{msg.content}</p>
                 {msg.taskLink && (
-                  <a href="#" className="text-xs text-teal-600 underline mt-1 block">
+                  <a
+                    href="#"
+                    className="text-xs text-teal-600 underline mt-1 block"
+                  >
                     View completed task →
                   </a>
                 )}
@@ -1062,9 +1300,11 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
               placeholder={
-                activeChannel === 'team' ? 'Message team...' : `Message ${activeChannel}...`
+                activeChannel === "team"
+                  ? "Message team..."
+                  : `Message ${activeChannel}...`
               }
               className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
@@ -1084,8 +1324,21 @@ function ChatPanel({ userName, isOpen, onClose, messages, onSendMessage }: {
 /* ──────────────────────────────────────────────────────────────────
    Sidebar
    ────────────────────────────────────────────────────────────────── */
-type FounderPage = "Today" | "Meetings" | "Tasks" | "Companies" | "Playbook" | "My Team" | "Settings";
-type TeamPage = "Today" | "Tasks" | "Companies" | "Playbook" | "Career Path" | "Settings";
+type FounderPage =
+  | "Today"
+  | "Meetings"
+  | "Tasks"
+  | "Companies"
+  | "Playbook"
+  | "My Team"
+  | "Settings";
+type TeamPage =
+  | "Today"
+  | "Tasks"
+  | "Companies"
+  | "Playbook"
+  | "Career Path"
+  | "Settings";
 type Page = FounderPage | TeamPage;
 
 function Sidebar({
@@ -1099,8 +1352,21 @@ function Sidebar({
   onSelect: (p: Page) => void;
   userName: string;
 }) {
-  const founderNav: FounderPage[] = ["Today", "Meetings", "Tasks", "Companies", "Playbook", "My Team"];
-  const teamNav: TeamPage[] = ["Today", "Tasks", "Companies", "Playbook", "Career Path"];
+  const founderNav: FounderPage[] = [
+    "Today",
+    "Meetings",
+    "Tasks",
+    "Companies",
+    "Playbook",
+    "My Team",
+  ];
+  const teamNav: TeamPage[] = [
+    "Today",
+    "Tasks",
+    "Companies",
+    "Playbook",
+    "Career Path",
+  ];
   const nav = isFounder(role) ? founderNav : teamNav;
 
   return (
@@ -1121,14 +1387,18 @@ function Sidebar({
             >
               <span>{item}</span>
               {item === "Today" && isActive && (
-                <span className="text-[10px] rounded-full bg-teal-100 text-teal-800 px-2 py-0.5">Now</span>
+                <span className="text-[10px] rounded-full bg-teal-100 text-teal-800 px-2 py-0.5">
+                  Now
+                </span>
               )}
             </button>
           );
         })}
       </nav>
       <div className="mt-auto pt-6">
-        <div className="text-xs uppercase tracking-wide text-neutral-500 mb-1">Signed in</div>
+        <div className="text-xs uppercase tracking-wide text-neutral-500 mb-1">
+          Signed in
+        </div>
         <button
           onClick={() => onSelect("Settings" as Page)}
           className="text-sm font-medium hover:text-teal-600 transition-colors text-left"
@@ -1216,10 +1486,14 @@ function TaskRow({ task, onClick }: { task: DBTask; onClick: () => void }) {
         />
       )}
       <div className="flex-1 min-w-0">
-        <div className="text-[13px] md:text-[14px] font-medium truncate">{task.title}</div>
-        <div className="text-xs text-neutral-500 truncate">{task.description || 'No description'}</div>
+        <div className="text-[13px] md:text-[14px] font-medium truncate">
+          {task.title}
+        </div>
+        <div className="text-xs text-neutral-500 truncate">
+          {task.description || "No description"}
+        </div>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <CompanyChip name={task.company_name || 'Unknown'} />
+          <CompanyChip name={task.company_name || "Unknown"} />
           <span className="text-[10px] px-2 py-0.5 rounded-full border bg-teal-50 text-teal-900/80">
             {task.impact}
           </span>
@@ -1233,11 +1507,19 @@ function TaskRow({ task, onClick }: { task: DBTask; onClick: () => void }) {
   );
 }
 
-function TaskList({ tasks, onTaskClick }: { tasks: DBTask[]; onTaskClick: (task: DBTask) => void }) {
+function TaskList({
+  tasks,
+  onTaskClick,
+}: {
+  tasks: DBTask[];
+  onTaskClick: (task: DBTask) => void;
+}) {
   return (
     <div className="space-y-2">
       {tasks.length === 0 && (
-        <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
+        <div className="text-sm text-neutral-500 text-center py-8">
+          No tasks yet
+        </div>
       )}
       {tasks.map((t) => (
         <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} />
@@ -1265,10 +1547,10 @@ function WelcomeCard({
   className?: string;
 }) {
   const pct = Math.min(100, Math.round((levelXP / levelMax) * 100));
-  
+
   // Extract first name only
   const firstName = name.split(" ")[0];
-  
+
   const getNameFontSize = () => {
     if (firstName.length > 12) return "text-[28px]";
     if (firstName.length > 8) return "text-[34px]";
@@ -1281,7 +1563,9 @@ function WelcomeCard({
         <div className="flex items-center gap-6 pt-1 pb-4">
           <div className="flex-1 min-w-0">
             <div className="text-[12px] text-neutral-500">Welcome back</div>
-            <div className={`${getNameFontSize()} font-semibold tracking-tight leading-tight`}>
+            <div
+              className={`${getNameFontSize()} font-semibold tracking-tight leading-tight`}
+            >
               {firstName}
             </div>
           </div>
@@ -1311,34 +1595,39 @@ function WelcomeCard({
 // Smart progress calculation
 function calculateCompanyProgress(companyTasks: DBTask[]) {
   if (companyTasks.length === 0) return 100; // No tasks = 100% complete!
-  
+
   const weights = { small: 1, medium: 2, large: 3 };
   let totalPoints = 0;
   let completedPoints = 0;
-  
-  companyTasks.forEach(task => {
+
+  companyTasks.forEach((task) => {
     const points = weights[task.impact];
     totalPoints += points;
-    if (task.status === 'completed') {
+    if (task.status === "completed") {
       completedPoints += points;
     }
   });
-  
-  return totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0;
+
+  return totalPoints > 0
+    ? Math.round((completedPoints / totalPoints) * 100)
+    : 0;
 }
 
-function BrandSnapshot({ allTasks, onCompanyClick }: {
+function BrandSnapshot({
+  allTasks,
+  onCompanyClick,
+}: {
   allTasks: DBTask[];
   onCompanyClick: (company: string) => void;
 }) {
   const buckets = COMPANIES.map((c) => {
     const companyTasks = allTasks.filter((t) => t.company_name === c);
-    const open = companyTasks.filter(t => t.status !== 'completed').length;
+    const open = companyTasks.filter((t) => t.status !== "completed").length;
     const progress = calculateCompanyProgress(companyTasks);
-    
+
     return { name: c, open, progress };
   });
-  
+
   return (
     <Card title="Brand Snapshot">
       <div className="space-y-3">
@@ -1352,8 +1641,11 @@ function BrandSnapshot({ allTasks, onCompanyClick }: {
               <div className="text-[15px] font-semibold flex items-center gap-2">
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center flex-shrink-0">
                   <svg viewBox="0 0 200 150" className="w-6 h-6 opacity-60">
-                    <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E"/>
-                    <circle cx="160" cy="40" r="15" fill="#0F766E"/>
+                    <path
+                      d="M0,150 L50,80 L100,100 L150,40 L200,150 Z"
+                      fill="#0F766E"
+                    />
+                    <circle cx="160" cy="40" r="15" fill="#0F766E" />
                   </svg>
                 </div>
                 {b.name}
@@ -1361,7 +1653,10 @@ function BrandSnapshot({ allTasks, onCompanyClick }: {
               <div className="text-xs text-neutral-600">{b.open} open</div>
             </div>
             <div className="mt-3 h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-              <div className="h-full bg-teal-600" style={{ width: `${b.progress}%` }} />
+              <div
+                className="h-full bg-teal-600"
+                style={{ width: `${b.progress}%` }}
+              />
             </div>
           </div>
         ))}
@@ -1370,7 +1665,12 @@ function BrandSnapshot({ allTasks, onCompanyClick }: {
   );
 }
 
-function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigateTo }: {
+function CompaniesPage({
+  onCompanyClick,
+  onClientClick,
+  onProductClick,
+  navigateTo,
+}: {
   onCompanyClick: (company: string) => void;
   onClientClick: (client: Client) => void;
   onProductClick: (product: Product) => void;
@@ -1379,19 +1679,21 @@ function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigate
   // Social icon component
   const SocialIcon = ({ platform }: { platform: string }) => {
     const letters: Record<string, string> = {
-      'Instagram': 'IG',
-      'Facebook': 'FB',
-      'Twitter': 'TW',
-      'Website': 'W',
-      'TikTok': 'TT',
-      'Etsy': 'ET',
-      'LinkedIn': 'LI',
-      'Pinterest': 'PI',
+      Instagram: "IG",
+      Facebook: "FB",
+      Twitter: "TW",
+      Website: "W",
+      TikTok: "TT",
+      Etsy: "ET",
+      LinkedIn: "LI",
+      Pinterest: "PI",
     };
-    
+
     return (
       <div className="w-8 h-8 rounded-full border-2 border-teal-700 flex items-center justify-center text-teal-700 hover:bg-teal-50 cursor-pointer transition-colors">
-        <span className="text-[9px] font-bold">{letters[platform] || platform.slice(0, 2).toUpperCase()}</span>
+        <span className="text-[9px] font-bold">
+          {letters[platform] || platform.slice(0, 2).toUpperCase()}
+        </span>
       </div>
     );
   };
@@ -1400,10 +1702,13 @@ function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigate
     <div className="space-y-6">
       {COMPANIES.map((companyName) => {
         const company = COMPANY_DATA[companyName];
-        const clients = MOCK_CLIENTS.filter(c => c.company === companyName).slice(0, 4);
-        const products = companyName === 'Mairé' ? MOCK_PRODUCTS.slice(0, 6) : [];
-        const items = companyName === 'Mairé' ? products : clients;
-        
+        const clients = MOCK_CLIENTS.filter(
+          (c) => c.company === companyName
+        ).slice(0, 4);
+        const products =
+          companyName === "Mairé" ? MOCK_PRODUCTS.slice(0, 6) : [];
+        const items = companyName === "Mairé" ? products : clients;
+
         // Calculate progress
         const completedTasks = 0; // Mock data
         const totalTasks = 1;
@@ -1411,9 +1716,9 @@ function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigate
 
         // Get company-specific chip colors
         const chipColors: Record<string, string> = {
-          'Prose Florals': 'bg-lime-50 text-lime-900 border-lime-200',
-          'Backstage': 'bg-teal-100 text-teal-900 border-teal-300',
-          'Mairé': 'bg-emerald-50 text-emerald-900 border-emerald-200',
+          "Prose Florals": "bg-lime-50 text-lime-900 border-lime-200",
+          Backstage: "bg-teal-100 text-teal-900 border-teal-300",
+          Mairé: "bg-emerald-50 text-emerald-900 border-emerald-200",
         };
 
         return (
@@ -1428,22 +1733,30 @@ function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigate
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center flex-shrink-0">
                     <svg viewBox="0 0 200 150" className="w-7 h-7 opacity-60">
-                      <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E"/>
-                      <circle cx="160" cy="40" r="15" fill="#0F766E"/>
+                      <path
+                        d="M0,150 L50,80 L100,100 L150,40 L200,150 Z"
+                        fill="#0F766E"
+                      />
+                      <circle cx="160" cy="40" r="15" fill="#0F766E" />
                     </svg>
                   </div>
                   <h3 className="text-xl font-semibold">{companyName}</h3>
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   {/* Progress bar */}
                   <div className="flex items-center gap-2">
                     <div className="h-2 w-32 rounded-full bg-teal-100 overflow-hidden">
-                      <div className="h-full bg-teal-600" style={{ width: `${progress}%` }} />
+                      <div
+                        className="h-full bg-teal-600"
+                        style={{ width: `${progress}%` }}
+                      />
                     </div>
-                    <span className="text-xs text-neutral-500 w-10">{progress}%</span>
+                    <span className="text-xs text-neutral-500 w-10">
+                      {progress}%
+                    </span>
                   </div>
-                  
+
                   {/* Software chips */}
                   <div className="flex gap-2">
                     {company.software_links.map((link, i) => (
@@ -1459,7 +1772,7 @@ function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigate
                       </a>
                     ))}
                   </div>
-                  
+
                   {/* Social icons */}
                   <div className="flex gap-2">
                     {company.social_links.map((link, i) => (
@@ -1484,27 +1797,37 @@ function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigate
                     key={item.id}
                     onClick={(e) => {
                       e.stopPropagation();
-                      companyName === 'Mairé' ? onProductClick(item) : onClientClick(item);
+                      companyName === "Mairé"
+                        ? onProductClick(item)
+                        : onClientClick(item);
                     }}
                     className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
-                      companyName === 'Mairé' ? 'aspect-[3/4]' : 'aspect-[4/3]'
+                      companyName === "Mairé" ? "aspect-[3/4]" : "aspect-[4/3]"
                     }`}
                     style={{
                       backgroundImage: `linear-gradient(135deg, #CDEDE6 0%, #B8E0D9 100%)`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
                     }}
                   >
                     {/* Mountain placeholder icon */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <svg viewBox="0 0 200 150" className="w-3/4 h-3/4 opacity-30">
-                        <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E"/>
-                        <circle cx="160" cy="40" r="15" fill="#0F766E"/>
+                      <svg
+                        viewBox="0 0 200 150"
+                        className="w-3/4 h-3/4 opacity-30"
+                      >
+                        <path
+                          d="M0,150 L50,80 L100,100 L150,40 L200,150 Z"
+                          fill="#0F766E"
+                        />
+                        <circle cx="160" cy="40" r="15" fill="#0F766E" />
                       </svg>
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     <div className="absolute bottom-0 left-0 right-0 p-2">
-                      <p className="text-white text-xs font-medium truncate">{item.name}</p>
+                      <p className="text-white text-xs font-medium truncate">
+                        {item.name}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -1520,25 +1843,38 @@ function CompaniesPage({ onCompanyClick, onClientClick, onProductClick, navigate
 /* ──────────────────────────────────────────────────────────────────
    Other Pages (simplified)
    ────────────────────────────────────────────────────────────────── */
-function MyTeamPage({ tasks }: { tasks: DBTask[] }) {
+function MyTeamPage({ 
+  tasks, 
+  teamMembers = [] 
+}: { 
+  tasks: DBTask[];
+  teamMembers?: { id: string; display_name: string | null }[];
+}) {
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
-  
-  const teamMembers = TEAMMATES.map(name => {
-    const memberTasks = tasks.filter(t => t.assignee_name === name);
-    const completed = memberTasks.filter(t => t.status === 'completed');
-    const level = Math.floor(completed.length * 5 / LEVEL_XP_THRESHOLD) + 1;
+
+  const teamMemberStats = teamMembers.map((member) => {
+    const name = member.display_name || "Unknown";
+    const memberTasks = tasks.filter((t) => t.assignee_name === name);
+    const completed = memberTasks.filter((t) => t.status === "completed");
+    const level = Math.floor((completed.length * 5) / LEVEL_XP_THRESHOLD) + 1;
     const xp = (completed.length * 5) % LEVEL_XP_THRESHOLD;
-    
-    return { name, level, xp, completedTasks: completed, totalTasks: memberTasks.length };
+
+    return {
+      name,
+      level,
+      xp,
+      completedTasks: completed,
+      totalTasks: memberTasks.length,
+    };
   });
 
-  const selectedMemberData = teamMembers.find(m => m.name === selectedMember);
+  const selectedMemberData = teamMemberStats.find((m) => m.name === selectedMember);
 
   return (
     <>
       <Card title="My Team" subtitle="Levels & task completion">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {teamMembers.map((m) => (
+          {teamMemberStats.map((m) => (
             <div
               key={m.name}
               onClick={() => setSelectedMember(m.name)}
@@ -1549,10 +1885,19 @@ function MyTeamPage({ tasks }: { tasks: DBTask[] }) {
                   <Avatar name={m.name} size={40} />
                   <div>
                     <div className="font-semibold">{m.name}</div>
-                    <div className="text-xs text-neutral-500">{m.totalTasks} tasks</div>
+                    <div className="text-xs text-neutral-500">
+                      {m.totalTasks} tasks
+                    </div>
                   </div>
                 </div>
-                <LevelRing level={m.level} value={m.xp} max={LEVEL_XP_THRESHOLD} showStats={false} size={60} stroke={8} />
+                <LevelRing
+                  level={m.level}
+                  value={m.xp}
+                  max={LEVEL_XP_THRESHOLD}
+                  showStats={false}
+                  size={60}
+                  stroke={8}
+                />
               </div>
               <div className="flex gap-2">
                 <Chip>{m.completedTasks.length} completed</Chip>
@@ -1573,9 +1918,12 @@ function MyTeamPage({ tasks }: { tasks: DBTask[] }) {
             <div className="flex items-center gap-4">
               <Avatar name={selectedMemberData.name} size={60} />
               <div className="flex-1">
-                <h3 className="text-xl font-semibold">{selectedMemberData.name}</h3>
+                <h3 className="text-xl font-semibold">
+                  {selectedMemberData.name}
+                </h3>
                 <p className="text-sm text-neutral-600">
-                  Level {selectedMemberData.level} • {selectedMemberData.completedTasks.length} tasks completed
+                  Level {selectedMemberData.level} •{" "}
+                  {selectedMemberData.completedTasks.length} tasks completed
                 </p>
               </div>
               <LevelRing
@@ -1586,15 +1934,19 @@ function MyTeamPage({ tasks }: { tasks: DBTask[] }) {
                 stroke={12}
               />
             </div>
-            
+
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Completed Tasks</h4>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {selectedMemberData.completedTasks.map((task) => (
-                  <div key={task.id} className="rounded-xl border p-3 bg-neutral-50">
+                  <div
+                    key={task.id}
+                    className="rounded-xl border p-3 bg-neutral-50"
+                  >
                     <div className="font-medium text-sm">{task.title}</div>
                     <div className="text-xs text-neutral-500 mt-1">
-                      {task.company_name} • {task.impact} impact • {XP_BY_IMPACT[task.impact]} XP
+                      {task.company_name} • {task.impact} impact •{" "}
+                      {XP_BY_IMPACT[task.impact]} XP
                     </div>
                   </div>
                 ))}
@@ -1622,7 +1974,9 @@ function MeetingsPage() {
           <div className="rounded-xl border p-3 bg-white flex items-center justify-between">
             <div>
               <div className="text-sm font-medium">Ops Standup</div>
-              <div className="text-xs text-neutral-500">Tue 11:30 AM • Backstage</div>
+              <div className="text-xs text-neutral-500">
+                Tue 11:30 AM • Backstage
+              </div>
             </div>
             <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">
               Open agenda
@@ -1631,7 +1985,9 @@ function MeetingsPage() {
           <div className="rounded-xl border p-3 bg-white flex items-center justify-between">
             <div>
               <div className="text-sm font-medium">Client Onboarding</div>
-              <div className="text-xs text-neutral-500">Thu 2:00 PM • Prose Florals</div>
+              <div className="text-xs text-neutral-500">
+                Thu 2:00 PM • Prose Florals
+              </div>
             </div>
             <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">
               Checklist
@@ -1665,7 +2021,9 @@ function SettingsPage({ userName }: { userName: string }) {
       <Card title="Account Settings">
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Display Name</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Display Name
+            </label>
             <input
               type="text"
               defaultValue={userName}
@@ -1673,7 +2031,9 @@ function SettingsPage({ userName }: { userName: string }) {
             />
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Email</label>
+            <label className="text-sm font-medium text-neutral-700">
+              Email
+            </label>
             <input
               type="email"
               defaultValue="sierra@backstageop.com"
@@ -1689,16 +2049,28 @@ function SettingsPage({ userName }: { userName: string }) {
       <Card title="Notifications">
         <div className="space-y-3">
           <label className="flex items-center gap-3">
-            <input type="checkbox" defaultChecked className="w-4 h-4 accent-teal-600" />
-            <span className="text-sm">Email notifications for task assignments</span>
+            <input
+              type="checkbox"
+              defaultChecked
+              className="w-4 h-4 accent-teal-600"
+            />
+            <span className="text-sm">
+              Email notifications for task assignments
+            </span>
           </label>
           <label className="flex items-center gap-3">
-            <input type="checkbox" defaultChecked className="w-4 h-4 accent-teal-600" />
+            <input
+              type="checkbox"
+              defaultChecked
+              className="w-4 h-4 accent-teal-600"
+            />
             <span className="text-sm">Daily digest of team activity</span>
           </label>
           <label className="flex items-center gap-3">
             <input type="checkbox" className="w-4 h-4 accent-teal-600" />
-            <span className="text-sm">Browser notifications for new messages</span>
+            <span className="text-sm">
+              Browser notifications for new messages
+            </span>
           </label>
         </div>
       </Card>
@@ -1715,7 +2087,12 @@ function SettingsPage({ userName }: { userName: string }) {
 /* ──────────────────────────────────────────────────────────────────
    Accomplishments Modal (NEW!)
    ────────────────────────────────────────────────────────────────── */
-function AddAccomplishmentModal({ isOpen, onClose, userName, onAdd }: {
+function AddAccomplishmentModal({
+  isOpen,
+  onClose,
+  userName,
+  onAdd,
+}: {
   isOpen: boolean;
   onClose: () => void;
   userName: string;
@@ -1733,10 +2110,17 @@ function AddAccomplishmentModal({ isOpen, onClose, userName, onAdd }: {
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add Accomplishment" size="small">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Accomplishment"
+      size="small"
+    >
       <div className="space-y-4">
         <div>
-          <label className="text-sm font-medium text-neutral-700">What did you accomplish?</label>
+          <label className="text-sm font-medium text-neutral-700">
+            What did you accomplish?
+          </label>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -1778,7 +2162,12 @@ function AddAccomplishmentModal({ isOpen, onClose, userName, onAdd }: {
 /* ──────────────────────────────────────────────────────────────────
    Kudos Modal (NEW!)
    ────────────────────────────────────────────────────────────────── */
-function KudosModal({ isOpen, onClose, task, onSend }: {
+function KudosModal({
+  isOpen,
+  onClose,
+  task,
+  onSend,
+}: {
   isOpen: boolean;
   onClose: () => void;
   task: DBTask | null;
@@ -1795,12 +2184,15 @@ function KudosModal({ isOpen, onClose, task, onSend }: {
   if (!task) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Task Approved! ✓" size="medium">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Task Approved! ✓"
+      size="medium"
+    >
       <div className="space-y-4">
         <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
-          <div className="text-sm font-medium text-teal-900">
-            {task.title}
-          </div>
+          <div className="text-sm font-medium text-teal-900">{task.title}</div>
           <div className="text-xs text-teal-700 mt-1">
             Completed by {task.assignee_name}
           </div>
@@ -1846,8 +2238,13 @@ function KudosModal({ isOpen, onClose, task, onSend }: {
 export default function DashboardApp() {
   const session = useSession();
   const { profile } = useProfile();
-  const { tasks, loading: tasksLoading, refetch } = useTasks({ status: ['focus', 'active', 'submitted'] });
-  
+  const { teamMembers, loading: loadingTeam } = useTeamMembers();
+  const {
+    tasks,
+    loading: tasksLoading,
+    refetch,
+  } = useTasks({ status: ["focus", "active", "submitted"] });
+
   const [celebrate, setCelebrate] = useState(false);
   const [page, setPage] = useState<Page>("Today");
   const [selectedTask, setSelectedTask] = useState<DBTask | null>(null);
@@ -1872,41 +2269,60 @@ export default function DashboardApp() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  const role: Role = profile?.role ? fromDbToUi[profile.role as AppRole] : "Founder";
+  const role: Role = profile?.role
+    ? fromDbToUi[profile.role as AppRole]
+    : "Founder";
   const level = profile?.level || 1;
   const xp = profile?.xp || 0;
-  const userName = session?.user?.user_metadata?.full_name ?? 
-                   session?.user?.email?.split("@")[0] ?? 
-                   "Sierra";
+  const userName =
+    session?.user?.user_metadata?.full_name ??
+    session?.user?.email?.split("@")[0] ??
+    "Sierra";
 
-  const completedThisWeek = tasks.filter(t => t.status === 'completed').length;
+  const completedThisWeek = tasks.filter(
+    (t) => t.status === "completed"
+  ).length;
 
-  const filteredTasks = tasks.filter(t => {
+  const filteredTasks = tasks.filter((t) => {
     // Search filter
-    const matchesSearch = t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    
+
     // Company filter
-    const matchesCompany = taskFilters.company === "all" || t.company_name === taskFilters.company;
-    
+    const matchesCompany =
+      taskFilters.company === "all" || t.company_name === taskFilters.company;
+
     // Impact filter
-    const matchesImpact = taskFilters.impact === "all" || t.impact === taskFilters.impact;
-    
+    const matchesImpact =
+      taskFilters.impact === "all" || t.impact === taskFilters.impact;
+
     // Priority filter
-    const matchesPriority = taskFilters.priority === "all" || t.priority === taskFilters.priority;
-    
+    const matchesPriority =
+      taskFilters.priority === "all" || t.priority === taskFilters.priority;
+
     // Status filter
-    const matchesStatus = taskFilters.status === "all" || t.status === taskFilters.status;
-    
+    const matchesStatus =
+      taskFilters.status === "all" || t.status === taskFilters.status;
+
     // Assignee filter (only for founders)
-    const matchesAssignee = taskFilters.assignee === "all" || t.assignee_name === taskFilters.assignee;
-    
-    return matchesSearch && matchesCompany && matchesImpact && matchesPriority && matchesStatus && matchesAssignee;
+    const matchesAssignee =
+      taskFilters.assignee === "all" ||
+      t.assignee_name === taskFilters.assignee;
+
+    return (
+      matchesSearch &&
+      matchesCompany &&
+      matchesImpact &&
+      matchesPriority &&
+      matchesStatus &&
+      matchesAssignee
+    );
   });
 
-  const focusTasks = filteredTasks.filter(t => t.status === 'focus');
-  const activeTasks = filteredTasks.filter(t => t.status === 'active');
-  const submittedTasks = filteredTasks.filter(t => t.status === 'submitted');
+  const focusTasks = filteredTasks.filter((t) => t.status === "focus");
+  const activeTasks = filteredTasks.filter((t) => t.status === "active");
+  const submittedTasks = filteredTasks.filter((t) => t.status === "submitted");
   const allActiveTasks = [...focusTasks, ...activeTasks];
 
   async function handleComplete(task: DBTask) {
@@ -1925,10 +2341,10 @@ export default function DashboardApp() {
 
   function handleSendKudos(kudosText: string) {
     if (!kudosTask) return;
-    
+
     // Complete the task
-    dbUpdateTask(kudosTask.id, { status: 'completed' });
-    
+    dbUpdateTask(kudosTask.id, { status: "completed" });
+
     // Send kudos as DM if provided
     if (kudosText) {
       const kudosMessage: Message = {
@@ -1937,7 +2353,7 @@ export default function DashboardApp() {
         to: kudosTask.assignee_name || undefined,
         content: kudosText,
         timestamp: Date.now(),
-        type: 'dm',
+        type: "dm",
         read: false,
         isKudos: true,
         taskLink: kudosTask.id,
@@ -1945,7 +2361,7 @@ export default function DashboardApp() {
       setMessages([...messages, kudosMessage]);
       setHasUnreadMessages(true);
     }
-    
+
     refetch();
     setKudosTask(null);
   }
@@ -1958,17 +2374,17 @@ export default function DashboardApp() {
       timestamp: Date.now(),
       postedToTeam: postToTeam,
     };
-    
+
     setAccomplishments([...accomplishments, accomplishment]);
-    
+
     // If posting to team, add message and show notification
     if (postToTeam) {
       const teamMsg: Message = {
-        id: Date.now().toString() + '-team',
+        id: Date.now().toString() + "-team",
         from: userName,
         content: `🎉 ${text}`,
         timestamp: Date.now(),
-        type: 'team',
+        type: "team",
         read: false,
       };
       setMessages([...messages, teamMsg]);
@@ -1977,7 +2393,7 @@ export default function DashboardApp() {
   }
 
   function handleSendMessage(content: string, to?: string) {
-    const messageType: 'dm' | 'team' = to ? 'dm' : 'team';
+    const messageType: "dm" | "team" = to ? "dm" : "team";
     const msg: Message = {
       id: Date.now().toString(),
       from: userName,
@@ -2023,7 +2439,11 @@ export default function DashboardApp() {
             />
           </div>
           <div className="col-span-12 md:col-span-8">
-            <Card title="Notes" variant="compact" className="h-full flex flex-col">
+            <Card
+              title="Notes"
+              variant="compact"
+              className="h-full flex flex-col"
+            >
               <div className="flex-1">
                 <textarea
                   className="w-full h-full min-h-[80px] rounded-xl border p-3 text-sm resize-none"
@@ -2047,8 +2467,12 @@ export default function DashboardApp() {
             >
               <header className="mb-3 flex items-center justify-between">
                 <div>
-                  <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
-                  <p className="text-xs text-neutral-600">Smartly chosen by due date, priority & quick wins</p>
+                  <h2 className="text-[15px] font-semibold leading-tight">
+                    Today's Focus
+                  </h2>
+                  <p className="text-xs text-neutral-600">
+                    Smartly chosen by due date, priority & quick wins
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(true)}
@@ -2065,23 +2489,38 @@ export default function DashboardApp() {
           </div>
 
           <div className="col-span-12 md:col-span-6">
-            <Card title="Submitted for Approval" subtitle="Approve or return with notes" className={`${equalCardH} flex flex-col`}>
+            <Card
+              title="Submitted for Approval"
+              subtitle="Approve or return with notes"
+              className={`${equalCardH} flex flex-col`}
+            >
               <div className="relative flex-1 overflow-y-auto pr-1">
                 <div className="space-y-2">
                   {submittedTasks.length === 0 && (
-                    <div className="text-xs text-neutral-500">Nothing pending.</div>
+                    <div className="text-xs text-neutral-500">
+                      Nothing pending.
+                    </div>
                   )}
                   {submittedTasks.map((t) => (
                     <div
                       key={t.id}
                       className="rounded-xl border p-3 flex items-center justify-between gap-3 bg-white"
                     >
-                      <div className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer" onClick={() => openTaskModal(t)}>
-                        <Avatar name={t.assignee_name || "Unassigned"} size={22} />
+                      <div
+                        className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
+                        onClick={() => openTaskModal(t)}
+                      >
+                        <Avatar
+                          name={t.assignee_name || "Unassigned"}
+                          size={22}
+                        />
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium truncate">{t.title}</div>
+                          <div className="text-sm font-medium truncate">
+                            {t.title}
+                          </div>
                           <div className="text-xs text-neutral-500">
-                            {t.company_name} {t.assignee_name ? `• @${t.assignee_name}` : ""}
+                            {t.company_name}{" "}
+                            {t.assignee_name ? `• @${t.assignee_name}` : ""}
                           </div>
                         </div>
                       </div>
@@ -2099,11 +2538,14 @@ export default function DashboardApp() {
                           className="rounded-xl border px-2 py-1 hover:border-teal-300"
                           onClick={(e) => {
                             e.stopPropagation();
-                            const note = prompt("Add a note:", "Please revise and resubmit");
+                            const note = prompt(
+                              "Add a note:",
+                              "Please revise and resubmit"
+                            );
                             if (note) {
-                              dbUpdateTask(t.id, { 
-                                status: 'active',
-                                description: `${t.description}\n\nReturned: ${note}`
+                              dbUpdateTask(t.id, {
+                                status: "active",
+                                description: `${t.description}\n\nReturned: ${note}`,
                               });
                               refetch();
                             }
@@ -2123,24 +2565,37 @@ export default function DashboardApp() {
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-4">
             <div className={equalCardH}>
-              <BrandSnapshot allTasks={allActiveTasks} onCompanyClick={handleCompanyClick} />
+              <BrandSnapshot
+                allTasks={allActiveTasks}
+                onCompanyClick={handleCompanyClick}
+              />
             </div>
           </div>
           <div className="col-span-12 md:col-span-4">
-            <Card title="Company Goals" subtitle="Company & Role" className={equalCardH}>
+            <Card
+              title="Company Goals"
+              subtitle="Company & Role"
+              className={equalCardH}
+            >
               <div className="space-y-3">
                 {[
                   { label: "Q1 MRR", value: 62 },
                   { label: "Ops SLAs", value: 78 },
                   { label: "VA playbook", value: 40 },
                 ].map((g) => (
-                  <div key={g.label} className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white">
+                  <div
+                    key={g.label}
+                    className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm font-medium">{g.label}</div>
                       <div className="text-xs text-neutral-500">{g.value}%</div>
                     </div>
                     <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                      <div className="h-full bg-teal-600" style={{ width: `${g.value}%` }} />
+                      <div
+                        className="h-full bg-teal-600"
+                        style={{ width: `${g.value}%` }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -2151,26 +2606,41 @@ export default function DashboardApp() {
             <Card className={`${equalCardH} flex flex-col`}>
               <div className="flex items-center justify-between mb-3 flex-shrink-0 relative z-20">
                 <div>
-                  <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">Accomplishments</h2>
-                  <p className="text-xs md:text-[13px] text-neutral-500">Celebrate wins</p>
+                  <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">
+                    Accomplishments
+                  </h2>
+                  <p className="text-xs md:text-[13px] text-neutral-500">
+                    Celebrate wins
+                  </p>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowAddAccomplishment(true); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setShowAddAccomplishment(true);
+                  }}
                   className="rounded-full bg-teal-600 relative z-30 cursor-pointer pointer-events-auto text-white px-3 py-1 hover:bg-teal-700 text-xs font-medium"
                 >
                   Add
                 </button>
               </div>
               <div className="space-y-3 overflow-y-auto flex-1">
-                {accomplishments.slice(-5).reverse().map((acc) => (
-                  <div key={acc.id} className="rounded-xl border p-3 bg-white">
-                    <div className="text-sm font-medium">{acc.text}</div>
-                    <div className="text-xs text-neutral-500 mt-1">
-                      {acc.user} • {new Date(acc.timestamp).toLocaleDateString()}
-                      {acc.postedToTeam && " • Posted to team"}
+                {accomplishments
+                  .slice(-5)
+                  .reverse()
+                  .map((acc) => (
+                    <div
+                      key={acc.id}
+                      className="rounded-xl border p-3 bg-white"
+                    >
+                      <div className="text-sm font-medium">{acc.text}</div>
+                      <div className="text-xs text-neutral-500 mt-1">
+                        {acc.user} •{" "}
+                        {new Date(acc.timestamp).toLocaleDateString()}
+                        {acc.postedToTeam && " • Posted to team"}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
                 {accomplishments.length === 0 && (
                   <div className="rounded-xl border p-3 bg-white">
                     <div className="text-sm text-neutral-500 text-center py-4">
@@ -2187,8 +2657,8 @@ export default function DashboardApp() {
   }
 
   function TodayTeam() {
-    const myTasks = filteredTasks.filter(t => t.assignee_name === userName);
-    
+    const myTasks = filteredTasks.filter((t) => t.assignee_name === userName);
+
     return (
       <>
         <div className="grid grid-cols-12 gap-4 items-stretch">
@@ -2203,7 +2673,11 @@ export default function DashboardApp() {
             />
           </div>
           <div className="col-span-12 md:col-span-8">
-            <Card title="Notes" variant="compact" className="h-full flex flex-col">
+            <Card
+              title="Notes"
+              variant="compact"
+              className="h-full flex flex-col"
+            >
               <div className="flex-1">
                 <textarea
                   className="w-full h-full min-h-[80px] rounded-xl border p-3 text-sm resize-none"
@@ -2227,8 +2701,12 @@ export default function DashboardApp() {
             >
               <header className="mb-3 flex items-center justify-between">
                 <div>
-                  <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
-                  <p className="text-xs text-neutral-600">Your top priorities</p>
+                  <h2 className="text-[15px] font-semibold leading-tight">
+                    Today's Focus
+                  </h2>
+                  <p className="text-xs text-neutral-600">
+                    Your top priorities
+                  </p>
                 </div>
                 <button
                   onClick={() => setShowCreateModal(true)}
@@ -2238,14 +2716,21 @@ export default function DashboardApp() {
                 </button>
               </header>
               <div className="relative h-[300px] overflow-y-auto pr-1">
-                <TaskList tasks={focusTasks.filter(t => t.assignee_name === userName)} onTaskClick={openTaskModal} />
+                <TaskList
+                  tasks={focusTasks.filter((t) => t.assignee_name === userName)}
+                  onTaskClick={openTaskModal}
+                />
                 <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#ECF7F3] to-transparent" />
               </div>
             </section>
           </div>
 
           <div className="col-span-12 md:col-span-6">
-            <Card title="Full Task List" subtitle="Everything on your plate" className={`${equalCardH} flex flex-col`}>
+            <Card
+              title="Full Task List"
+              subtitle="Everything on your plate"
+              className={`${equalCardH} flex flex-col`}
+            >
               <div className="mb-3">
                 <button
                   onClick={() => setShowCreateModal(true)}
@@ -2264,46 +2749,67 @@ export default function DashboardApp() {
 
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-4">
-            <Card title="Submitted for Approval" subtitle="Waiting on founder" className={`${equalCardH} flex flex-col`}>
+            <Card
+              title="Submitted for Approval"
+              subtitle="Waiting on founder"
+              className={`${equalCardH} flex flex-col`}
+            >
               <div className="relative flex-1 overflow-y-auto pr-1">
                 <div className="space-y-2">
-                  {submittedTasks.filter(t => t.assignee_name === userName).length === 0 && (
-                    <div className="text-xs text-neutral-500">You have no pending submissions.</div>
+                  {submittedTasks.filter((t) => t.assignee_name === userName)
+                    .length === 0 && (
+                    <div className="text-xs text-neutral-500">
+                      You have no pending submissions.
+                    </div>
                   )}
-                  {submittedTasks.filter(t => t.assignee_name === userName).map((t) => (
-                    <div
-                      key={t.id}
-                      onClick={() => openTaskModal(t)}
-                      className="rounded-xl border p-3 flex items-center justify-between gap-3 bg-white cursor-pointer hover:border-teal-300"
-                    >
-                      <div className="flex items-center gap-2">
-                        <Avatar name={t.assignee_name || "You"} size={22} />
-                        <div>
-                          <div className="text-sm font-medium">{t.title}</div>
-                          <div className="text-xs text-neutral-500">{t.company_name} • Pending</div>
+                  {submittedTasks
+                    .filter((t) => t.assignee_name === userName)
+                    .map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={() => openTaskModal(t)}
+                        className="rounded-xl border p-3 flex items-center justify-between gap-3 bg-white cursor-pointer hover:border-teal-300"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Avatar name={t.assignee_name || "You"} size={22} />
+                          <div>
+                            <div className="text-sm font-medium">{t.title}</div>
+                            <div className="text-xs text-neutral-500">
+                              {t.company_name} • Pending
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </Card>
           </div>
           <div className="col-span-12 md:col-span-4">
-            <Card title="Company Goals" subtitle="Company & Role" className={equalCardH}>
+            <Card
+              title="Company Goals"
+              subtitle="Company & Role"
+              className={equalCardH}
+            >
               <div className="space-y-3">
                 {[
                   { label: "Q1 MRR", value: 62 },
                   { label: "Ops SLAs", value: 78 },
                   { label: "VA playbook", value: 40 },
                 ].map((g) => (
-                  <div key={g.label} className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white">
+                  <div
+                    key={g.label}
+                    className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white"
+                  >
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-sm font-medium">{g.label}</div>
                       <div className="text-xs text-neutral-500">{g.value}%</div>
                     </div>
                     <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                      <div className="h-full bg-teal-600" style={{ width: `${g.value}%` }} />
+                      <div
+                        className="h-full bg-teal-600"
+                        style={{ width: `${g.value}%` }}
+                      />
                     </div>
                   </div>
                 ))}
@@ -2314,26 +2820,40 @@ export default function DashboardApp() {
             <Card className={`${equalCardH} flex flex-col`}>
               <div className="flex items-center justify-between mb-3 flex-shrink-0 relative z-20">
                 <div>
-                  <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">Accomplishments</h2>
-                  <p className="text-xs md:text-[13px] text-neutral-500">Celebrate wins</p>
+                  <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">
+                    Accomplishments
+                  </h2>
+                  <p className="text-xs md:text-[13px] text-neutral-500">
+                    Celebrate wins
+                  </p>
                 </div>
                 <button
-                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); setShowAddAccomplishment(true); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    setShowAddAccomplishment(true);
+                  }}
                   className="rounded-full bg-teal-600 relative z-30 cursor-pointer pointer-events-auto text-white px-3 py-1 hover:bg-teal-700 text-xs font-medium"
                 >
                   Add
                 </button>
               </div>
               <div className="space-y-3 overflow-y-auto flex-1">
-                {accomplishments.slice(-5).reverse().map((acc) => (
-                  <div key={acc.id} className="rounded-xl border p-3 bg-white">
-                    <div className="text-sm font-medium">{acc.text}</div>
-                    <div className="text-xs text-neutral-500 mt-1">
-                      {new Date(acc.timestamp).toLocaleDateString()}
-                      {acc.postedToTeam && " • Posted to team"}
+                {accomplishments
+                  .slice(-5)
+                  .reverse()
+                  .map((acc) => (
+                    <div
+                      key={acc.id}
+                      className="rounded-xl border p-3 bg-white"
+                    >
+                      <div className="text-sm font-medium">{acc.text}</div>
+                      <div className="text-xs text-neutral-500 mt-1">
+                        {new Date(acc.timestamp).toLocaleDateString()}
+                        {acc.postedToTeam && " • Posted to team"}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
                 {accomplishments.length === 0 && (
                   <div className="rounded-xl border p-3 bg-white">
                     <div className="text-sm text-neutral-500 text-center py-4">
@@ -2361,7 +2881,12 @@ export default function DashboardApp() {
     <div className="min-h-screen bg-neutral-50 text-neutral-900 relative text-[15px]">
       <Confetti fire={celebrate} />
       <div className="flex">
-        <Sidebar role={role} active={page} onSelect={setPage as any} userName={userName} />
+        <Sidebar
+          role={role}
+          active={page}
+          onSelect={setPage as any}
+          userName={userName}
+        />
         <main className="flex-1 p-4 md:p-6 lg:p-8 pt-0 space-y-6">
           <TopHeader
             name={userName}
@@ -2375,7 +2900,8 @@ export default function DashboardApp() {
             unreadCount={hasUnreadMessages ? 1 : 0}
           />
 
-          {page === "Today" && (isFounder(role) ? <TodayFounder /> : <TodayTeam />)}
+          {page === "Today" &&
+            (isFounder(role) ? <TodayFounder /> : <TodayTeam />)}
           {page === "Meetings" && isFounder(role) && <MeetingsPage />}
           {page === "Tasks" && (
             <div className="space-y-4">
@@ -2383,16 +2909,27 @@ export default function DashboardApp() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <select
                     value={taskFilters.company}
-                    onChange={(e) => setTaskFilters({...taskFilters, company: e.target.value})}
+                    onChange={(e) =>
+                      setTaskFilters({
+                        ...taskFilters,
+                        company: e.target.value,
+                      })
+                    }
                     className="rounded-xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Companies</option>
-                    {COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+                    {COMPANIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
                   </select>
-                  
+
                   <select
                     value={taskFilters.impact}
-                    onChange={(e) => setTaskFilters({...taskFilters, impact: e.target.value})}
+                    onChange={(e) =>
+                      setTaskFilters({ ...taskFilters, impact: e.target.value })
+                    }
                     className="rounded-xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Levels</option>
@@ -2400,10 +2937,15 @@ export default function DashboardApp() {
                     <option value="medium">Medium</option>
                     <option value="large">Large</option>
                   </select>
-                  
+
                   <select
                     value={taskFilters.priority}
-                    onChange={(e) => setTaskFilters({...taskFilters, priority: e.target.value})}
+                    onChange={(e) =>
+                      setTaskFilters({
+                        ...taskFilters,
+                        priority: e.target.value,
+                      })
+                    }
                     className="rounded-xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Priorities</option>
@@ -2411,10 +2953,12 @@ export default function DashboardApp() {
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
                   </select>
-                  
+
                   <select
                     value={taskFilters.status}
-                    onChange={(e) => setTaskFilters({...taskFilters, status: e.target.value})}
+                    onChange={(e) =>
+                      setTaskFilters({ ...taskFilters, status: e.target.value })
+                    }
                     className="rounded-xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Statuses</option>
@@ -2423,28 +2967,39 @@ export default function DashboardApp() {
                     <option value="submitted">Submitted</option>
                     <option value="completed">Completed</option>
                   </select>
-                  
+
                   {isFounder(role) && (
                     <select
                       value={taskFilters.assignee}
-                      onChange={(e) => setTaskFilters({...taskFilters, assignee: e.target.value})}
+                      onChange={(e) =>
+                        setTaskFilters({
+                          ...taskFilters,
+                          assignee: e.target.value,
+                        })
+                      }
                       className="rounded-xl border px-3 py-2 text-sm"
                     >
                       <option value="all">All Team Members</option>
-                      {TEAMMATES.map(t => <option key={t} value={t}>{t}</option>)}
+                      {teamMembers.map((tm) => (
+                        <option key={tm.id} value={tm.display_name || ""}>
+                          {tm.display_name || "Unknown"}
+                        </option>
+                      ))}
                       <option value="">Unassigned</option>
                     </select>
                   )}
                 </div>
-                
+
                 <button
-                  onClick={() => setTaskFilters({
-                    company: "all",
-                    impact: "all",
-                    priority: "all",
-                    status: "all",
-                    assignee: "all",
-                  })}
+                  onClick={() =>
+                    setTaskFilters({
+                      company: "all",
+                      impact: "all",
+                      priority: "all",
+                      status: "all",
+                      assignee: "all",
+                    })
+                  }
                   className="mt-3 text-xs text-teal-600 hover:text-teal-700 underline"
                 >
                   Clear all filters
@@ -2470,7 +3025,9 @@ export default function DashboardApp() {
               navigateTo={setPage as any}
             />
           )}
-          {page === "My Team" && isFounder(role) && <MyTeamPage tasks={tasks} />}
+          {page === "My Team" && isFounder(role) && (
+            <MyTeamPage tasks={tasks} teamMembers={teamMembers} />
+          )}
           {page === "Settings" && <SettingsPage userName={userName} />}
           {page === "Career Path" && !isFounder(role) && (
             <Card title="Career Path" subtitle="Your progress">
@@ -2479,7 +3036,9 @@ export default function DashboardApp() {
           )}
           {page === "Playbook" && (
             <Card title="Playbook" subtitle="SOPs and guides">
-              <div className="text-sm text-neutral-500">Coming soon with database integration</div>
+              <div className="text-sm text-neutral-500">
+                Coming soon with database integration
+              </div>
             </Card>
           )}
         </main>
@@ -2499,6 +3058,7 @@ export default function DashboardApp() {
         onCreated={refetch}
         role={role}
         userName={userName}
+        teamMembers={teamMembers}
       />
 
       <CompanyModal
@@ -2551,6 +3111,7 @@ export default function DashboardApp() {
             onClose={() => setShowChat(false)}
             messages={messages}
             onSendMessage={handleSendMessage}
+            teamMembers={teamMembers}
           />
         )}
       </AnimatePresence>
