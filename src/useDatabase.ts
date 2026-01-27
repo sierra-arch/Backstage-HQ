@@ -3,14 +3,14 @@
 // React hooks for interacting with your database
 // =====================================================
 
-import { useEffect, useState, useCallback } from 'react';
-import { supabase } from './supabase';
+import { useEffect, useState, useCallback } from "react";
+import { supabase } from "./supabase";
 
 // =====================================================
 // TYPES
 // =====================================================
 
-export type AppRole = 'founder' | 'team';
+export type AppRole = "founder" | "team";
 
 export interface Profile {
   id: string;
@@ -45,9 +45,9 @@ export interface Task {
   company_id: string | null;
   assigned_to: string | null;
   created_by: string | null;
-  status: 'focus' | 'active' | 'submitted' | 'completed' | 'archived';
-  priority: 'low' | 'medium' | 'high';
-  impact: 'small' | 'medium' | 'large';
+  status: "focus" | "active" | "submitted" | "completed" | "archived";
+  priority: "low" | "medium" | "high";
+  impact: "small" | "medium" | "large";
   estimate_minutes: number;
   due_date: string | null;
   completed_at: string | null;
@@ -90,36 +90,42 @@ export interface ActivityLog {
 /**
  * Fetch or create user profile
  */
-export async function ensureProfile(seedRole: AppRole = 'team'): Promise<Profile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+export async function ensureProfile(
+  seedRole: AppRole = "team"
+): Promise<Profile | null> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   // Auto-promote certain emails to founder
   const founderEmails = new Set([
-    'sierra@gobackstage.ai',
-    'sierra@backstageop.com',
+    "sierra@gobackstage.ai",
+    "sierra@backstageop.com",
   ]);
-  
-  const role: AppRole = founderEmails.has(user.email ?? '') ? 'founder' : seedRole;
+
+  const role: AppRole = founderEmails.has(user.email ?? "")
+    ? "founder"
+    : seedRole;
 
   const { data, error } = await supabase
-    .from('profiles')
+    .from("profiles")
     .upsert(
       {
         id: user.id,
         display_name:
           (user.user_metadata?.full_name as string | undefined) ||
-          user.email?.split('@')[0] ||
-          'User',
+          user.email?.split("@")[0] ||
+          "User",
         role,
       },
-      { onConflict: 'id' }
+      { onConflict: "id" }
     )
     .select()
     .single();
 
   if (error) {
-    console.error('Error ensuring profile:', error);
+    console.error("Error ensuring profile:", error);
     return null;
   }
 
@@ -130,17 +136,19 @@ export async function ensureProfile(seedRole: AppRole = 'team'): Promise<Profile
  * Fetch current user's profile
  */
 export async function fetchProfile(): Promise<Profile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
     .single();
 
   if (error) {
-    console.error('Error fetching profile:', error);
+    console.error("Error fetching profile:", error);
     return null;
   }
 
@@ -180,13 +188,13 @@ export function useProfile() {
 
     // Subscribe to profile changes
     const subscription = supabase
-      .channel('profile-changes')
+      .channel("profile-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'profiles',
+          event: "*",
+          schema: "public",
+          table: "profiles",
           filter: `id=eq.${profile?.id}`,
         },
         (payload) => {
@@ -206,6 +214,70 @@ export function useProfile() {
   return { profile, loading, error };
 }
 
+/**
+ * 🆕 Fetch ALL profiles (team members)
+ */
+export async function fetchAllProfiles(): Promise<Profile[]> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*")
+    .order("display_name", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching all profiles:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * 🆕 Hook to get all team members with real-time updates
+ */
+export function useTeamMembers() {
+  const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadTeamMembers() {
+      const data = await fetchAllProfiles();
+      if (mounted) {
+        setTeamMembers(data);
+        setLoading(false);
+      }
+    }
+
+    loadTeamMembers();
+
+    // Subscribe to profile changes (when new users sign up or profiles update)
+    const subscription = supabase
+      .channel("team-member-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+        },
+        () => {
+          if (mounted) {
+            loadTeamMembers();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  return { teamMembers, loading };
+}
+
 // =====================================================
 // COMPANY HOOKS
 // =====================================================
@@ -215,13 +287,13 @@ export function useProfile() {
  */
 export async function fetchCompanies(): Promise<Company[]> {
   const { data, error } = await supabase
-    .from('companies')
-    .select('*')
-    .eq('is_active', true)
-    .order('name', { ascending: true });
+    .from("companies")
+    .select("*")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
 
   if (error) {
-    console.error('Error fetching companies:', error);
+    console.error("Error fetching companies:", error);
     return [];
   }
 
@@ -264,40 +336,42 @@ export function useCompanies() {
  * Fetch tasks with optional filters
  */
 export async function fetchTasks(filters?: {
-  status?: Task['status'] | Task['status'][];
+  status?: Task["status"] | Task["status"][];
   assignedTo?: string;
   companyId?: string;
 }): Promise<Task[]> {
   let query = supabase
-    .from('tasks')
-    .select(`
+    .from("tasks")
+    .select(
+      `
       *,
       company:companies(name, slug),
       assignee:profiles!assigned_to(display_name)
-    `)
-    .order('sort_order', { ascending: true })
-    .order('created_at', { ascending: false });
+    `
+    )
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: false });
 
   if (filters?.status) {
     if (Array.isArray(filters.status)) {
-      query = query.in('status', filters.status);
+      query = query.in("status", filters.status);
     } else {
-      query = query.eq('status', filters.status);
+      query = query.eq("status", filters.status);
     }
   }
 
   if (filters?.assignedTo) {
-    query = query.eq('assigned_to', filters.assignedTo);
+    query = query.eq("assigned_to", filters.assignedTo);
   }
 
   if (filters?.companyId) {
-    query = query.eq('company_id', filters.companyId);
+    query = query.eq("company_id", filters.companyId);
   }
 
   const { data, error } = await query;
 
   if (error) {
-    console.error('Error fetching tasks:', error);
+    console.error("Error fetching tasks:", error);
     return [];
   }
 
@@ -314,7 +388,7 @@ export async function fetchTasks(filters?: {
  * Hook to get tasks with real-time updates
  */
 export function useTasks(filters?: {
-  status?: Task['status'] | Task['status'][];
+  status?: Task["status"] | Task["status"][];
   assignedTo?: string;
   companyId?: string;
 }) {
@@ -336,13 +410,13 @@ export function useTasks(filters?: {
 
     // Subscribe to task changes
     const subscription = supabase
-      .channel('task-changes')
+      .channel("task-changes")
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'tasks',
+          event: "*",
+          schema: "public",
+          table: "tasks",
         },
         () => {
           if (mounted) {
@@ -365,11 +439,13 @@ export function useTasks(filters?: {
  * Create a new task
  */
 export async function createTask(task: Partial<Task>): Promise<Task | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from('tasks')
+    .from("tasks")
     .insert({
       ...task,
       created_by: user.id,
@@ -378,7 +454,7 @@ export async function createTask(task: Partial<Task>): Promise<Task | null> {
     .single();
 
   if (error) {
-    console.error('Error creating task:', error);
+    console.error("Error creating task:", error);
     return null;
   }
 
@@ -393,14 +469,14 @@ export async function updateTask(
   updates: Partial<Task>
 ): Promise<Task | null> {
   const { data, error } = await supabase
-    .from('tasks')
+    .from("tasks")
     .update(updates)
-    .eq('id', taskId)
+    .eq("id", taskId)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating task:', error);
+    console.error("Error updating task:", error);
     return null;
   }
 
@@ -411,45 +487,47 @@ export async function updateTask(
  * Complete a task and award XP
  */
 export async function completeTask(taskId: string): Promise<boolean> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return false;
 
   // First, get the task details
   const { data: task, error: fetchError } = await supabase
-    .from('tasks')
-    .select('impact, estimate_minutes')
-    .eq('id', taskId)
+    .from("tasks")
+    .select("impact, estimate_minutes")
+    .eq("id", taskId)
     .single();
 
   if (fetchError || !task) {
-    console.error('Error fetching task:', fetchError);
+    console.error("Error fetching task:", fetchError);
     return false;
   }
 
   // Mark task as completed
   const { error: updateError } = await supabase
-    .from('tasks')
+    .from("tasks")
     .update({
-      status: 'completed',
+      status: "completed",
       completed_at: new Date().toISOString(),
     })
-    .eq('id', taskId);
+    .eq("id", taskId);
 
   if (updateError) {
-    console.error('Error completing task:', updateError);
+    console.error("Error completing task:", updateError);
     return false;
   }
 
   // Award XP
-  const { data: xpResult, error: xpError } = await supabase.rpc('award_xp', {
+  const { data: xpResult, error: xpError } = await supabase.rpc("award_xp", {
     p_user_id: user.id,
     p_xp_amount: await calculateTaskXP(task.impact, task.estimate_minutes),
-    p_action_type: 'task_completed',
+    p_action_type: "task_completed",
     p_task_id: taskId,
   });
 
   if (xpError) {
-    console.error('Error awarding XP:', xpError);
+    console.error("Error awarding XP:", xpError);
   }
 
   return true;
@@ -458,14 +536,17 @@ export async function completeTask(taskId: string): Promise<boolean> {
 /**
  * Calculate XP for a task
  */
-async function calculateTaskXP(impact: string, estimateMinutes: number): Promise<number> {
-  const { data, error } = await supabase.rpc('calculate_xp_for_task', {
+async function calculateTaskXP(
+  impact: string,
+  estimateMinutes: number
+): Promise<number> {
+  const { data, error } = await supabase.rpc("calculate_xp_for_task", {
     task_impact: impact,
     task_estimate: estimateMinutes,
   });
 
   if (error) {
-    console.error('Error calculating XP:', error);
+    console.error("Error calculating XP:", error);
     // Fallback calculation
     const xpMap = { small: 5, medium: 10, large: 20 };
     return xpMap[impact as keyof typeof xpMap] || 5;
@@ -478,10 +559,10 @@ async function calculateTaskXP(impact: string, estimateMinutes: number): Promise
  * Delete a task
  */
 export async function deleteTask(taskId: string): Promise<boolean> {
-  const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
 
   if (error) {
-    console.error('Error deleting task:', error);
+    console.error("Error deleting task:", error);
     return false;
   }
 
@@ -497,10 +578,10 @@ export async function reorderTasks(taskIds: string[]): Promise<boolean> {
     sort_order: index,
   }));
 
-  const { error } = await supabase.from('tasks').upsert(updates);
+  const { error } = await supabase.from("tasks").upsert(updates);
 
   if (error) {
-    console.error('Error reordering tasks:', error);
+    console.error("Error reordering tasks:", error);
     return false;
   }
 
@@ -516,12 +597,12 @@ export async function reorderTasks(taskIds: string[]): Promise<boolean> {
  */
 export async function fetchNotes(): Promise<Note[]> {
   const { data, error } = await supabase
-    .from('notes')
-    .select('*')
-    .order('created_at', { ascending: false });
+    .from("notes")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error('Error fetching notes:', error);
+    console.error("Error fetching notes:", error);
     return [];
   }
 
@@ -536,11 +617,13 @@ export async function createNote(
   roleContext: AppRole,
   companyId?: string
 ): Promise<Note | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
 
   const { data, error } = await supabase
-    .from('notes')
+    .from("notes")
     .insert({
       content,
       author_id: user.id,
@@ -551,7 +634,7 @@ export async function createNote(
     .single();
 
   if (error) {
-    console.error('Error creating note:', error);
+    console.error("Error creating note:", error);
     return null;
   }
 
@@ -566,14 +649,14 @@ export async function updateNote(
   updates: Partial<Note>
 ): Promise<Note | null> {
   const { data, error } = await supabase
-    .from('notes')
+    .from("notes")
     .update(updates)
-    .eq('id', noteId)
+    .eq("id", noteId)
     .select()
     .single();
 
   if (error) {
-    console.error('Error updating note:', error);
+    console.error("Error updating note:", error);
     return null;
   }
 
@@ -584,10 +667,10 @@ export async function updateNote(
  * Delete a note
  */
 export async function deleteNote(noteId: string): Promise<boolean> {
-  const { error } = await supabase.from('notes').delete().eq('id', noteId);
+  const { error } = await supabase.from("notes").delete().eq("id", noteId);
 
   if (error) {
-    console.error('Error deleting note:', error);
+    console.error("Error deleting note:", error);
     return false;
   }
 
@@ -602,18 +685,20 @@ export async function deleteNote(noteId: string): Promise<boolean> {
  * Fetch activity log for current user
  */
 export async function fetchActivityLog(limit = 50): Promise<ActivityLog[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return [];
 
   const { data, error } = await supabase
-    .from('activity_log')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+    .from("activity_log")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   if (error) {
-    console.error('Error fetching activity log:', error);
+    console.error("Error fetching activity log:", error);
     return [];
   }
 
@@ -654,13 +739,13 @@ export function useActivityLog(limit = 50) {
 
 export async function getCompanyByName(name: string): Promise<Company | null> {
   const { data, error } = await supabase
-    .from('companies')
-    .select('*')
-    .eq('name', name)
+    .from("companies")
+    .select("*")
+    .eq("name", name)
     .single();
 
   if (error) {
-    console.error('Error fetching company:', error);
+    console.error("Error fetching company:", error);
     return null;
   }
 
