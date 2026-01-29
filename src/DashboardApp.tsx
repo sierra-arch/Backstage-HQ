@@ -2255,6 +2255,10 @@ export default function DashboardApp() {
     refetch,
   } = useTasks({ status: ["focus", "active", "submitted"] });
 
+  // NEW: Messages from database with real-time sync
+  const { messages, unreadCount, refetch: refetchMessages } = useMessages();
+  const hasUnreadMessages = unreadCount > 0;
+
   const [celebrate, setCelebrate] = useState(false);
   const [page, setPage] = useState<Page>("Today");
   const [selectedTask, setSelectedTask] = useState<DBTask | null>(null);
@@ -2265,8 +2269,6 @@ export default function DashboardApp() {
   const [showChat, setShowChat] = useState(false);
   const [showAddAccomplishment, setShowAddAccomplishment] = useState(false);
   const [accomplishments, setAccomplishments] = useState<Accomplishment[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [taskFilters, setTaskFilters] = useState({
     company: "all",
@@ -2278,6 +2280,25 @@ export default function DashboardApp() {
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  // NEW: Edit task modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<DBTask | null>(null);
+
+  // NEW: Client management
+  const [showClientModal, setShowClientModal] = useState(false);
+  const [selectedClientForEdit, setSelectedClientForEdit] = useState<Client | null>(null);
+
+  // NEW: Product management
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [selectedProductForEdit, setSelectedProductForEdit] = useState<Product | null>(null);
+
+  // NEW: SOP management
+  const [showSOPModal, setShowSOPModal] = useState(false);
+  const [selectedSOPForEdit, setSelectedSOPForEdit] = useState<SOP | null>(null);
+
+  // NEW: Approval queue (founders only)
+  const [showApprovalQueue, setShowApprovalQueue] = useState(false);
 
   const role: Role = profile?.role
     ? fromDbToUi[profile.role as AppRole]
@@ -2338,6 +2359,14 @@ export default function DashboardApp() {
   async function handleComplete(task: DBTask) {
     const success = await dbCompleteTask(task.id);
     if (success) {
+      // Send kudos message to team
+      await sendMessage(
+        `🎉 ${userName} completed: ${task.title}`,
+        undefined, // No recipient = team message
+        true, // is kudos
+        task.id // related task
+      );
+      
       setCelebrate(true);
       setTimeout(() => setCelebrate(false), 1500);
       refetch();
@@ -2349,30 +2378,24 @@ export default function DashboardApp() {
     setShowKudosModal(true);
   }
 
-  function handleSendKudos(kudosText: string) {
+  async function handleSendKudos(kudosText: string) {
     if (!kudosTask) return;
 
     // Complete the task
-    dbUpdateTask(kudosTask.id, { status: "completed" });
+    await dbUpdateTask(kudosTask.id, { status: "completed" });
 
-    // Send kudos as DM if provided
-    if (kudosText) {
-      const kudosMessage: Message = {
-        id: Date.now().toString(),
-        from: userName,
-        to: kudosTask.assignee_name || undefined,
-        content: kudosText,
-        timestamp: Date.now(),
-        type: "dm",
-        read: false,
-        isKudos: true,
-        taskLink: kudosTask.id,
-      };
-      setMessages([...messages, kudosMessage]);
-      setHasUnreadMessages(true);
+    // Send kudos message if provided
+    if (kudosText && kudosTask.assigned_to) {
+      await sendMessage(
+        kudosText,
+        kudosTask.assigned_to, // Send to assignee
+        true, // is kudos
+        kudosTask.id // related task
+      );
     }
 
     refetch();
+    setShowKudosModal(false);
     setKudosTask(null);
   }
 
@@ -2402,21 +2425,16 @@ export default function DashboardApp() {
     }
   }
 
-  function handleSendMessage(content: string, to?: string) {
-    const messageType: "dm" | "team" = to ? "dm" : "team";
-    const msg: Message = {
-      id: Date.now().toString(),
-      from: userName,
-      to,
-      content,
-      timestamp: Date.now(),
-      type: messageType,
-      read: false,
-    };
-    setMessages([...messages, msg]);
+  async function handleSendMessage(content: string, to?: string) {
+    // Find the recipient's user ID if it's a DM
+    let toUserId: string | undefined;
     if (to) {
-      setHasUnreadMessages(true);
+      const recipient = teamMembers.find(tm => tm.display_name === to);
+      toUserId = recipient?.id;
     }
+    
+    await sendMessage(content, toUserId);
+    // Real-time subscription will update messages automatically
   }
 
   function openTaskModal(task: DBTask) {
