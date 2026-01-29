@@ -1,6 +1,6 @@
 import React from "react";
 import { supabase } from "./supabase";
-import DashboardApp from "./DashboardApp.tsx";
+import DashboardApp from "./DashboardApp";
 
 /* ---------------- Types ---------------- */
 type AppRole = "founder" | "team";
