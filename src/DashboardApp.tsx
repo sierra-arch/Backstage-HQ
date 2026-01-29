@@ -26,6 +26,16 @@ import {
   approvePendingChange,
   rejectPendingChange,
 } from "./useDatabase";
+import EditTaskModal from "./EditTaskModal";
+import { 
+  ClientCard, 
+  ClientModal,
+  ProductCard,
+  ProductModal,
+  SOPCard,
+  SOPModal 
+} from "./CompanyManagement_Components";
+import { ApprovalQueue, ApprovalBadge } from "./ApprovalQueue";
 
 /* ──────────────────────────────────────────────────────────────────
    Types & Constants
