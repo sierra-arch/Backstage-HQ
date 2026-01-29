@@ -1124,7 +1124,7 @@ function CompanyModal({
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Chat System
+   Chat System - FIXED FOR DATABASE MESSAGES
    ────────────────────────────────────────────────────────────────── */
 function ChatPanel({
   userName,
@@ -1141,6 +1141,9 @@ function ChatPanel({
   onSendMessage: (content: string, to?: string) => void;
   teamMembers?: { id: string; display_name: string | null }[];
 }) {
+  const { profile } = useProfile(); // Get current user profile
+  const currentUserId = profile?.id;
+
   const [newMessage, setNewMessage] = useState("");
   const [activeChannel, setActiveChannel] = useState<"team" | string>("team");
 
@@ -1155,13 +1158,16 @@ function ChatPanel({
   // Filter messages based on active channel
   const filteredMessages = messages.filter((msg) => {
     if (activeChannel === "team") {
-      // Show team messages only (not DMs, not highlights)
-      return msg.type === "team" && !msg.isKudos;
+      // Show team messages only (not DMs, not kudos)
+      return msg.message_type === "team" && !msg.is_kudos;
     } else {
-      // DM channel - show messages between user and selected person (including highlights)
+      // DM channel - show messages between user and selected person
+      const otherUser = teamMembers.find(tm => tm.display_name === activeChannel);
+      const otherUserId = otherUser?.id;
+      
       return (
-        (msg.from === activeChannel && msg.to === userName) ||
-        (msg.from === userName && msg.to === activeChannel)
+        (msg.from_user_id === otherUserId && msg.to_user_id === currentUserId) ||
+        (msg.from_user_id === currentUserId && msg.to_user_id === otherUserId)
       );
     }
   });
@@ -1173,10 +1179,27 @@ function ChatPanel({
 
   // Check for unread DMs per person
   const hasUnreadDM = (person: string) => {
+    const otherUser = teamMembers.find(tm => tm.display_name === person);
+    if (!otherUser) return false;
+    
     return messages.some(
-      (msg) => msg.from === person && msg.to === userName && !msg.read
+      (msg) => 
+        msg.from_user_id === otherUser.id && 
+        msg.to_user_id === currentUserId && 
+        !msg.is_read
     );
   };
+
+  // Mark messages as read when switching to a DM channel
+  function switchChannel(channel: string) {
+    setActiveChannel(channel);
+    if (channel !== "team") {
+      const otherUser = teamMembers.find(tm => tm.display_name === channel);
+      if (otherUser) {
+        markMessagesFromUserAsRead(otherUser.id);
+      }
+    }
+  }
 
   if (!isOpen) return null;
 
@@ -1201,7 +1224,7 @@ function ChatPanel({
             </p>
 
             <button
-              onClick={() => setActiveChannel("team")}
+              onClick={() => switchChannel("team")}
               className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
                 activeChannel === "team"
                   ? "bg-teal-100 text-teal-900 font-medium"
@@ -1220,7 +1243,7 @@ function ChatPanel({
             {teammates.map((person) => (
               <button
                 key={person}
-                onClick={() => setActiveChannel(person)}
+                onClick={() => switchChannel(person)}
                 className={`w-full text-left px-2 py-1.5 rounded text-sm flex items-center gap-2 ${
                   activeChannel === person
                     ? "bg-teal-100 text-teal-900 font-medium"
@@ -1269,28 +1292,28 @@ function ChatPanel({
               <div
                 key={msg.id}
                 className={`rounded-xl p-3 ${
-                  msg.isKudos
+                  msg.is_kudos
                     ? "bg-yellow-50 border border-yellow-200"
                     : "bg-neutral-50"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1">
-                  <Avatar name={msg.from} size={20} />
-                  <span className="text-xs font-medium">{msg.from}</span>
-                  {msg.isKudos && (
+                  <Avatar name={msg.from_name || "Unknown"} size={20} />
+                  <span className="text-xs font-medium">{msg.from_name || "Unknown"}</span>
+                  {msg.is_kudos && (
                     <span className="text-xs text-yellow-600 font-medium">
                       Task Highlight
                     </span>
                   )}
                   <span className="text-xs text-neutral-400 ml-auto">
-                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                    {new Date(msg.created_at).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </span>
                 </div>
                 <p className="text-sm text-neutral-700">{msg.content}</p>
-                {msg.taskLink && (
+                {msg.related_task_id && (
                   <a
                     href="#"
                     className="text-xs text-teal-600 underline mt-1 block"
