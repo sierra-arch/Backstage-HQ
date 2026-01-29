@@ -26,16 +26,6 @@ import {
   approvePendingChange,
   rejectPendingChange,
 } from "./useDatabase";
-import EditTaskModal from "./EditTaskModal";
-import { 
-  ClientCard, 
-  ClientModal,
-  ProductCard,
-  ProductModal,
-  SOPCard,
-  SOPModal 
-} from "./CompanyManagement_Components";
-import { ApprovalQueue, ApprovalBadge } from "./ApprovalQueue";
 
 /* ──────────────────────────────────────────────────────────────────
    Types & Constants
@@ -2409,7 +2399,7 @@ export default function DashboardApp() {
     setKudosTask(null);
   }
 
-  function handleAddAccomplishment(text: string, postToTeam: boolean) {
+  async function handleAddAccomplishment(text: string, postToTeam: boolean) {
     const accomplishment: Accomplishment = {
       id: Date.now().toString(),
       user: userName,
@@ -2420,18 +2410,15 @@ export default function DashboardApp() {
 
     setAccomplishments([...accomplishments, accomplishment]);
 
-    // If posting to team, add message and show notification
+    // If posting to team, send message to database
     if (postToTeam) {
-      const teamMsg: Message = {
-        id: Date.now().toString() + "-team",
-        from: userName,
-        content: `🎉 ${text}`,
-        timestamp: Date.now(),
-        type: "team",
-        read: false,
-      };
-      setMessages([...messages, teamMsg]);
-    // Removed - using useMessages hook instead    }
+      await sendMessage(
+        `🎉 ${text}`,
+        undefined, // team message
+        false, // not kudos
+        undefined // no related task
+      );
+    }
   }
 
   async function handleSendMessage(content: string, to?: string) {
@@ -2932,9 +2919,9 @@ export default function DashboardApp() {
             onSearch={setSearchQuery}
             onOpenChat={() => {
               setShowChat(true);
-              setHasUnreadMessages(false);
+              // Unread messages handled by useMessages hook
             }}
-            unreadCount={hasUnreadMessages ? 1 : 0}
+            unreadCount={unreadCount}
           />
 
           {page === "Today" &&
