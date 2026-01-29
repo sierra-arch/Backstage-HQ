@@ -2431,8 +2431,7 @@ export default function DashboardApp() {
         read: false,
       };
       setMessages([...messages, teamMsg]);
-      setHasUnreadMessages(true);
-    }
+    // Removed - using useMessages hook instead    }
   }
 
   async function handleSendMessage(content: string, to?: string) {
