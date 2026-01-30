@@ -49,8 +49,6 @@ function useSession() {
 const isFounder = (r: Role) => r === "Founder";
 
 const COMPANIES = ["Prose Florals", "Backstage", "Mairé"] as const;
-
-const TASK_WEIGHT: Record<DBTask["impact"], number> = { small: 1, medium: 2, large: 3 };
 const XP_BY_IMPACT = { small: 5, medium: 10, large: 20 } as const;
 const LEVEL_XP_THRESHOLD = 200;
 
@@ -866,6 +864,277 @@ function TaskCreateModal({
   );
 }
 
+
+/* ──────────────────────────────────────────────────────────────────
+   Create Client / Product (Founder only)
+   ────────────────────────────────────────────────────────────────── */
+function CreateClientModal({
+  isOpen,
+  onClose,
+  companyName,
+  onCreated,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  companyName: string | null;
+  onCreated: () => void;
+}) {
+  const [name, setName] = React.useState("");
+  const [contactEmail, setContactEmail] = React.useState("");
+  const [contactPhone, setContactPhone] = React.useState("");
+  const [photoUrl, setPhotoUrl] = React.useState("");
+  const [description, setDescription] = React.useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setName("");
+      setContactEmail("");
+      setContactPhone("");
+      setPhotoUrl("");
+      setDescription("");
+    }
+  }, [isOpen]);
+
+  async function handleCreate() {
+    if (!companyName || !name.trim()) return;
+
+    const company = await getCompanyByName(companyName);
+    // Prefer company_id if available, otherwise fall back to company_name
+    const payload: any = {
+      company_id: company?.id ?? null,
+      company_name: companyName,
+      name: name.trim(),
+      contact_email: contactEmail || null,
+      contact_phone: contactPhone || null,
+      photo_url: photoUrl || null,
+      description: description || null,
+    };
+
+    const { error } = await supabase.from("clients").insert(payload);
+    if (error) {
+      console.error("Create client error:", error);
+      alert(error.message);
+      return;
+    }
+
+    onCreated();
+    onClose();
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Client / Project"
+      subtitle={companyName ? `for ${companyName}` : undefined}
+      size="medium"
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Name *</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            placeholder="e.g. Sarah Wedding"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Email</label>
+            <input
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              placeholder="email@client.com"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Phone</label>
+            <input
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              placeholder="(555) 555-5555"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Photo URL</label>
+          <input
+            value={photoUrl}
+            onChange={(e) => setPhotoUrl(e.target.value)}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+            placeholder="Optional notes…"
+          />
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={!companyName || !name.trim()}
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function CreateProductModal({
+  isOpen,
+  onClose,
+  companyName,
+  onCreated,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  companyName: string | null;
+  onCreated: () => void;
+}) {
+  const [name, setName] = React.useState("");
+  const [photoUrl, setPhotoUrl] = React.useState("");
+  const [etsyLink, setEtsyLink] = React.useState("");
+  const [sku, setSku] = React.useState("");
+  const [description, setDescription] = React.useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setName("");
+      setPhotoUrl("");
+      setEtsyLink("");
+      setSku("");
+      setDescription("");
+    }
+  }, [isOpen]);
+
+  async function handleCreate() {
+    if (!companyName || !name.trim()) return;
+
+    const company = await getCompanyByName(companyName);
+    const payload: any = {
+      company_id: company?.id ?? null,
+      company_name: companyName,
+      name: name.trim(),
+      photo_url: photoUrl || null,
+      etsy_link: etsyLink || null,
+      sku: sku || null,
+      description: description || null,
+    };
+
+    const { error } = await supabase.from("products").insert(payload);
+    if (error) {
+      console.error("Create product error:", error);
+      alert(error.message);
+      return;
+    }
+
+    onCreated();
+    onClose();
+  }
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Product"
+      subtitle={companyName ? `for ${companyName}` : undefined}
+      size="medium"
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Name *</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            placeholder="e.g. Pressed Bouquet Frame"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Photo URL</label>
+          <input
+            value={photoUrl}
+            onChange={(e) => setPhotoUrl(e.target.value)}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            placeholder="https://..."
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-sm font-medium text-neutral-700">SKU</label>
+            <input
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              placeholder="Optional"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Etsy Link</label>
+            <input
+              value={etsyLink}
+              onChange={(e) => setEtsyLink(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+            placeholder="Optional notes…"
+          />
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={!companyName || !name.trim()}
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 /* ──────────────────────────────────────────────────────────────────
    Client/Product Modals
    ────────────────────────────────────────────────────────────────── */
@@ -1006,18 +1275,42 @@ function CompanyModal({
   onClose,
   onClientClick,
   onProductClick,
+  dbClients,
+  dbProducts,
+  role,
+  onAddClient,
+  onAddProduct,
 }: {
   companyName: string | null;
   isOpen: boolean;
   onClose: () => void;
   onClientClick: (client: Client) => void;
   onProductClick: (product: Product) => void;
+
+  dbClients: Client[];
+  dbProducts: Product[];
+  role: Role;
+
+  onAddClient: (companyName: string) => void;
+  onAddProduct: (companyName: string) => void;
 }) {
   if (!companyName) return null;
 
   const company = COMPANY_DATA[companyName];
-  const clients = MOCK_CLIENTS.filter((c) => c.company === companyName);
-  const products = companyName === "Mairé" ? MOCK_PRODUCTS : [];
+
+// Prefer real DB data (fall back gracefully if fields differ)
+const clients = dbClients.filter(
+  (c: any) =>
+    (c.company_name && c.company_name === companyName) ||
+    (c.company && c.company === companyName)
+);
+
+const products = dbProducts.filter(
+  (p: any) =>
+    (p.company_name && p.company_name === companyName) ||
+    (p.company && p.company === companyName)
+);
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={companyName} size="large">
@@ -1066,6 +1359,24 @@ function CompanyModal({
             ))}
           </div>
         </div>
+
+
+{isFounder(role) && (
+  <div className="flex gap-2">
+    <button
+      onClick={() => onAddClient(companyName)}
+      className="rounded-xl border px-3 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+    >
+      + Add Client / Project
+    </button>
+    <button
+      onClick={() => onAddProduct(companyName)}
+      className="rounded-xl border px-3 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+    >
+      + Add Product
+    </button>
+  </div>
+)}
 
         <div>
           <label className="text-sm font-medium text-neutral-700 block mb-3">
@@ -1705,17 +2016,11 @@ function CompaniesPage({
   onClientClick,
   onProductClick,
   navigateTo,
-  tasks,
-  clients,
-  products,
 }: {
   onCompanyClick: (company: string) => void;
   onClientClick: (client: Client) => void;
   onProductClick: (product: Product) => void;
   navigateTo: (page: Page) => void;
-  tasks: DBTask[];
-  clients: Client[];
-  products: Product[];
 }) {
   // Social icon component
   const SocialIcon = ({ platform }: { platform: string }) => {
@@ -1743,29 +2048,28 @@ function CompaniesPage({
     <div className="space-y-6">
       {COMPANIES.map((companyName) => {
         const company = COMPANY_DATA[companyName];
-        const clients = MOCK_CLIENTS.filter(
-          (c) => c.company === companyName
-        ).slice(0, 4);
-        const products =
-          companyName === "Mairé" ? MOCK_PRODUCTS.slice(0, 6) : [];
+        const clients = dbClients
+  .filter(
+    (c: any) =>
+      (c.company_name && c.company_name === companyName) ||
+      (c.company && c.company === companyName)
+  )
+  .slice(0, 4);
+
+const products = dbProducts
+  .filter(
+    (p: any) =>
+      (p.company_name && p.company_name === companyName) ||
+      (p.company && p.company === companyName)
+  )
+  .slice(0, 6);
+
         const items = companyName === "Mairé" ? products : clients;
 
-        // Calculate progress (weighted by impact: small=1, medium=2, large=3)
-        const relevantTasks = tasks.filter(
-          (t) => t.company_name === companyName && t.status !== "archived"
-        );
-        let totalWeight = 0;
-        let completedWeight = 0;
-        relevantTasks.forEach((t) => {
-          totalWeight += TASK_WEIGHT[t.impact];
-          if (t.status === "completed") completedWeight += TASK_WEIGHT[t.impact];
-        });
-        const progress =
-          totalWeight === 0 ? 100 : Math.round((completedWeight / totalWeight) * 100);
-
-        const openCount = relevantTasks.filter(
-          (t) => t.status !== "completed" && t.status !== "archived"
-        ).length;
+        // Calculate progress
+        const completedTasks = 0; // Mock data
+        const totalTasks = 1;
+        const progress = Math.round((completedTasks / totalTasks) * 100) || 45; // Mock 45%
 
         // Get company-specific chip colors
         const chipColors: Record<string, string> = {
@@ -2296,10 +2600,19 @@ export default function DashboardApp() {
     tasks,
     loading: tasksLoading,
     refetch,
-  } = useTasks({ status: ["focus", "active", "submitted", "completed"] });
+  } = useTasks({ status: ["focus", "active", "submitted"] });
 
-  const { clients, refetch: refetchClients } = useClients();
-  const { products, refetch: refetchProducts } = useProducts();
+
+// Clients & Products (real DB data)
+// NOTE: useDatabase hook return shapes can differ; this normalizes safely.
+const clientsHook: any = useClients();
+const productsHook: any = useProducts();
+
+const dbClients: Client[] =
+  (clientsHook?.clients ?? clientsHook?.data ?? clientsHook ?? []) as Client[];
+const dbProducts: Product[] =
+  (productsHook?.products ?? productsHook?.data ?? productsHook ?? []) as Product[];
+
 
   // NEW: Messages from database with real-time sync
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
@@ -2324,6 +2637,9 @@ export default function DashboardApp() {
     assignee: "all",
   });
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+const [showCreateClientModal, setShowCreateClientModal] = useState(false);
+const [showCreateProductModal, setShowCreateProductModal] = useState(false);
+const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -3093,9 +3409,6 @@ export default function DashboardApp() {
               onClientClick={setSelectedClient}
               onProductClick={setSelectedProduct}
               navigateTo={setPage as any}
-              tasks={tasks}
-              clients={clients || []}
-              products={products || []}
             />
           )}
           {page === "My Team" && isFounder(role) && (
@@ -3140,7 +3453,37 @@ export default function DashboardApp() {
         onClose={() => setSelectedCompany(null)}
         onClientClick={setSelectedClient}
         onProductClick={setSelectedProduct}
+        dbClients={dbClients}
+        dbProducts={dbProducts}
+        role={role}
+        onAddClient={(companyName) => {
+          setPrefillCompanyForCreate(companyName);
+          setShowCreateClientModal(true);
+        }}
+        onAddProduct={(companyName) => {
+          setPrefillCompanyForCreate(companyName);
+          setShowCreateProductModal(true);
+        }}
       />
+
+<CreateClientModal
+  isOpen={showCreateClientModal}
+  onClose={() => setShowCreateClientModal(false)}
+  companyName={prefillCompanyForCreate}
+  onCreated={() => {
+    (clientsHook as any)?.refetch?.();
+  }}
+/>
+
+<CreateProductModal
+  isOpen={showCreateProductModal}
+  onClose={() => setShowCreateProductModal(false)}
+  companyName={prefillCompanyForCreate}
+  onCreated={() => {
+    (productsHook as any)?.refetch?.();
+  }}
+/>
+
 
       <ClientModal
         client={selectedClient}
