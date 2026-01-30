@@ -49,6 +49,8 @@ function useSession() {
 const isFounder = (r: Role) => r === "Founder";
 
 const COMPANIES = ["Prose Florals", "Backstage", "Mairé"] as const;
+
+const TASK_WEIGHT: Record<DBTask["impact"], number> = { small: 1, medium: 2, large: 3 };
 const XP_BY_IMPACT = { small: 5, medium: 10, large: 20 } as const;
 const LEVEL_XP_THRESHOLD = 200;
 
@@ -1703,11 +1705,17 @@ function CompaniesPage({
   onClientClick,
   onProductClick,
   navigateTo,
+  tasks,
+  clients,
+  products,
 }: {
   onCompanyClick: (company: string) => void;
   onClientClick: (client: Client) => void;
   onProductClick: (product: Product) => void;
   navigateTo: (page: Page) => void;
+  tasks: DBTask[];
+  clients: Client[];
+  products: Product[];
 }) {
   // Social icon component
   const SocialIcon = ({ platform }: { platform: string }) => {
@@ -1742,10 +1750,22 @@ function CompaniesPage({
           companyName === "Mairé" ? MOCK_PRODUCTS.slice(0, 6) : [];
         const items = companyName === "Mairé" ? products : clients;
 
-        // Calculate progress
-        const completedTasks = 0; // Mock data
-        const totalTasks = 1;
-        const progress = Math.round((completedTasks / totalTasks) * 100) || 45; // Mock 45%
+        // Calculate progress (weighted by impact: small=1, medium=2, large=3)
+        const relevantTasks = tasks.filter(
+          (t) => t.company_name === companyName && t.status !== "archived"
+        );
+        let totalWeight = 0;
+        let completedWeight = 0;
+        relevantTasks.forEach((t) => {
+          totalWeight += TASK_WEIGHT[t.impact];
+          if (t.status === "completed") completedWeight += TASK_WEIGHT[t.impact];
+        });
+        const progress =
+          totalWeight === 0 ? 100 : Math.round((completedWeight / totalWeight) * 100);
+
+        const openCount = relevantTasks.filter(
+          (t) => t.status !== "completed" && t.status !== "archived"
+        ).length;
 
         // Get company-specific chip colors
         const chipColors: Record<string, string> = {
@@ -2276,7 +2296,10 @@ export default function DashboardApp() {
     tasks,
     loading: tasksLoading,
     refetch,
-  } = useTasks({ status: ["focus", "active", "submitted"] });
+  } = useTasks({ status: ["focus", "active", "submitted", "completed"] });
+
+  const { clients, refetch: refetchClients } = useClients();
+  const { products, refetch: refetchProducts } = useProducts();
 
   // NEW: Messages from database with real-time sync
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
@@ -3070,6 +3093,9 @@ export default function DashboardApp() {
               onClientClick={setSelectedClient}
               onProductClick={setSelectedProduct}
               navigateTo={setPage as any}
+              tasks={tasks}
+              clients={clients || []}
+              products={products || []}
             />
           )}
           {page === "My Team" && isFounder(role) && (
