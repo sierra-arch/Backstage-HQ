@@ -3,7 +3,7 @@ import React from "react";
 import { DBTask, Accomplishment, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
 import { Card, Chip, Avatar, CompanyChip, LevelRing } from "./ui";
 import { TaskList } from "./TasksPage";
-import { updateTask as dbUpdateTask } from "./useDatabase";
+import { updateTask as dbUpdateTask, useCompanyGoals } from "./useDatabase";
 
 /* ──────────────────────────────────────────────────────────────────
    Confetti
@@ -141,6 +141,36 @@ function BrandSnapshot({
             </div>
           </div>
         ))}
+      </div>
+    </Card>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Company Goals Card (live from DB)
+   ────────────────────────────────────────────────────────────────── */
+function CompanyGoalsCard({ className }: { className?: string }) {
+  const { goals } = useCompanyGoals();
+  return (
+    <Card title="Company Goals" subtitle="Targets & progress" className={className}>
+      <div className="space-y-3">
+        {goals.length === 0 && (
+          <div className="text-sm text-neutral-400 text-center py-4">No goals set yet.</div>
+        )}
+        {goals.map((g) => {
+          const pct = g.target_value > 0 ? Math.min(100, Math.round((g.current_value / g.target_value) * 100)) : 0;
+          return (
+            <div key={g.id} className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium">{g.label}</div>
+                <div className="text-xs text-neutral-500">{pct}{g.unit === "%" ? "%" : ` ${g.unit}`}</div>
+              </div>
+              <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
+                <div className="h-full bg-teal-600" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </Card>
   );
@@ -316,21 +346,7 @@ export function TodayFounder({
           </div>
         </div>
         <div className="col-span-12 md:col-span-4">
-          <Card title="Company Goals" subtitle="Company & Role" className={equalCardH}>
-            <div className="space-y-3">
-              {[{ label: "Q1 MRR", value: 62 }, { label: "Ops SLAs", value: 78 }, { label: "VA playbook", value: 40 }].map((g) => (
-                <div key={g.label} className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-medium">{g.label}</div>
-                    <div className="text-xs text-neutral-500">{g.value}%</div>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                    <div className="h-full bg-teal-600" style={{ width: `${g.value}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <CompanyGoalsCard className={equalCardH} />
         </div>
         <div className="col-span-12 md:col-span-4">
           <AccomplishmentsCard accomplishments={accomplishments} onOpenAddAccomplishment={onOpenAddAccomplishment} />
@@ -452,21 +468,7 @@ export function TodayTeam({
           </Card>
         </div>
         <div className="col-span-12 md:col-span-4">
-          <Card title="Company Goals" subtitle="Company & Role" className={equalCardH}>
-            <div className="space-y-3">
-              {[{ label: "Q1 MRR", value: 62 }, { label: "Ops SLAs", value: 78 }, { label: "VA playbook", value: 40 }].map((g) => (
-                <div key={g.label} className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-sm font-medium">{g.label}</div>
-                    <div className="text-xs text-neutral-500">{g.value}%</div>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                    <div className="h-full bg-teal-600" style={{ width: `${g.value}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
+          <CompanyGoalsCard className={equalCardH} />
         </div>
         <div className="col-span-12 md:col-span-4">
           <AccomplishmentsCard accomplishments={accomplishments} onOpenAddAccomplishment={onOpenAddAccomplishment} />

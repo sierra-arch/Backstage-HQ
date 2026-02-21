@@ -28,6 +28,8 @@ import { ChatPanel } from "./ChatPanel";
 import { TodayFounder, TodayTeam, Confetti } from "./TodayPage";
 import { TasksPage } from "./TasksPage";
 import { MyTeamPage } from "./MyTeamPage";
+import { PlaybookPage } from "./PlaybookPage";
+import { MeetingsPage } from "./MeetingsPage";
 import { Sidebar, TopHeader } from "./Navigation";
 import { Card, LevelRing } from "./ui";
 import {
@@ -55,42 +57,6 @@ function useSession() {
 /* ──────────────────────────────────────────────────────────────────
    Inline simple pages (small enough to stay here)
    ────────────────────────────────────────────────────────────────── */
-function MeetingsPage() {
-  const [agenda, setAgenda] = useState("");
-  return (
-    <div className="space-y-6">
-      <Card title="Upcoming Meetings" subtitle="Next 7 days">
-        <div className="space-y-2">
-          <div className="rounded-xl border p-3 bg-white flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">Ops Standup</div>
-              <div className="text-xs text-neutral-500">Tue 11:30 AM • Backstage</div>
-            </div>
-            <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">Open agenda</button>
-          </div>
-          <div className="rounded-xl border p-3 bg-white flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">Client Onboarding</div>
-              <div className="text-xs text-neutral-500">Thu 2:00 PM • Prose Florals</div>
-            </div>
-            <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">Checklist</button>
-          </div>
-        </div>
-      </Card>
-      <Card title="Meeting Agenda & Notes">
-        <textarea
-          className="w-full min-h-[200px] rounded-xl border p-3 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
-          placeholder={"Add meeting notes and agenda items here...\n\n• Topic 1\n• Topic 2\n• Action items"}
-          value={agenda} onChange={(e) => setAgenda(e.target.value)}
-        />
-        <button className="mt-3 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium">
-          Save to Google Doc
-        </button>
-      </Card>
-    </div>
-  );
-}
-
 function SettingsPage({ userName, userEmail, userId }: { userName: string; userEmail: string; userId: string }) {
   const [displayName, setDisplayName] = useState(userName);
   const [saving, setSaving] = useState(false);
@@ -335,7 +301,7 @@ export default function DashboardApp() {
             />
           )}
 
-          {page === "Meetings" && isFounder(role) && <MeetingsPage />}
+          {page === "Meetings" && isFounder(role) && <MeetingsPage role={role} />}
 
           {page === "Tasks" && (
             <TasksPage
@@ -373,11 +339,7 @@ export default function DashboardApp() {
             </Card>
           )}
 
-          {page === "Playbook" && (
-            <Card title="Playbook" subtitle="SOPs and guides">
-              <div className="text-sm text-neutral-500">Coming soon with database integration</div>
-            </Card>
-          )}
+          {page === "Playbook" && <PlaybookPage role={role} />}
         </main>
       </div>
 

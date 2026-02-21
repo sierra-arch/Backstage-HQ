@@ -1247,6 +1247,131 @@ export async function getUnreadMessageCount(): Promise<number> {
   return count || 0;
 }
 
+// =====================================================
+// MEETINGS
+// =====================================================
+
+export interface Meeting {
+  id: string;
+  title: string;
+  scheduled_at: string;
+  company_id: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchMeetings(): Promise<Meeting[]> {
+  const { data, error } = await supabase
+    .from("meetings")
+    .select("*")
+    .order("scheduled_at", { ascending: true });
+  if (error) { console.error("Error fetching meetings:", error); return []; }
+  return data || [];
+}
+
+export async function createMeeting(meeting: Omit<Meeting, "id" | "created_at" | "updated_at">): Promise<Meeting | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("meetings")
+    .insert({ ...meeting, created_by: user.id })
+    .select()
+    .single();
+  if (error) { console.error("Error creating meeting:", error); return null; }
+  return data;
+}
+
+export async function updateMeeting(id: string, updates: Partial<Meeting>): Promise<boolean> {
+  const { error } = await supabase.from("meetings").update(updates).eq("id", id);
+  if (error) { console.error("Error updating meeting:", error); return false; }
+  return true;
+}
+
+export async function deleteMeeting(id: string): Promise<boolean> {
+  const { error } = await supabase.from("meetings").delete().eq("id", id);
+  if (error) { console.error("Error deleting meeting:", error); return false; }
+  return true;
+}
+
+export function useMeetings() {
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const data = await fetchMeetings();
+    setMeetings(data);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) load();
+    const sub = supabase.channel("meeting-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "meetings" }, () => { if (mounted) load(); })
+      .subscribe();
+    return () => { mounted = false; sub.unsubscribe(); };
+  }, [load]);
+
+  return { meetings, loading, refetch: load };
+}
+
+// =====================================================
+// COMPANY GOALS
+// =====================================================
+
+export interface CompanyGoal {
+  id: string;
+  company_id: string | null;
+  label: string;
+  current_value: number;
+  target_value: number;
+  unit: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchCompanyGoals(companyId?: string): Promise<CompanyGoal[]> {
+  let query = supabase.from("company_goals").select("*").order("created_at", { ascending: true });
+  if (companyId) query = query.eq("company_id", companyId);
+  const { data, error } = await query;
+  if (error) { console.error("Error fetching goals:", error); return []; }
+  return data || [];
+}
+
+export async function upsertCompanyGoal(goal: Partial<CompanyGoal>): Promise<CompanyGoal | null> {
+  const { data, error } = await supabase
+    .from("company_goals")
+    .upsert(goal, { onConflict: "id" })
+    .select()
+    .single();
+  if (error) { console.error("Error upserting goal:", error); return null; }
+  return data;
+}
+
+export function useCompanyGoals(companyId?: string) {
+  const [goals, setGoals] = useState<CompanyGoal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const data = await fetchCompanyGoals(companyId);
+    setGoals(data);
+    setLoading(false);
+  }, [companyId]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) load();
+    const sub = supabase.channel("goal-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "company_goals" }, () => { if (mounted) load(); })
+      .subscribe();
+    return () => { mounted = false; sub.unsubscribe(); };
+  }, [load]);
+
+  return { goals, loading, refetch: load };
+}
+
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
