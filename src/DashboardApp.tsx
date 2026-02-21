@@ -2,6 +2,8 @@
 // ✨ Full client/product management, cover photos, smart navigation
 import "./styles.css";
 import React, { useState } from "react";
+import { CompaniesPage as CompaniesPageDB } from "./CompaniesPage";
+import { CompanyDrawer } from "./CompanyDrawer";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabase";
 import {
@@ -1698,181 +1700,6 @@ function BrandSnapshot({
   );
 }
 
-function CompaniesPage({
-  onCompanyClick,
-  onClientClick,
-  onProductClick,
-  navigateTo,
-}: {
-  onCompanyClick: (company: string) => void;
-  onClientClick: (client: Client) => void;
-  onProductClick: (product: Product) => void;
-  navigateTo: (page: Page) => void;
-}) {
-  // Social icon component
-  const SocialIcon = ({ platform }: { platform: string }) => {
-    const letters: Record<string, string> = {
-      Instagram: "IG",
-      Facebook: "FB",
-      Twitter: "TW",
-      Website: "W",
-      TikTok: "TT",
-      Etsy: "ET",
-      LinkedIn: "LI",
-      Pinterest: "PI",
-    };
-
-    return (
-      <div className="w-8 h-8 rounded-full border-2 border-teal-700 flex items-center justify-center text-teal-700 hover:bg-teal-50 cursor-pointer transition-colors">
-        <span className="text-[9px] font-bold">
-          {letters[platform] || platform.slice(0, 2).toUpperCase()}
-        </span>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-6">
-      {COMPANIES.map((companyName) => {
-        const company = COMPANY_DATA[companyName];
-        const clients = MOCK_CLIENTS.filter(
-          (c) => c.company === companyName
-        ).slice(0, 4);
-        const products =
-          companyName === "Mairé" ? MOCK_PRODUCTS.slice(0, 6) : [];
-        const items = companyName === "Mairé" ? products : clients;
-
-        // Calculate progress
-        const completedTasks = 0; // Mock data
-        const totalTasks = 1;
-        const progress = Math.round((completedTasks / totalTasks) * 100) || 45; // Mock 45%
-
-        // Get company-specific chip colors
-        const chipColors: Record<string, string> = {
-          "Prose Florals": "bg-lime-50 text-lime-900 border-lime-200",
-          Backstage: "bg-teal-100 text-teal-900 border-teal-300",
-          Mairé: "bg-emerald-50 text-emerald-900 border-emerald-200",
-        };
-
-        return (
-          <Card
-            key={companyName}
-            className="border-2 border-teal-100 hover:border-teal-200 transition-colors"
-            onClick={() => onCompanyClick(companyName)}
-          >
-            <div className="space-y-4">
-              {/* Top row: Logo/Name, Progress Bar, Software, Social */}
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center flex-shrink-0">
-                    <svg viewBox="0 0 200 150" className="w-7 h-7 opacity-60">
-                      <path
-                        d="M0,150 L50,80 L100,100 L150,40 L200,150 Z"
-                        fill="#0F766E"
-                      />
-                      <circle cx="160" cy="40" r="15" fill="#0F766E" />
-                    </svg>
-                  </div>
-                  <h3 className="text-xl font-semibold">{companyName}</h3>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  {/* Progress bar */}
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-32 rounded-full bg-teal-100 overflow-hidden">
-                      <div
-                        className="h-full bg-teal-600"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-neutral-500 w-10">
-                      {progress}%
-                    </span>
-                  </div>
-
-                  {/* Software chips */}
-                  <div className="flex gap-2">
-                    {company.software_links.map((link, i) => (
-                      <a
-                        key={i}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className={`text-xs px-3 py-1 rounded-full border ${chipColors[companyName]} hover:opacity-80 transition-opacity`}
-                      >
-                        {link.name}
-                      </a>
-                    ))}
-                  </div>
-
-                  {/* Social icons */}
-                  <div className="flex gap-2">
-                    {company.social_links.map((link, i) => (
-                      <a
-                        key={i}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <SocialIcon platform={link.platform} />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Client/Product grid */}
-              <div className="grid grid-cols-12 gap-2">
-                {items.map((item: any) => (
-                  <div
-                    key={item.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      companyName === "Mairé"
-                        ? onProductClick(item)
-                        : onClientClick(item);
-                    }}
-                    className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
-                      companyName === "Mairé" ? "aspect-[3/4]" : "aspect-[4/3]"
-                    }`}
-                    style={{
-                      backgroundImage: `linear-gradient(135deg, #CDEDE6 0%, #B8E0D9 100%)`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  >
-                    {/* Mountain placeholder icon */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <svg
-                        viewBox="0 0 200 150"
-                        className="w-3/4 h-3/4 opacity-30"
-                      >
-                        <path
-                          d="M0,150 L50,80 L100,100 L150,40 L200,150 Z"
-                          fill="#0F766E"
-                        />
-                        <circle cx="160" cy="40" r="15" fill="#0F766E" />
-                      </svg>
-                    </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-2">
-                      <p className="text-white text-xs font-medium truncate">
-                        {item.name}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
-  );
-}
-
 /* ──────────────────────────────────────────────────────────────────
    Other Pages (simplified)
    ────────────────────────────────────────────────────────────────── */
@@ -2280,6 +2107,8 @@ export default function DashboardApp() {
 
   // NEW: Messages from database with real-time sync
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
+  const { clients: allClients, refetch: refetchClients } = useClients();
+  const { products: allProducts, refetch: refetchProducts } = useProducts();
   const hasUnreadMessages = unreadCount > 0;
 
   const [celebrate, setCelebrate] = useState(false);
@@ -2301,6 +2130,7 @@ export default function DashboardApp() {
     assignee: "all",
   });
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [selectedCompanyData, setSelectedCompanyData] = useState<any>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
@@ -2461,11 +2291,12 @@ export default function DashboardApp() {
     setShowTaskModal(true);
   }
 
-  function handleCompanyClick(companyName: string) {
+  async function handleCompanyClick(companyName: string) {
+    const companyData = await getCompanyByName(companyName);
+    setSelectedCompanyData(companyData);
     setSelectedCompany(companyName);
     if (page !== "Companies") {
       setPage("Companies" as Page);
-      setTimeout(() => setSelectedCompany(companyName), 100);
     }
   }
 
@@ -3065,11 +2896,14 @@ export default function DashboardApp() {
             </div>
           )}
           {page === "Companies" && (
-            <CompaniesPage
-              onCompanyClick={setSelectedCompany}
+            <CompaniesPageDB
+              companies={[...COMPANIES]}
+              tasks={tasks}
+              clients={allClients}
+              products={allProducts}
+              onCompanyClick={handleCompanyClick}
               onClientClick={setSelectedClient}
               onProductClick={setSelectedProduct}
-              navigateTo={setPage as any}
             />
           )}
           {page === "My Team" && isFounder(role) && (
@@ -3108,12 +2942,15 @@ export default function DashboardApp() {
         teamMembers={teamMembers}
       />
 
-      <CompanyModal
-        companyName={selectedCompany}
+      <CompanyDrawer
         isOpen={!!selectedCompany}
-        onClose={() => setSelectedCompany(null)}
-        onClientClick={setSelectedClient}
-        onProductClick={setSelectedProduct}
+        onClose={() => { setSelectedCompany(null); setSelectedCompanyData(null); }}
+        role={role}
+        company={selectedCompanyData}
+        tasks={tasks}
+        clients={allClients.filter((c: any) => c.company_id === selectedCompanyData?.id)}
+        products={allProducts.filter((p: any) => p.company_id === selectedCompanyData?.id)}
+        onRefetch={() => { refetchClients(); refetchProducts(); }}
       />
 
       <ClientModal
