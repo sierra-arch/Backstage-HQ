@@ -79,11 +79,18 @@ export function TaskModal({
 }) {
   if (!task) return null;
 
+  const isDone = task.status === "completed" || task.status === "archived";
   const buttonText = isFounder(role) ? "Mark Complete" : "Submit for Approval";
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={task.title} size="medium" coverImage={task.photo_url || undefined}>
       <div className="space-y-4">
+        {isDone && (
+          <div className="flex items-center gap-2 text-sm text-neutral-500 bg-neutral-50 border rounded-xl px-4 py-2 capitalize">
+            <span className="w-2 h-2 rounded-full bg-neutral-400 flex-shrink-0" />
+            This task is {task.status}
+          </div>
+        )}
         <div>
           <label className="text-sm font-medium text-neutral-700">Description</label>
           <p className="text-sm text-neutral-600 mt-1">{task.description || "No description provided"}</p>
@@ -116,13 +123,17 @@ export function TaskModal({
           </div>
         </div>
         <div className="flex gap-3 pt-4 border-t">
-          <button
-            onClick={() => { onComplete(); onClose(); }}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
-          >
-            {buttonText}
+          {!isDone && (
+            <button
+              onClick={() => { onComplete(); onClose(); }}
+              className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
+            >
+              {buttonText}
+            </button>
+          )}
+          <button onClick={onClose} className={`px-4 py-2 border rounded-xl hover:bg-neutral-50 ${isDone ? "flex-1" : ""}`}>
+            Close
           </button>
-          <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
         </div>
       </div>
     </Modal>

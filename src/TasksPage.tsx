@@ -100,7 +100,19 @@ export function TasksPage({
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
 }) {
+  const [showArchived, setShowArchived] = React.useState(false);
   const isFiltered = Object.values(taskFilters).some((v) => v !== "all");
+
+  // When the status filter is pinned to completed/archived, show those directly.
+  // Otherwise default to hiding them behind the toggle.
+  const statusPinned = taskFilters.status === "completed" || taskFilters.status === "archived";
+  const activeTasks = filteredTasks.filter((t) => t.status !== "completed" && t.status !== "archived");
+  const archivedTasks = filteredTasks.filter((t) => t.status === "completed" || t.status === "archived");
+  const displayedTasks = statusPinned
+    ? filteredTasks
+    : showArchived
+    ? archivedTasks
+    : activeTasks;
 
   return (
     <div className="space-y-4">
@@ -158,7 +170,18 @@ export function TasksPage({
             </button>
           )}
         </div>
-        <TaskList tasks={filteredTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
+
+        <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
+
+        {!statusPinned && archivedTasks.length > 0 && (
+          <button
+            onClick={() => setShowArchived((v) => !v)}
+            className="mt-4 w-full text-xs text-neutral-400 hover:text-neutral-600 border border-dashed rounded-xl py-2 transition-colors">
+            {showArchived
+              ? "Hide archived tasks"
+              : `Show archived & completed tasks (${archivedTasks.length})`}
+          </button>
+        )}
       </Card>
     </div>
   );

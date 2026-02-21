@@ -232,7 +232,12 @@ export default function DashboardApp() {
     "Sierra";
 
 
-  const completedThisWeek = tasks.filter((t) => t.status === "completed").length;
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Monday
+  startOfWeek.setHours(0, 0, 0, 0);
+  const completedThisWeek = tasks.filter((t) =>
+    t.status === "completed" && t.completed_at && new Date(t.completed_at) >= startOfWeek
+  ).length;
 
   const filteredTasks = tasks.filter((t) => {
     const matchesSearch =
