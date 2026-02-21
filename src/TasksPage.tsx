@@ -100,71 +100,64 @@ export function TasksPage({
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
 }) {
+  const isFiltered = Object.values(taskFilters).some((v) => v !== "all");
+
   return (
     <div className="space-y-4">
-      <Card title="Filters">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <Card title="All Tasks">
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          <button onClick={onOpenCreateTask}
+            className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-1.5 hover:bg-teal-50 text-xs font-medium flex-shrink-0">
+            + New Task
+          </button>
+
           <select value={taskFilters.company}
             onChange={(e) => setTaskFilters({ ...taskFilters, company: e.target.value })}
-            className="rounded-xl border px-3 py-2 text-sm">
-            <option value="all">All Companies</option>
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.company !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+            <option value="all">Company</option>
             {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select value={taskFilters.status}
+            onChange={(e) => setTaskFilters({ ...taskFilters, status: e.target.value })}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.status !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+            <option value="all">Status</option>
+            <option value="focus">Focus</option>
+            <option value="active">Active</option>
+            <option value="submitted">Submitted</option>
+            <option value="completed">Completed</option>
+            <option value="archived">Archived</option>
           </select>
 
           <select value={taskFilters.impact}
             onChange={(e) => setTaskFilters({ ...taskFilters, impact: e.target.value })}
-            className="rounded-xl border px-3 py-2 text-sm">
-            <option value="all">All Levels</option>
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.impact !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+            <option value="all">Level</option>
             <option value="small">Small</option>
             <option value="medium">Medium</option>
             <option value="large">Large</option>
           </select>
 
-          <select value={taskFilters.priority}
-            onChange={(e) => setTaskFilters({ ...taskFilters, priority: e.target.value })}
-            className="rounded-xl border px-3 py-2 text-sm">
-            <option value="all">All Priorities</option>
-            <option value="low">Low</option>
-            <option value="medium">Medium</option>
-            <option value="high">High</option>
-          </select>
-
-          <select value={taskFilters.status}
-            onChange={(e) => setTaskFilters({ ...taskFilters, status: e.target.value })}
-            className="rounded-xl border px-3 py-2 text-sm">
-            <option value="all">All Statuses</option>
-            <option value="focus">Focus</option>
-            <option value="active">Active</option>
-            <option value="submitted">Submitted</option>
-            <option value="completed">Completed</option>
-          </select>
-
           {isFounder(role) && (
             <select value={taskFilters.assignee}
               onChange={(e) => setTaskFilters({ ...taskFilters, assignee: e.target.value })}
-              className="rounded-xl border px-3 py-2 text-sm">
-              <option value="all">All Team Members</option>
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.assignee !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+              <option value="all">Assignee</option>
               {teamMembers.map((tm) => (
                 <option key={tm.id} value={tm.display_name || ""}>{tm.display_name || "Unknown"}</option>
               ))}
               <option value="">Unassigned</option>
             </select>
           )}
+
+          {isFiltered && (
+            <button
+              onClick={() => setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" })}
+              className="text-xs text-neutral-400 hover:text-neutral-600 ml-1">
+              ✕ Clear
+            </button>
+          )}
         </div>
-
-        <button
-          onClick={() => setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" })}
-          className="mt-3 text-xs text-teal-600 hover:text-teal-700 underline"
-        >
-          Clear all filters
-        </button>
-      </Card>
-
-      <Card title="All Tasks">
-        <button onClick={onOpenCreateTask}
-          className="mb-4 rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-2 hover:bg-teal-50 text-sm font-medium">
-          NEW
-        </button>
         <TaskList tasks={filteredTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
       </Card>
     </div>

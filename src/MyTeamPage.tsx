@@ -27,7 +27,7 @@ export function MyTeamPage({
 
   return (
     <>
-      <Card title="My Team" subtitle="Levels & task completion">
+      <Card title="My Team">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {teamMemberStats.map((m) => (
             <div
@@ -69,7 +69,7 @@ export function MyTeamPage({
                   Level {selectedMemberData.level} • {selectedMemberData.completedTasks.length} tasks completed
                 </p>
               </div>
-              <LevelRing level={selectedMemberData.level} value={selectedMemberData.xp} max={LEVEL_XP_THRESHOLD} size={100} stroke={12} />
+              <LevelRing level={selectedMemberData.level} value={selectedMemberData.xp} max={LEVEL_XP_THRESHOLD} size={72} stroke={10} />
             </div>
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Completed Tasks</h4>

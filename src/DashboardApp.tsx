@@ -177,7 +177,7 @@ export default function DashboardApp() {
   const session = useSession();
   const { profile } = useProfile();
   const { teamMembers } = useTeamMembers();
-  const { tasks, loading: tasksLoading, refetch } = useTasks({ status: ["focus", "active", "submitted"] });
+  const { tasks, loading: tasksLoading, refetch } = useTasks({ status: ["focus", "active", "submitted", "completed", "archived"] });
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
   const { clients: allClients, refetch: refetchClients } = useClients();
   const { products: allProducts, refetch: refetchProducts } = useProducts();
@@ -336,7 +336,6 @@ export default function DashboardApp() {
         <Sidebar role={role} active={page} onSelect={setPage as any} userName={userName} />
         <main className="flex-1 p-4 md:p-6 lg:p-8 pt-0 space-y-6">
           <TopHeader
-            name={userName} levelXP={xp} levelMax={LEVEL_XP_THRESHOLD}
             onSearch={setSearchQuery}
             onOpenChat={() => setShowChat(true)}
             unreadCount={unreadCount}

@@ -19,8 +19,8 @@ export function Sidebar({
 
   return (
     <aside className="w-72 shrink-0 border-r bg-white/90 backdrop-blur-sm sticky top-0 h-screen p-4 flex flex-col">
-      <div className="text-[26px] font-semibold leading-none mb-6 tracking-tight">
-        Backstage Headquarters
+      <div className="text-[22px] font-semibold leading-none mb-6 tracking-tight">
+        Backstage HQ
       </div>
       <nav className="space-y-1 text-[15px]">
         {nav.map((item) => {
@@ -34,15 +34,11 @@ export function Sidebar({
               }`}
             >
               <span>{item}</span>
-              {item === "Today" && isActive && (
-                <span className="text-[10px] rounded-full bg-teal-100 text-teal-800 px-2 py-0.5">Now</span>
-              )}
             </button>
           );
         })}
       </nav>
       <div className="mt-auto pt-6">
-        <div className="text-xs uppercase tracking-wide text-neutral-500 mb-1">Signed in</div>
         <button
           onClick={() => onSelect("Settings" as Page)}
           className="text-sm font-medium hover:text-teal-600 transition-colors text-left"
@@ -55,32 +51,19 @@ export function Sidebar({
 }
 
 export function TopHeader({
-  name,
-  levelXP,
-  levelMax,
   onSearch,
   onOpenChat,
   unreadCount,
 }: {
-  name: string;
-  levelXP: number;
-  levelMax: number;
   onSearch: (q: string) => void;
   onOpenChat: () => void;
   unreadCount: number;
 }) {
-  const pct = Math.min(100, Math.round((levelXP / levelMax) * 100));
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
     <div className="sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
-      <div className="h-12 md:h-14 bg-white flex items-center justify-between px-3 md:px-4 border-b">
-        <div className="flex items-center gap-3 md:gap-4">
-          <div className="text-[13px] md:text-[14px] text-neutral-900 font-medium">Welcome, {name}</div>
-          <div className="hidden md:block w-[180px] h-1.5 rounded-full bg-teal-100 overflow-hidden">
-            <div className="h-full bg-teal-600" style={{ width: `${pct}%` }} />
-          </div>
-        </div>
+      <div className="h-12 md:h-14 bg-white flex items-center justify-end px-3 md:px-4 border-b">
         <div className="flex items-center gap-2">
           <div className="flex items-center w-[200px] md:w-[280px]">
             <input

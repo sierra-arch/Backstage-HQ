@@ -86,22 +86,12 @@ function WelcomeCard({
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Brand Snapshot
+   Company Snapshot
    ────────────────────────────────────────────────────────────────── */
-function calculateCompanyProgress(companyTasks: DBTask[]) {
-  if (companyTasks.length === 0) return 100;
-  const weights = { small: 1, medium: 2, large: 3 };
-  let totalPoints = 0;
-  let completedPoints = 0;
-  companyTasks.forEach((task) => {
-    const points = weights[task.impact];
-    totalPoints += points;
-    if (task.status === "completed") completedPoints += points;
-  });
-  return totalPoints > 0 ? Math.round((completedPoints / totalPoints) * 100) : 0;
-}
+// 0 open tasks = 100% (clear plate). Each task reduces the bar. Cap at 10 tasks = 0%.
+const MAX_OPEN_TASKS = 10;
 
-function BrandSnapshot({
+function CompanySnapshot({
   allTasks,
   onCompanyClick,
 }: {
@@ -109,14 +99,13 @@ function BrandSnapshot({
   onCompanyClick: (company: string) => void;
 }) {
   const buckets = COMPANIES.map((c) => {
-    const companyTasks = allTasks.filter((t) => t.company_name === c);
-    const open = companyTasks.filter((t) => t.status !== "completed").length;
-    const progress = calculateCompanyProgress(companyTasks);
+    const open = allTasks.filter((t) => t.company_name === c).length;
+    const progress = Math.max(0, Math.round((1 - open / MAX_OPEN_TASKS) * 100));
     return { name: c, open, progress };
   });
 
   return (
-    <Card title="Brand Snapshot">
+    <Card title="Company Snapshot">
       <div className="space-y-3">
         {buckets.map((b) => (
           <div
@@ -125,15 +114,7 @@ function BrandSnapshot({
             className="rounded-2xl border p-4 bg-white cursor-pointer hover:border-teal-300 transition-colors"
           >
             <div className="flex items-center justify-between">
-              <div className="text-[15px] font-semibold flex items-center gap-2">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center flex-shrink-0">
-                  <svg viewBox="0 0 200 150" className="w-6 h-6 opacity-60">
-                    <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E" />
-                    <circle cx="160" cy="40" r="15" fill="#0F766E" />
-                  </svg>
-                </div>
-                {b.name}
-              </div>
+              <div className="text-[14px] font-semibold">{b.name}</div>
               <div className="text-xs text-neutral-600">{b.open} open</div>
             </div>
             <div className="mt-3 h-2 w-full rounded-full bg-teal-100 overflow-hidden">
@@ -191,7 +172,6 @@ function AccomplishmentsCard({
       <div className="flex items-center justify-between mb-3 flex-shrink-0 relative z-20">
         <div>
           <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">Accomplishments</h2>
-          <p className="text-xs md:text-[13px] text-neutral-500">Celebrate wins</p>
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); e.preventDefault(); onOpenAddAccomplishment(); }}
@@ -329,7 +309,7 @@ export function TodayFounder({
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-4">
           <div className={equalCardH}>
-            <BrandSnapshot allTasks={allActiveTasks} onCompanyClick={onCompanyClick} />
+            <CompanySnapshot allTasks={allActiveTasks} onCompanyClick={onCompanyClick} />
           </div>
         </div>
         <div className="col-span-12 md:col-span-4">
