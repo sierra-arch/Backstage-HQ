@@ -1,6 +1,7 @@
 // TodayPage.tsx - Today page for Founder and Team views
 import React from "react";
-import { DBTask, Accomplishment, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
+import { DBTask, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
+import { AccomplishmentDB } from "./useDatabase";
 import { Card, Chip, Avatar, CompanyChip, LevelRing } from "./ui";
 import { TaskList } from "./TasksPage";
 import { updateTask as dbUpdateTask, useCompanyGoals } from "./useDatabase";
@@ -128,6 +129,47 @@ function CompanySnapshot({
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Notes Card
+   ────────────────────────────────────────────────────────────────── */
+function NotesCard({ onSave }: { onSave: (text: string) => Promise<void> }) {
+  const [note, setNote] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+
+  async function handleSave() {
+    if (!note.trim()) return;
+    setSaving(true);
+    await onSave(note.trim());
+    setSaving(false);
+    setSaved(true);
+    setNote("");
+    setTimeout(() => setSaved(false), 2500);
+  }
+
+  return (
+    <Card title="Notes" variant="compact" className="h-full flex flex-col">
+      <div className="flex-1">
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full h-full min-h-[80px] rounded-xl border p-3 text-sm resize-none focus:ring-2 focus:ring-teal-200 outline-none"
+          placeholder="Quick note…"
+        />
+      </div>
+      <div className="mt-3 flex justify-end">
+        <button
+          onClick={handleSave}
+          disabled={!note.trim() || saving}
+          className="rounded-full bg-teal-600 text-white px-4 py-1.5 hover:bg-teal-700 text-sm font-medium disabled:opacity-40 transition-opacity"
+        >
+          {saved ? "Saved!" : saving ? "Saving…" : "Save to Google Doc"}
+        </button>
+      </div>
+    </Card>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Company Goals Card (live from DB)
    ────────────────────────────────────────────────────────────────── */
 function CompanyGoalsCard({ className }: { className?: string }) {
@@ -164,7 +206,7 @@ function AccomplishmentsCard({
   accomplishments,
   onOpenAddAccomplishment,
 }: {
-  accomplishments: Accomplishment[];
+  accomplishments: AccomplishmentDB[];
   onOpenAddAccomplishment: () => void;
 }) {
   return (
@@ -181,18 +223,18 @@ function AccomplishmentsCard({
         </button>
       </div>
       <div className="space-y-3 overflow-y-auto flex-1">
-        {accomplishments.slice(-5).reverse().map((acc) => (
+        {accomplishments.slice(0, 5).map((acc) => (
           <div key={acc.id} className="rounded-xl border p-3 bg-white">
             <div className="text-sm font-medium">{acc.text}</div>
             <div className="text-xs text-neutral-500 mt-1">
-              {new Date(acc.timestamp).toLocaleDateString()}
-              {acc.postedToTeam && " • Posted to team"}
+              {new Date(acc.created_at).toLocaleDateString()}
+              {acc.posted_to_team && " • Posted to team"}
             </div>
           </div>
         ))}
         {accomplishments.length === 0 && (
           <div className="rounded-xl border p-3 bg-white">
-            <div className="text-sm text-neutral-500 text-center py-4">No accomplishments yet - add your first one!</div>
+            <div className="text-sm text-neutral-500 text-center py-4">No accomplishments yet — add your first one!</div>
           </div>
         )}
       </div>
@@ -217,6 +259,7 @@ export function TodayFounder({
   onApprove,
   onOpenAddAccomplishment,
   onCompanyClick,
+  onSaveNote,
   refetch,
 }: {
   userName: string;
@@ -226,12 +269,13 @@ export function TodayFounder({
   focusTasks: DBTask[];
   submittedTasks: DBTask[];
   allActiveTasks: DBTask[];
-  accomplishments: Accomplishment[];
+  accomplishments: AccomplishmentDB[];
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
   onApprove: (task: DBTask) => void;
   onOpenAddAccomplishment: () => void;
   onCompanyClick: (name: string) => void;
+  onSaveNote: (text: string) => Promise<void>;
   refetch: () => void;
 }) {
   const equalCardH = "h-[360px]";
@@ -243,16 +287,7 @@ export function TodayFounder({
           <WelcomeCard name={userName} doneThisWeek={completedThisWeek} level={level} levelXP={xp} levelMax={LEVEL_XP_THRESHOLD} className="h-full" />
         </div>
         <div className="col-span-12 md:col-span-8">
-          <Card title="Notes" variant="compact" className="h-full flex flex-col">
-            <div className="flex-1">
-              <textarea className="w-full h-full min-h-[80px] rounded-xl border p-3 text-sm resize-none" placeholder="Quick note…" />
-            </div>
-            <div className="mt-3 flex justify-end">
-              <button className="rounded-full bg-teal-600 text-white px-4 py-1.5 hover:bg-teal-700 text-sm font-medium">
-                Save to Google Doc
-              </button>
-            </div>
-          </Card>
+          <NotesCard onSave={onSaveNote} />
         </div>
       </div>
 
@@ -338,6 +373,7 @@ export function TodayTeam({
   onOpenCreateTask,
   onTaskClick,
   onOpenAddAccomplishment,
+  onSaveNote,
 }: {
   userName: string;
   completedThisWeek: number;
@@ -346,10 +382,11 @@ export function TodayTeam({
   focusTasks: DBTask[];
   submittedTasks: DBTask[];
   filteredTasks: DBTask[];
-  accomplishments: Accomplishment[];
+  accomplishments: AccomplishmentDB[];
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
   onOpenAddAccomplishment: () => void;
+  onSaveNote: (text: string) => Promise<void>;
 }) {
   const myTasks = filteredTasks.filter((t) => t.assignee_name === userName);
   const equalCardH = "h-[360px]";
@@ -361,16 +398,7 @@ export function TodayTeam({
           <WelcomeCard name={userName} doneThisWeek={completedThisWeek} level={level} levelXP={xp} levelMax={LEVEL_XP_THRESHOLD} className="h-full" />
         </div>
         <div className="col-span-12 md:col-span-8">
-          <Card title="Notes" variant="compact" className="h-full flex flex-col">
-            <div className="flex-1">
-              <textarea className="w-full h-full min-h-[80px] rounded-xl border p-3 text-sm resize-none" placeholder="Quick note…" />
-            </div>
-            <div className="mt-3 flex justify-end">
-              <button className="rounded-full bg-teal-600 text-white px-4 py-1.5 hover:bg-teal-700 text-sm font-medium">
-                Save to Google Doc
-              </button>
-            </div>
-          </Card>
+          <NotesCard onSave={onSaveNote} />
         </div>
       </div>
 

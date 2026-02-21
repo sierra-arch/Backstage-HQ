@@ -15,12 +15,15 @@ import {
   getCompanyByName,
   sendMessage,
   updateProfileGoogleDocId,
+  addXPToProfile,
+  saveAccomplishment,
+  useAccomplishments,
 } from "./useDatabase";
 import { connectGoogle, getTokenSilently, createGoogleDoc, appendToDoc } from "./useGoogleDocs";
 import {
   fromDbToUi, isFounder,
-  COMPANIES, LEVEL_XP_THRESHOLD,
-  Role, AppRole, Page, Client, Product, DBTask, Accomplishment,
+  COMPANIES, LEVEL_XP_THRESHOLD, XP_BY_IMPACT,
+  Role, AppRole, Page, Client, Product, DBTask,
 } from "./types";
 
 // Page components
@@ -59,6 +62,40 @@ function useSession() {
 /* ──────────────────────────────────────────────────────────────────
    Inline simple pages (small enough to stay here)
    ────────────────────────────────────────────────────────────────── */
+function NotificationPrefsCard() {
+  const get = (key: string, def: boolean) => {
+    const v = localStorage.getItem(key);
+    return v === null ? def : v === "true";
+  };
+  const [assignment, setAssignment] = useState(() => get("notif-assignment", true));
+  const [digest, setDigest] = useState(() => get("notif-digest", true));
+  const [browser, setBrowser] = useState(() => get("notif-browser", false));
+
+  function toggle(key: string, val: boolean, set: (v: boolean) => void) {
+    set(val);
+    localStorage.setItem(key, String(val));
+  }
+
+  return (
+    <Card title="Notifications">
+      <div className="space-y-3">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={assignment} onChange={(e) => toggle("notif-assignment", e.target.checked, setAssignment)} className="w-4 h-4 accent-teal-600" />
+          <span className="text-sm">Email notifications for task assignments</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={digest} onChange={(e) => toggle("notif-digest", e.target.checked, setDigest)} className="w-4 h-4 accent-teal-600" />
+          <span className="text-sm">Daily digest of team activity</span>
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" checked={browser} onChange={(e) => toggle("notif-browser", e.target.checked, setBrowser)} className="w-4 h-4 accent-teal-600" />
+          <span className="text-sm">Browser notifications for new messages</span>
+        </label>
+      </div>
+    </Card>
+  );
+}
+
 function SettingsPage({ userName, userEmail, userId, googleDocId }: {
   userName: string; userEmail: string; userId: string; googleDocId?: string | null;
 }) {
@@ -114,22 +151,7 @@ function SettingsPage({ userName, userEmail, userId, googleDocId }: {
           </button>
         </div>
       </Card>
-      <Card title="Notifications">
-        <div className="space-y-3">
-          <label className="flex items-center gap-3">
-            <input type="checkbox" defaultChecked className="w-4 h-4 accent-teal-600" />
-            <span className="text-sm">Email notifications for task assignments</span>
-          </label>
-          <label className="flex items-center gap-3">
-            <input type="checkbox" defaultChecked className="w-4 h-4 accent-teal-600" />
-            <span className="text-sm">Daily digest of team activity</span>
-          </label>
-          <label className="flex items-center gap-3">
-            <input type="checkbox" className="w-4 h-4 accent-teal-600" />
-            <span className="text-sm">Browser notifications for new messages</span>
-          </label>
-        </div>
-      </Card>
+      <NotificationPrefsCard />
       <Card title="Google Docs">
         {docId ? (
           <div className="space-y-3">
@@ -191,14 +213,7 @@ export default function DashboardApp() {
   const [kudosTask, setKudosTask] = useState<DBTask | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showAddAccomplishment, setShowAddAccomplishment] = useState(false);
-  const [accomplishments, setAccomplishments] = useState<Accomplishment[]>(() => {
-    try {
-      const saved = localStorage.getItem("backstage-accomplishments");
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const { accomplishments, refetch: refetchAccomplishments } = useAccomplishments();
   const [searchQuery, setSearchQuery] = useState("");
   const [taskFilters, setTaskFilters] = useState({
     company: "all", impact: "all", priority: "all", status: "all", assignee: "all",
@@ -216,10 +231,6 @@ export default function DashboardApp() {
     session?.user?.email?.split("@")[0] ??
     "Sierra";
 
-  // Persist accomplishments
-  React.useEffect(() => {
-    localStorage.setItem("backstage-accomplishments", JSON.stringify(accomplishments));
-  }, [accomplishments]);
 
   const completedThisWeek = tasks.filter((t) => t.status === "completed").length;
 
@@ -243,6 +254,9 @@ export default function DashboardApp() {
   async function handleComplete(task: DBTask) {
     const success = await dbCompleteTask(task.id);
     if (success) {
+      if (profile?.id) {
+        await addXPToProfile(profile.id, XP_BY_IMPACT[task.impact]);
+      }
       await sendMessage(`🎉 ${userName} completed: ${task.title}`, undefined, true, task.id);
       setCelebrate(true);
       setTimeout(() => setCelebrate(false), 1500);
@@ -273,20 +287,26 @@ export default function DashboardApp() {
     setKudosTask(null);
   }
 
+  async function handleSaveNote(text: string) {
+    if (!profile?.google_doc_id) {
+      alert("Connect Google Docs in Settings first to save notes.");
+      return;
+    }
+    const token = await getTokenSilently();
+    if (!token) {
+      alert("Google session expired — reconnect in Settings.");
+      return;
+    }
+    await appendToDoc(profile.google_doc_id, text, token);
+  }
+
   async function handleAddAccomplishment(text: string, postToTeam: boolean) {
-    const accomplishment: Accomplishment = {
-      id: Date.now().toString(),
-      user: userName,
-      text,
-      timestamp: Date.now(),
-      postedToTeam: postToTeam,
-    };
-    setAccomplishments([...accomplishments, accomplishment]);
+    await saveAccomplishment(text, userName, postToTeam);
+    refetchAccomplishments();
     if (postToTeam) {
       await sendMessage(`🎉 ${text}`, undefined, false, undefined);
       refetchMessages();
     }
-    // Append to Google Doc if connected
     if (profile?.google_doc_id) {
       const token = await getTokenSilently();
       if (token) {
@@ -349,7 +369,7 @@ export default function DashboardApp() {
               onOpenCreateTask={() => setShowCreateModal(true)}
               onTaskClick={openTaskModal} onApprove={handleApprove}
               onOpenAddAccomplishment={() => setShowAddAccomplishment(true)}
-              onCompanyClick={handleCompanyClick} refetch={refetch}
+              onCompanyClick={handleCompanyClick} onSaveNote={handleSaveNote} refetch={refetch}
             />
           )}
 
@@ -361,6 +381,7 @@ export default function DashboardApp() {
               onOpenCreateTask={() => setShowCreateModal(true)}
               onTaskClick={openTaskModal}
               onOpenAddAccomplishment={() => setShowAddAccomplishment(true)}
+              onSaveNote={handleSaveNote}
             />
           )}
 
@@ -398,9 +419,40 @@ export default function DashboardApp() {
           )}
 
           {page === "Career Path" && !isFounder(role) && (
-            <Card title="Career Path" subtitle="Your progress">
-              <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} />
-            </Card>
+            <div className="space-y-4">
+              <Card>
+                <div className="flex items-center gap-6">
+                  <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} size={120} stroke={14} />
+                  <div>
+                    <div className="text-2xl font-semibold">Level {level}</div>
+                    <div className="text-sm text-neutral-500 mt-1">{xp} / {LEVEL_XP_THRESHOLD} XP to next level</div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Small task = 5 XP</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Medium task = 10 XP</span>
+                      <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Large task = 20 XP</span>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+              <Card title="Completed Tasks">
+                <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                  {tasks.filter((t) => t.status === "completed" && t.assignee_name === userName).length === 0 && (
+                    <div className="text-sm text-neutral-500 text-center py-8">No completed tasks yet — finish your first one!</div>
+                  )}
+                  {tasks.filter((t) => t.status === "completed" && t.assignee_name === userName).map((t) => (
+                    <div key={t.id} className="rounded-xl border p-3 flex items-center justify-between bg-white">
+                      <div>
+                        <div className="text-sm font-medium">{t.title}</div>
+                        <div className="text-xs text-neutral-500 mt-0.5">{t.company_name}</div>
+                      </div>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 flex-shrink-0">
+                        +{XP_BY_IMPACT[t.impact]} XP
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </div>
           )}
 
           {page === "Playbook" && <PlaybookPage role={role} />}

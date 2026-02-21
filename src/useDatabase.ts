@@ -211,6 +211,25 @@ export async function updateProfileGoogleDocId(userId: string, docId: string): P
   await supabase.from("profiles").update({ google_doc_id: docId }).eq("id", userId);
 }
 
+const LEVEL_XP_THRESHOLD = 200;
+
+export async function addXPToProfile(userId: string, xpGained: number): Promise<void> {
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("xp, level")
+    .eq("id", userId)
+    .single();
+  if (!profile) return;
+
+  let newXP = (profile.xp || 0) + xpGained;
+  let newLevel = profile.level || 1;
+  while (newXP >= LEVEL_XP_THRESHOLD) {
+    newXP -= LEVEL_XP_THRESHOLD;
+    newLevel++;
+  }
+  await supabase.from("profiles").update({ xp: newXP, level: newLevel }).eq("id", userId);
+}
+
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1376,6 +1395,64 @@ export function useCompanyGoals(companyId?: string) {
   }, [load]);
 
   return { goals, loading, refetch: load };
+}
+
+// =====================================================
+// ACCOMPLISHMENTS
+// =====================================================
+
+export interface AccomplishmentDB {
+  id: string;
+  user_id: string;
+  user_name: string;
+  text: string;
+  posted_to_team: boolean;
+  created_at: string;
+}
+
+export async function saveAccomplishment(
+  text: string,
+  userName: string,
+  postedToTeam: boolean
+): Promise<AccomplishmentDB | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from("accomplishments")
+    .insert({ user_id: user.id, user_name: userName, text, posted_to_team: postedToTeam })
+    .select()
+    .single();
+  if (error) { console.error("Error saving accomplishment:", error); return null; }
+  return data;
+}
+
+export function useAccomplishments() {
+  const [accomplishments, setAccomplishments] = useState<AccomplishmentDB[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("accomplishments")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (!error) setAccomplishments(data || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) load();
+    const sub = supabase.channel("accomplishment-changes")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "accomplishments" },
+        () => { if (mounted) load(); })
+      .subscribe();
+    return () => { mounted = false; sub.unsubscribe(); };
+  }, [load]);
+
+  return { accomplishments, loading, refetch: load };
 }
 
 export function useMessages() {
