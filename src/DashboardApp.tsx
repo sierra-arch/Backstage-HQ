@@ -2120,7 +2120,14 @@ export default function DashboardApp() {
   const [kudosTask, setKudosTask] = useState<DBTask | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showAddAccomplishment, setShowAddAccomplishment] = useState(false);
-  const [accomplishments, setAccomplishments] = useState<Accomplishment[]>([]);
+  const [accomplishments, setAccomplishments] = useState<Accomplishment[]>(() => {
+    try {
+      const saved = localStorage.getItem("backstage-accomplishments");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [taskFilters, setTaskFilters] = useState({
     company: "all",
@@ -2162,6 +2169,11 @@ export default function DashboardApp() {
     session?.user?.user_metadata?.full_name ??
     session?.user?.email?.split("@")[0] ??
     "Sierra";
+
+  // Persist accomplishments to localStorage
+  React.useEffect(() => {
+    localStorage.setItem("backstage-accomplishments", JSON.stringify(accomplishments));
+  }, [accomplishments]);
 
   const completedThisWeek = tasks.filter(
     (t) => t.status === "completed"
