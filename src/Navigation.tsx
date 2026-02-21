@@ -1,0 +1,106 @@
+// Navigation.tsx - Sidebar and TopHeader
+import React, { useState } from "react";
+import { Role, Page, FounderPage, TeamPage, isFounder } from "./types";
+
+export function Sidebar({
+  role,
+  active,
+  onSelect,
+  userName,
+}: {
+  role: Role;
+  active: Page;
+  onSelect: (p: Page) => void;
+  userName: string;
+}) {
+  const founderNav: FounderPage[] = ["Today", "Meetings", "Tasks", "Companies", "Playbook", "My Team"];
+  const teamNav: TeamPage[] = ["Today", "Tasks", "Companies", "Playbook", "Career Path"];
+  const nav = isFounder(role) ? founderNav : teamNav;
+
+  return (
+    <aside className="w-72 shrink-0 border-r bg-white/90 backdrop-blur-sm sticky top-0 h-screen p-4 flex flex-col">
+      <div className="text-[26px] font-semibold leading-none mb-6 tracking-tight">
+        Backstage Headquarters
+      </div>
+      <nav className="space-y-1 text-[15px]">
+        {nav.map((item) => {
+          const isActive = active === item;
+          return (
+            <button
+              key={item}
+              onClick={() => onSelect(item)}
+              className={`w-full text-left flex items-center justify-between rounded-xl px-3 py-2 hover:bg-teal-50 ${
+                isActive ? "bg-teal-50 text-teal-900 font-medium" : ""
+              }`}
+            >
+              <span>{item}</span>
+              {item === "Today" && isActive && (
+                <span className="text-[10px] rounded-full bg-teal-100 text-teal-800 px-2 py-0.5">Now</span>
+              )}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="mt-auto pt-6">
+        <div className="text-xs uppercase tracking-wide text-neutral-500 mb-1">Signed in</div>
+        <button
+          onClick={() => onSelect("Settings" as Page)}
+          className="text-sm font-medium hover:text-teal-600 transition-colors text-left"
+        >
+          {userName}
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+export function TopHeader({
+  name,
+  levelXP,
+  levelMax,
+  onSearch,
+  onOpenChat,
+  unreadCount,
+}: {
+  name: string;
+  levelXP: number;
+  levelMax: number;
+  onSearch: (q: string) => void;
+  onOpenChat: () => void;
+  unreadCount: number;
+}) {
+  const pct = Math.min(100, Math.round((levelXP / levelMax) * 100));
+  const [searchQuery, setSearchQuery] = useState("");
+
+  return (
+    <div className="sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
+      <div className="h-12 md:h-14 bg-white flex items-center justify-between px-3 md:px-4 border-b">
+        <div className="flex items-center gap-3 md:gap-4">
+          <div className="text-[13px] md:text-[14px] text-neutral-900 font-medium">Welcome, {name}</div>
+          <div className="hidden md:block w-[180px] h-1.5 rounded-full bg-teal-100 overflow-hidden">
+            <div className="h-full bg-teal-600" style={{ width: `${pct}%` }} />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center w-[200px] md:w-[280px]">
+            <input
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); onSearch(e.target.value); }}
+              className="w-full rounded-full border px-2.5 py-0.5 text-[12px] outline-none focus:ring-2 focus:ring-teal-200"
+            />
+          </div>
+          <button
+            onClick={onOpenChat}
+            className="relative rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm hover:bg-teal-100 transition-colors font-medium text-teal-900"
+          >
+            Inbox
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-3 h-3" />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

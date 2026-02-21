@@ -2,6 +2,53 @@
 import React from "react";
 import { CompanyName, DBTask } from "./types";
 
+export function LevelRing({
+  level,
+  value,
+  max,
+  showStats = true,
+  size = 132,
+  stroke = 16,
+}: {
+  level: number;
+  value: number;
+  max: number;
+  showStats?: boolean;
+  size?: number;
+  stroke?: number;
+}) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  const r = size / 2 - stroke - 2;
+  const c = 2 * Math.PI * r;
+  const off = c * (1 - pct / 100);
+
+  const ringSvg = (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#CDEDE6" fill="none" />
+      <circle
+        cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke}
+        stroke="#0F766E" fill="none" strokeLinecap="round"
+        style={{ strokeDasharray: c, strokeDashoffset: off, transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
+      />
+      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
+        fontSize={Math.max(12, Math.round(size * 0.18))} fill="#0F172A">
+        L{level}
+      </text>
+    </svg>
+  );
+
+  if (!showStats) return <div>{ringSvg}</div>;
+  return (
+    <div className="flex items-center gap-3">
+      {ringSvg}
+      <div>
+        <div className="text-lg font-semibold">{pct}%</div>
+        <div className="text-xs text-neutral-500">to next level</div>
+      </div>
+    </div>
+  );
+}
+
 export function Chip({ children }: { children: React.ReactNode }) {
   return (
     <span className="text-[12px] rounded-full border bg-teal-50 text-teal-900/80 px-3 py-1">

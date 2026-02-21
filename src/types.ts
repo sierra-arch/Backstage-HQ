@@ -107,3 +107,11 @@ export const TASK_WEIGHT: Record<DBTask["impact"], number> = {
   medium: 2,
   large: 3,
 };
+
+export type Accomplishment = {
+  id: string;
+  user: string;
+  text: string;
+  timestamp: number;
+  postedToTeam: boolean;
+};
