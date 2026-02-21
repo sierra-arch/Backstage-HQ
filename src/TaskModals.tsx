@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { DBTask, Client, Product, COMPANIES, TIME_BY_LEVEL, isFounder, Role } from "./types";
 import { createTask as dbCreateTask, getCompanyByName } from "./useDatabase";
+import { supabase } from "./supabase";
 import { CompanyChip, Avatar } from "./ui";
 
 /* ──────────────────────────────────────────────────────────────────
@@ -161,6 +162,21 @@ export function TaskCreateModal({
     const companyData = await getCompanyByName(company);
     const estimate = TIME_BY_LEVEL[level];
 
+    let photoUrl: string | null = null;
+    if (photoFile) {
+      const ext = photoFile.name.split(".").pop();
+      const path = `${Date.now()}.${ext}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("task-photos")
+        .upload(path, photoFile, { contentType: photoFile.type });
+      if (!uploadError && uploadData) {
+        const { data: { publicUrl } } = supabase.storage
+          .from("task-photos")
+          .getPublicUrl(uploadData.path);
+        photoUrl = publicUrl;
+      }
+    }
+
     await dbCreateTask({
       title,
       description,
@@ -170,6 +186,7 @@ export function TaskCreateModal({
       impact: level,
       estimate_minutes: estimate,
       due_date: deadline || null,
+      photo_url: photoUrl,
     });
 
     setTitle("");
