@@ -2271,6 +2271,7 @@ export default function DashboardApp() {
         false, // not kudos
         undefined // no related task
       );
+      refetchMessages();
     }
   }
 
