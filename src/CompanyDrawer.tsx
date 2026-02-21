@@ -148,7 +148,7 @@ export function CompanyDrawer({
                       onClick={() => setShowAddClient(true)}
                       className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
                     >
-                      ➕ Add Client
+                      + Add Client
                     </button>
                   )}
                 </div>
@@ -180,7 +180,7 @@ export function CompanyDrawer({
                       onClick={() => setShowAddProduct(true)}
                       className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
                     >
-                      ➕ Add Product
+                      + Add Product
                     </button>
                   )}
                 </div>

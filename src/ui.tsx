@@ -137,7 +137,6 @@ export function CompanyChip({
     <span
       className={`text-[10px] px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border} inline-flex items-center gap-1`}
     >
-      {showLogo && <span>{s.logo}</span>}
       {name}
     </span>
   );
