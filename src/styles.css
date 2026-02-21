@@ -1,0 +1,636 @@
+/* === Theme tokens (tweak freely) === */
+:root {
+  --app-bg: #e9f2ee; /* overall page background */
+  --focus-bg: #ecf7f3; /* Today’s Focus background (lighter + calmer) */
+  --teal-border: #bfe6df; /* subtle teal-ish border for focus area */
+}
+
+/* Optional: ultra-subtle depth at the very top of the canvas */
+.app-gradient {
+  position: relative;
+}
+.app-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 240px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.04),
+    rgba(0, 0, 0, 0) 70%
+  );
+}
+
+/* ====== Design Tokens (calming, premium) ====== */
+:root {
+  --bg: #f6f8f7;
+  --panel: #ffffff;
+  --ink: #122222;
+  --ink-2: #51615f;
+  --ink-3: #889593;
+  --bd: #e7ecea;
+
+  --brand: #0e7c6b; /* emerald-teal */
+  --brand-800: #0b695b;
+  --brand-50: #e9f5f2;
+
+  --accent-ink: #2a2f2e;
+  --good: #1b9365;
+  --warn: #e7a700;
+
+  --rx: 18px; /* card radius */
+  --rx-sm: 12px; /* small radius */
+  --gap: 20px; /* global gap */
+  --shadow-1: 0 0 0 1px var(--bd), 0 10px 30px rgba(20, 32, 31, 0.06);
+  --shadow-2: 0 0 0 1px var(--bd), 0 16px 40px rgba(20, 32, 31, 0.08);
+}
+
+/* ====== Global ====== */
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Inter", "SF Pro Text",
+    "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+}
+h1 {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+h2 {
+  font-size: 18px;
+}
+h3 {
+  font-size: 15px;
+}
+
+.muted {
+  color: var(--ink-3);
+}
+.badge {
+  background: var(--brand-50);
+  color: var(--brand-800);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+/* ====== Layout ====== */
+.app {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100%;
+}
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  background: #fff;
+  border-right: 1px solid var(--bd);
+}
+.main {
+  padding: 28px;
+  overflow: auto;
+}
+
+/* ====== Sidebar ====== */
+.brand {
+  font-weight: 700;
+  font-size: 18px;
+  padding: 20px 20px 8px;
+}
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--ink-2);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.nav-item:hover {
+  background: #f0f4f3;
+  color: var(--ink);
+}
+.nav-item.active {
+  background: var(--brand-50);
+  color: var(--brand-800);
+}
+
+/* Sidebar tools (icon-only, darker palette) */
+.sidebar-tools {
+  display: flex;
+  gap: 8px;
+  padding: 8px 20px 20px;
+}
+.sidebar-icon {
+  border: 1px solid #5eead4; /* teal-300 */
+  color: #134e4a; /* teal-900 */
+  background: #fff;
+  border-radius: 12px;
+  padding: 6px 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+.sidebar-icon:hover {
+  background: rgba(20, 184, 166, 0.08);
+}
+.sidebar-icon svg,
+.sidebar-icon i {
+  display: block;
+  font-size: 14px;
+}
+
+/* ====== Top welcome panel ====== */
+.topbar {
+  margin-bottom: 20px;
+}
+.welcome-card {
+  background: var(--panel);
+  border: 1px solid var(--bd);
+  border-radius: var(--rx);
+  padding: 18px;
+  box-shadow: var(--shadow-1);
+}
+.welcome-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chip {
+  border: 1px solid var(--bd);
+  background: #fff;
+  color: var(--ink);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.chip.positive {
+  background: var(--brand-50);
+  color: var(--brand-800);
+  border-color: var(--brand-50);
+}
+
+/* 4-up grid inside the welcome card (name + small stats + notes) */
+.welcome-grid {
+  display: grid;
+  grid-template-columns: 220px 220px 1fr;
+  gap: 16px;
+}
+.stat {
+  background: #fff;
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 12px;
+  align-items: center;
+}
+.stat h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+.stat .big {
+  font-size: 28px;
+  font-weight: 700;
+}
+.stat .sub {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+
+.note-card {
+  background: #fff;
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 10px;
+}
+.note-card textarea {
+  width: 100%;
+  min-height: 64px;
+  resize: vertical;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--ink-2);
+  outline: none;
+  background: #fff;
+}
+.note-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+.select,
+.input {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: #fff;
+  outline: none;
+}
+.btn {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--bd);
+  background: #fff;
+  cursor: pointer;
+}
+.btn.primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.btn.ghost {
+  background: #fff;
+  border-color: var(--bd);
+  color: var(--ink-2);
+}
+
+/* ====== Cards (shared) ====== */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--bd);
+  border-radius: var(--rx);
+  padding: 18px;
+  box-shadow: var(--shadow-1);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-body {
+}
+
+/* ====== Task columns ====== */
+.focus-grid {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: 1fr 1fr;
+}
+.focus-col .col-head {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin-bottom: 10px;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.task {
+  border: 1px solid var(--bd);
+  border-radius: 14px;
+  background: #fff;
+  padding: 14px;
+  box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.task:hover {
+  box-shadow: var(--shadow-2);
+  transform: translateY(-1px);
+}
+.task-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.task-meta {
+  font-size: 12px;
+  color: var(--ink-3);
+}
+.tag {
+  font-size: 11px;
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: #fff;
+  color: var(--ink-2);
+}
+.tag.brand {
+  background: var(--brand-50);
+  border-color: var(--brand-50);
+  color: var(--brand-800);
+}
+
+/* ====== Right rail / small cards ====== */
+.small-grid {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.small-card {
+  border-radius: 16px;
+  border: 1px solid var(--bd);
+  background: #fff;
+  box-shadow: var(--shadow-1);
+  padding: 16px;
+}
+
+/* ====== Tiny line spark (completed) ====== */
+.spark {
+  height: 28px;
+  width: 100%;
+  position: relative;
+}
+.spark::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 4px 0;
+  background: linear-gradient(
+    90deg,
+    rgba(14, 124, 107, 0.18),
+    rgba(14, 124, 107, 0.35)
+  );
+  mask: linear-gradient(#000 0 0) top/100% 2px no-repeat;
+  -webkit-mask: linear-gradient(#000 0 0) top/100% 2px no-repeat;
+  border-radius: 999px;
+}
+
+/* ---------- Welcome hero shell ---------- */
+.welcome-hero {
+  margin-bottom: 20px;
+}
+.welcome-hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 8px 2px;
+  gap: 10px;
+}
+.welcome-hero h1 {
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
+/* Inline progress to the right of the Welcome text */
+.spark--inline {
+  display: inline-block;
+  height: 6px;
+  width: 180px;
+  border-radius: 999px;
+  background: #d1fae5;
+  position: relative;
+  overflow: hidden;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+.spark--inline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: var(--progress, 62%);
+  background: var(--brand);
+}
+
+/* Two-card row: wide focus + notes */
+.hero-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 2fr 1fr;
+}
+
+/* Focus hero */
+.focus-hero {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(
+      1200px 300px at 70% 120%,
+      rgba(14, 124, 107, 0.08),
+      transparent 60%
+    ),
+    var(--panel);
+}
+.focus-hero .card-head h2 {
+  font-size: 20px;
+}
+.focus-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 16px;
+  display: grid;
+  gap: 10px;
+}
+.focus-bullets li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.bullet-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: var(--brand-50);
+  color: var(--brand-800);
+  font-size: 12px;
+  font-weight: 700;
+}
+.focus-cta {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Decorative “rocket-ish” blob */
+.focus-rocket {
+  position: absolute;
+  right: -40px;
+  bottom: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 40% 40%,
+    rgba(14, 124, 107, 0.2),
+    rgba(14, 124, 107, 0.05) 60%,
+    transparent 70%
+  );
+  filter: blur(0.2px);
+}
+
+/* Notes hero */
+.notes-hero {
+  position: relative;
+  overflow: hidden;
+}
+.notes-hero .card-head {
+  gap: 10px;
+}
+.notes-role {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+}
+.notes-hero .note-area {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.notes-hero .note-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.notes-sparkle {
+  position: absolute;
+  right: -20px;
+  top: -20px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(14, 124, 107, 0.07),
+    transparent 70%
+  );
+}
+
+/* ====== Tweaks requested ====== */
+/* Lighter outline for the Focus column/cards (still contrasted) */
+.focus-card,
+.focus-col .card {
+  background: var(--focus-bg);
+  border: 2px solid var(--teal-border);
+}
+
+/* Brand Snapshot vertical list */
+.brand-snapshot,
+.brand-list,
+.brand-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap);
+}
+
+/* Role Lanes horizontally (rename label in markup to “Delivery”) */
+.lanes-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+}
+.lane {
+  min-width: 260px;
+  scroll-snap-align: start;
+  background: #fff;
+  border: 1px solid var(--bd);
+  border-radius: var(--rx-sm);
+  box-shadow: var(--shadow-1);
+  padding: 12px;
+}
+.lane-count {
+  display: inline-block;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--bd);
+  background: var(--brand-50);
+  color: var(--brand-800);
+}
+
+/* Companies page listed vertically */
+.companies-vertical {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--gap);
+}
+
+/* Draggable visual polish (optional) */
+.task--dragging,
+.is-dragging {
+  box-shadow: 0 6px 16px rgba(20, 32, 31, 0.08),
+    0 2px 6px rgba(20, 32, 31, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Inputs: accent color for native checkboxes */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--brand);
+}
+
+/* Scrollbars (WebKit/Chromium only) */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(15, 118, 110, 0.35);
+  border-radius: 9999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 118, 110, 0.5);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Accessible focus ring fallback */
+:focus-visible {
+  outline: 2px solid rgba(45, 212, 191, 0.45);
+  outline-offset: 2px;
+}
+
+/* ====== Helper usage notes ======
+- Place <span class="spark--inline" style="--progress: 62%"></span> to the right of “Welcome, Sierra”.
+- Wrap Brand Snapshot list with .brand-snapshot.
+- Wrap role lanes with .lanes-row and each card with .lane; use .lane-count for the number chip.
+- On Companies page, wrap the list with .companies-vertical.
+- In the sidebar, place icon buttons inside .sidebar-tools and apply .sidebar-icon to each. 
+*/
+
+/* Need Professional Help in Your UI/UX or app development?
+   Please contact me at https://sammuti.com :) */
