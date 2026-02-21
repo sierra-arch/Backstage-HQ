@@ -370,6 +370,7 @@ export default function DashboardApp() {
             onSearch={setSearchQuery}
             onOpenChat={() => setShowChat(true)}
             unreadCount={unreadCount}
+            userName={userName}
           />
 
           {page === "Today" && isFounder(role) && (

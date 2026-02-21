@@ -50,20 +50,31 @@ export function Sidebar({
   );
 }
 
+function useGreeting(name: string) {
+  const hour = new Date().getHours();
+  const period = hour < 12 ? "Morning" : hour < 17 ? "Afternoon" : "Evening";
+  const firstName = name.split(" ")[0];
+  return `Good ${period}, ${firstName}`;
+}
+
 export function TopHeader({
   onSearch,
   onOpenChat,
   unreadCount,
+  userName,
 }: {
   onSearch: (q: string) => void;
   onOpenChat: () => void;
   unreadCount: number;
+  userName: string;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const greeting = useGreeting(userName);
 
   return (
     <div className="sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
-      <div className="h-12 md:h-14 bg-white flex items-center justify-end px-3 md:px-4 border-b">
+      <div className="h-12 md:h-14 bg-white flex items-center justify-between px-3 md:px-4 border-b">
+        <div className="text-[14px] font-medium text-neutral-700 pl-1">{greeting}</div>
         <div className="flex items-center gap-2">
           <div className="flex items-center w-[200px] md:w-[280px]">
             <input
