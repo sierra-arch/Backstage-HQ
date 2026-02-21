@@ -14,7 +14,9 @@ import {
   completeTask as dbCompleteTask,
   getCompanyByName,
   sendMessage,
+  updateProfileGoogleDocId,
 } from "./useDatabase";
+import { connectGoogle, getTokenSilently, createGoogleDoc, appendToDoc } from "./useGoogleDocs";
 import {
   fromDbToUi, isFounder,
   COMPANIES, LEVEL_XP_THRESHOLD,
@@ -57,10 +59,14 @@ function useSession() {
 /* ──────────────────────────────────────────────────────────────────
    Inline simple pages (small enough to stay here)
    ────────────────────────────────────────────────────────────────── */
-function SettingsPage({ userName, userEmail, userId }: { userName: string; userEmail: string; userId: string }) {
+function SettingsPage({ userName, userEmail, userId, googleDocId }: {
+  userName: string; userEmail: string; userId: string; googleDocId?: string | null;
+}) {
   const [displayName, setDisplayName] = useState(userName);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [docId, setDocId] = useState(googleDocId ?? null);
 
   async function handleSave() {
     setSaving(true);
@@ -72,6 +78,20 @@ function SettingsPage({ userName, userEmail, userId }: { userName: string; userE
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+  }
+
+  async function handleConnectGoogle() {
+    setConnecting(true);
+    try {
+      const token = await connectGoogle();
+      const newDocId = await createGoogleDoc(`${userName}'s Backstage Notes`, token);
+      await updateProfileGoogleDocId(userId, newDocId);
+      setDocId(newDocId);
+    } catch (err) {
+      console.error("Google Docs connect failed:", err);
+    } finally {
+      setConnecting(false);
+    }
   }
 
   return (
@@ -109,6 +129,36 @@ function SettingsPage({ userName, userEmail, userId }: { userName: string; userE
             <span className="text-sm">Browser notifications for new messages</span>
           </label>
         </div>
+      </Card>
+      <Card title="Google Docs">
+        {docId ? (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm text-teal-700 font-medium">
+              <span>✓ Connected</span>
+            </div>
+            <p className="text-xs text-neutral-500">Notes from your Today page are saved to your personal doc.</p>
+            <a
+              href={`https://docs.google.com/document/d/${docId}/edit`}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-block text-sm text-teal-600 underline hover:text-teal-800">
+              Open my notes doc →
+            </a>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-neutral-600">
+              Connect Google Docs to automatically save your notes to a personal doc — one per team member, all in one place.
+            </p>
+            <button onClick={handleConnectGoogle} disabled={connecting}
+              className="border rounded-xl px-4 py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 flex items-center gap-2">
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              {connecting ? "Connecting..." : "Connect Google Docs"}
+            </button>
+          </div>
+        )}
       </Card>
       <Card title="Danger Zone">
         <button onClick={handleSignOut}
@@ -205,11 +255,18 @@ export default function DashboardApp() {
     setShowKudosModal(true);
   }
 
-  async function handleSendKudos(kudosText: string) {
+  async function handleSendKudos(action: "archive" | "return", message: string) {
     if (!kudosTask) return;
-    await dbUpdateTask(kudosTask.id, { status: "completed" });
-    if (kudosText && kudosTask.assigned_to) {
-      await sendMessage(kudosText, kudosTask.assigned_to, true, kudosTask.id);
+    if (action === "archive") {
+      await dbUpdateTask(kudosTask.id, { status: "completed" });
+      if (message && kudosTask.assigned_to) {
+        await sendMessage(`🎉 ${message}`, kudosTask.assigned_to, true, kudosTask.id);
+      }
+    } else {
+      const updatedDescription = message
+        ? `📋 Notes: ${message}\n\n${kudosTask.description ?? ""}`.trim()
+        : kudosTask.description ?? null;
+      await dbUpdateTask(kudosTask.id, { status: "active", description: updatedDescription });
     }
     refetch();
     setShowKudosModal(false);
@@ -228,6 +285,13 @@ export default function DashboardApp() {
     if (postToTeam) {
       await sendMessage(`🎉 ${text}`, undefined, false, undefined);
       refetchMessages();
+    }
+    // Append to Google Doc if connected
+    if (profile?.google_doc_id) {
+      const token = await getTokenSilently();
+      if (token) {
+        appendToDoc(profile.google_doc_id, text, token).catch(console.error);
+      }
     }
   }
 
@@ -330,6 +394,7 @@ export default function DashboardApp() {
               userName={userName}
               userEmail={session?.user?.email ?? ""}
               userId={profile?.id ?? ""}
+              googleDocId={profile?.google_doc_id}
             />
           )}
 

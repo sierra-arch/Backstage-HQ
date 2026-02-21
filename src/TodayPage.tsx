@@ -314,23 +314,10 @@ export function TodayFounder({
                         </div>
                       </div>
                     </div>
-                    <div className="text-xs flex gap-2">
-                      <button className="rounded-xl border px-2 py-1 hover:border-teal-300"
-                        onClick={(e) => { e.stopPropagation(); onApprove(t); }}>
-                        Approve
-                      </button>
-                      <button className="rounded-xl border px-2 py-1 hover:border-teal-300"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const note = prompt("Add a note:", "Please revise and resubmit");
-                          if (note) {
-                            dbUpdateTask(t.id, { status: "active", description: `${t.description}\n\nReturned: ${note}` });
-                            refetch();
-                          }
-                        }}>
-                        Re-assign
-                      </button>
-                    </div>
+                    <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300"
+                      onClick={(e) => { e.stopPropagation(); onApprove(t); }}>
+                      Review
+                    </button>
                   </div>
                 ))}
               </div>

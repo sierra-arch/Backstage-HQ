@@ -32,15 +32,15 @@ export type DBTask = {
 export type Client = {
   id: string;
   company_id?: string | null;
-  company?: string; // older mock shape
   name: string;
-  photo_url?: string;
-  description?: string;
-  contact?: string;
-  scope?: string;
-  quick_links?: string[];
-  deadline?: string;
-  added_date?: string;
+  photo_url?: string | null;
+  description?: string | null;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  scope?: string | null;
+  quick_links?: { name: string; url: string }[] | null;
+  deadline?: string | null;
+  client_status?: "active" | "completed" | "archived";
   // allow extra DB fields without breaking compile
   [k: string]: any;
 };

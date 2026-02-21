@@ -19,6 +19,7 @@ export interface Profile {
   avatar_url: string | null;
   xp: number;
   level: number;
+  google_doc_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -204,6 +205,10 @@ export async function fetchProfile(): Promise<Profile | null> {
   }
 
   return data;
+}
+
+export async function updateProfileGoogleDocId(userId: string, docId: string): Promise<void> {
+  await supabase.from("profiles").update({ google_doc_id: docId }).eq("id", userId);
 }
 
 export function useProfile() {
