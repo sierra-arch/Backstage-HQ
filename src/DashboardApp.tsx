@@ -91,23 +91,40 @@ function MeetingsPage() {
   );
 }
 
-function SettingsPage({ userName }: { userName: string }) {
+function SettingsPage({ userName, userEmail, userId }: { userName: string; userEmail: string; userId: string }) {
+  const [displayName, setDisplayName] = useState(userName);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    await supabase.from("profiles").update({ display_name: displayName }).eq("id", userId);
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
+
   return (
     <div className="space-y-6">
       <Card title="Account Settings">
         <div className="space-y-4">
           <div>
             <label className="text-sm font-medium text-neutral-700">Display Name</label>
-            <input type="text" defaultValue={userName}
+            <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
               className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
           </div>
           <div>
             <label className="text-sm font-medium text-neutral-700">Email</label>
-            <input type="email" defaultValue="sierra@backstageop.com"
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+            <input type="email" defaultValue={userEmail} disabled
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-neutral-50 text-neutral-500 cursor-not-allowed" />
           </div>
-          <button className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium">
-            Save Changes
+          <button onClick={handleSave} disabled={saving || displayName === userName}
+            className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium disabled:opacity-50">
+            {saved ? "Saved!" : saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </Card>
@@ -128,7 +145,8 @@ function SettingsPage({ userName }: { userName: string }) {
         </div>
       </Card>
       <Card title="Danger Zone">
-        <button className="text-red-600 border border-red-200 rounded-xl px-4 py-2 hover:bg-red-50 text-sm font-medium">
+        <button onClick={handleSignOut}
+          className="text-red-600 border border-red-200 rounded-xl px-4 py-2 hover:bg-red-50 text-sm font-medium">
           Sign Out
         </button>
       </Card>
@@ -256,6 +274,11 @@ export default function DashboardApp() {
     await sendMessage(content, toUserId);
   }
 
+  async function handleSubmitForApproval(task: DBTask) {
+    await dbUpdateTask(task.id, { status: "submitted" });
+    refetch();
+  }
+
   function openTaskModal(task: DBTask) {
     setSelectedTask(task);
     setShowTaskModal(true);
@@ -319,6 +342,7 @@ export default function DashboardApp() {
               filteredTasks={filteredTasks} taskFilters={taskFilters} setTaskFilters={setTaskFilters}
               role={role} teamMembers={teamMembers}
               onOpenCreateTask={() => setShowCreateModal(true)} onTaskClick={openTaskModal}
+              onSubmit={!isFounder(role) ? handleSubmitForApproval : undefined}
             />
           )}
 
@@ -335,7 +359,13 @@ export default function DashboardApp() {
             <MyTeamPage tasks={tasks} teamMembers={teamMembers} />
           )}
 
-          {page === "Settings" && <SettingsPage userName={userName} />}
+          {page === "Settings" && (
+            <SettingsPage
+              userName={userName}
+              userEmail={session?.user?.email ?? ""}
+              userId={profile?.id ?? ""}
+            />
+          )}
 
           {page === "Career Path" && !isFounder(role) && (
             <Card title="Career Path" subtitle="Your progress">

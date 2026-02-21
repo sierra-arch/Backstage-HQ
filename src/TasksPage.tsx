@@ -7,7 +7,13 @@ import { Card, CompanyChip, Avatar } from "./ui";
 /* ──────────────────────────────────────────────────────────────────
    Task Row & List (shared, used by TodayPage too)
    ────────────────────────────────────────────────────────────────── */
-export function TaskRow({ task, onClick }: { task: DBTask; onClick: () => void }) {
+export function TaskRow({
+  task, onClick, onSubmit,
+}: {
+  task: DBTask;
+  onClick: () => void;
+  onSubmit?: (task: DBTask) => void;
+}) {
   return (
     <motion.div
       layout
@@ -30,20 +36,43 @@ export function TaskRow({ task, onClick }: { task: DBTask; onClick: () => void }
             <Avatar name={task.assignee_name || "Unassigned"} size={14} />
             {task.assignee_name || "Unassigned"}
           </span>
+          {task.due_date && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+              new Date(task.due_date) < new Date()
+                ? "bg-red-50 text-red-700 border-red-200"
+                : "bg-neutral-50 text-neutral-600"
+            }`}>
+              Due {new Date(task.due_date).toLocaleDateString([], { month: "short", day: "numeric" })}
+            </span>
+          )}
         </div>
       </div>
+      {onSubmit && task.status === "active" && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onSubmit(task); }}
+          className="flex-shrink-0 text-[11px] rounded-xl border border-teal-300 bg-teal-50 text-teal-800 px-2.5 py-1 hover:bg-teal-100 font-medium"
+        >
+          Submit
+        </button>
+      )}
     </motion.div>
   );
 }
 
-export function TaskList({ tasks, onTaskClick }: { tasks: DBTask[]; onTaskClick: (task: DBTask) => void }) {
+export function TaskList({
+  tasks, onTaskClick, onSubmit,
+}: {
+  tasks: DBTask[];
+  onTaskClick: (task: DBTask) => void;
+  onSubmit?: (task: DBTask) => void;
+}) {
   return (
     <div className="space-y-2">
       {tasks.length === 0 && (
         <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
       )}
       {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} />
+        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} />
       ))}
     </div>
   );
@@ -60,6 +89,7 @@ export function TasksPage({
   teamMembers,
   onOpenCreateTask,
   onTaskClick,
+  onSubmit,
 }: {
   filteredTasks: DBTask[];
   taskFilters: { company: string; impact: string; priority: string; status: string; assignee: string };
@@ -68,6 +98,7 @@ export function TasksPage({
   teamMembers: { id: string; display_name: string | null }[];
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
+  onSubmit?: (task: DBTask) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -134,7 +165,7 @@ export function TasksPage({
           className="mb-4 rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-2 hover:bg-teal-50 text-sm font-medium">
           NEW
         </button>
-        <TaskList tasks={filteredTasks} onTaskClick={onTaskClick} />
+        <TaskList tasks={filteredTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
       </Card>
     </div>
   );
