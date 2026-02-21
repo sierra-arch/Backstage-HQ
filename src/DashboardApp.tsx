@@ -2779,7 +2779,7 @@ export default function DashboardApp() {
           />
 
           {page === "Today" &&
-            (isFounder(role) ? <TodayFounder /> : <TodayTeam />)}
+            (isFounder(role) ? TodayFounder() : TodayTeam())}
           {page === "Meetings" && isFounder(role) && <MeetingsPage />}
           {page === "Tasks" && (
             <div className="space-y-4">
