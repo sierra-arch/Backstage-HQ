@@ -96,7 +96,6 @@ export function CompaniesPage({
         return (
           <Card
             key={companyName}
-            className="border-2 border-teal-100 hover:border-teal-200 transition-colors"
             onClick={() => onCompanyClick(companyName)}
           >
             <div className="space-y-4">
