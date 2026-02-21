@@ -235,54 +235,58 @@ export function useProfile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const loadProfile = useCallback(async () => {
+    try {
+      const data = await fetchProfile();
+      setProfile(data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let mounted = true;
+    let subscription: any = null;
 
-    async function loadProfile() {
-      try {
-        const data = await fetchProfile();
-        if (mounted) {
-          setProfile(data);
-          setError(null);
-        }
-      } catch (err: any) {
-        if (mounted) {
-          setError(err.message);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
+    async function init() {
+      await loadProfile();
+      if (!mounted) return;
+
+      // Get user ID from auth for a stable subscription filter
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !mounted) return;
+
+      subscription = supabase
+        .channel("profile-changes")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${user.id}`,
+          },
+          (payload) => {
+            if (mounted && payload.new) {
+              setProfile(payload.new as Profile);
+            }
+          }
+        )
+        .subscribe();
     }
 
-    loadProfile();
-
-    const subscription = supabase
-      .channel("profile-changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "profiles",
-          filter: `id=eq.${profile?.id}`,
-        },
-        (payload) => {
-          if (mounted && payload.new) {
-            setProfile(payload.new as Profile);
-          }
-        }
-      )
-      .subscribe();
+    init();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
-  }, []);
+  }, [loadProfile]);
 
-  return { profile, loading, error };
+  return { profile, loading, error, refetch: loadProfile };
 }
 
 export async function fetchAllProfiles(): Promise<Profile[]> {

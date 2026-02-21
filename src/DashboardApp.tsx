@@ -197,7 +197,7 @@ function SettingsPage({ userName, userEmail, userId, googleDocId }: {
    ────────────────────────────────────────────────────────────────── */
 export default function DashboardApp() {
   const session = useSession();
-  const { profile } = useProfile();
+  const { profile, refetch: refetchProfile } = useProfile();
   const { teamMembers } = useTeamMembers();
   const { tasks, loading: tasksLoading, refetch } = useTasks({ status: ["focus", "active", "submitted", "completed", "archived"] });
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
@@ -256,6 +256,7 @@ export default function DashboardApp() {
     if (success) {
       if (profile?.id) {
         await addXPToProfile(profile.id, XP_BY_IMPACT[task.impact]);
+        await refetchProfile();
       }
       await sendMessage(`🎉 ${userName} completed: ${task.title}`, undefined, true, task.id);
       setCelebrate(true);
@@ -273,9 +274,14 @@ export default function DashboardApp() {
     if (!kudosTask) return;
     if (action === "archive") {
       await dbUpdateTask(kudosTask.id, { status: "completed" });
-      if (message && kudosTask.assigned_to) {
-        await sendMessage(`🎉 ${message}`, kudosTask.assigned_to, true, kudosTask.id);
+      if (kudosTask.assigned_to) {
+        await addXPToProfile(kudosTask.assigned_to, XP_BY_IMPACT[kudosTask.impact]);
+        if (message) {
+          await sendMessage(`🎉 ${message}`, kudosTask.assigned_to, true, kudosTask.id);
+        }
       }
+      setCelebrate(true);
+      setTimeout(() => setCelebrate(false), 1500);
     } else {
       const updatedDescription = message
         ? `📋 Notes: ${message}\n\n${kudosTask.description ?? ""}`.trim()
@@ -463,7 +469,7 @@ export default function DashboardApp() {
       <TaskModal
         task={selectedTask} isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
-        onComplete={() => selectedTask && handleComplete(selectedTask)}
+        onComplete={() => selectedTask && (isFounder(role) ? handleComplete(selectedTask) : handleSubmitForApproval(selectedTask))}
         role={role}
       />
 
