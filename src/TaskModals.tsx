@@ -69,18 +69,32 @@ export function TaskModal({
   isOpen,
   onClose,
   onComplete,
+  onReassign,
   role,
+  teamMembers = [],
 }: {
   task: DBTask | null;
   isOpen: boolean;
   onClose: () => void;
   onComplete: () => void;
+  onReassign?: (taskId: string, memberId: string | null) => Promise<void>;
   role: Role;
+  teamMembers?: { id: string; display_name: string | null }[];
 }) {
+  const [reassigning, setReassigning] = React.useState(false);
+
   if (!task) return null;
 
   const isDone = task.status === "completed" || task.status === "archived";
   const buttonText = isFounder(role) ? "Mark Complete" : "Submit for Approval";
+
+  async function handleReassign(e: React.ChangeEvent<HTMLSelectElement>) {
+    if (!onReassign) return;
+    const memberId = e.target.value || null;
+    setReassigning(true);
+    await onReassign(task!.id, memberId);
+    setReassigning(false);
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={task.title} size="medium" coverImage={task.photo_url || undefined}>
@@ -102,10 +116,24 @@ export function TaskModal({
           </div>
           <div>
             <label className="text-sm font-medium text-neutral-700">Assigned To</label>
-            <div className="mt-1 flex items-center gap-2">
-              <Avatar name={task.assignee_name || "Unassigned"} size={20} />
-              <span className="text-sm text-neutral-600">{task.assignee_name || "Unassigned"}</span>
-            </div>
+            {isFounder(role) && onReassign ? (
+              <select
+                defaultValue={task.assigned_to ?? ""}
+                onChange={handleReassign}
+                disabled={reassigning}
+                className="mt-1 w-full rounded-xl border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-teal-200 disabled:opacity-50"
+              >
+                <option value="">Unassigned</option>
+                {teamMembers.map((tm) => (
+                  <option key={tm.id} value={tm.id}>{tm.display_name || "Unknown"}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="mt-1 flex items-center gap-2">
+                <Avatar name={task.assignee_name || "Unassigned"} size={20} />
+                <span className="text-sm text-neutral-600">{task.assignee_name || "Unassigned"}</span>
+              </div>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-4">

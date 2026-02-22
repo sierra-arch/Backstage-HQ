@@ -476,7 +476,9 @@ export default function DashboardApp() {
         task={selectedTask} isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
         onComplete={() => selectedTask && (isFounder(role) ? handleComplete(selectedTask) : handleSubmitForApproval(selectedTask))}
+        onReassign={async (taskId, memberId) => { await dbUpdateTask(taskId, { assigned_to: memberId }); refetch(); }}
         role={role}
+        teamMembers={teamMembers}
       />
 
       <TaskCreateModal
