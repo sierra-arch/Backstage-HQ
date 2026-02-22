@@ -188,10 +188,15 @@ export function TaskCreateModal({
       }
     }
 
+    // Resolve assignee display name → user ID
+    const assignedMember = teamMembers.find((tm) => tm.display_name === assignee);
+    const assignedToId = assignedMember?.id ?? null;
+
     await dbCreateTask({
       title,
       description,
       company_id: companyData?.id,
+      assigned_to: assignedToId,
       status: "active",
       priority: "medium",
       impact: level,
@@ -238,11 +243,13 @@ export function TaskCreateModal({
             className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
             {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select value={assignee} onChange={(e) => setAssignee(e.target.value)}
-            className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
-            <option value="">Unassigned</option>
-            {assignOptions.map((t) => <option key={t} value={t}>{t || "Unassigned"}</option>)}
-          </select>
+          {isFounder(role) && (
+            <select value={assignee} onChange={(e) => setAssignee(e.target.value)}
+              className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
+              <option value="">Unassigned</option>
+              {assignOptions.map((t) => <option key={t} value={t}>{t || "Unassigned"}</option>)}
+            </select>
+          )}
           <select value={level} onChange={(e) => setLevel(e.target.value as any)}
             className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
             <option value="small">Small</option>

@@ -402,7 +402,7 @@ export default function DashboardApp() {
           {page === "Tasks" && (
             <TasksPage
               filteredTasks={filteredTasks} taskFilters={taskFilters} setTaskFilters={setTaskFilters}
-              role={role} teamMembers={teamMembers}
+              role={role} userName={userName} teamMembers={teamMembers}
               onOpenCreateTask={() => setShowCreateModal(true)} onTaskClick={openTaskModal}
               onSubmit={!isFounder(role) ? handleSubmitForApproval : undefined}
             />

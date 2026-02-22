@@ -86,6 +86,7 @@ export function TasksPage({
   taskFilters,
   setTaskFilters,
   role,
+  userName,
   teamMembers,
   onOpenCreateTask,
   onTaskClick,
@@ -95,6 +96,7 @@ export function TasksPage({
   taskFilters: { company: string; impact: string; priority: string; status: string; assignee: string };
   setTaskFilters: (f: any) => void;
   role: Role;
+  userName: string;
   teamMembers: { id: string; display_name: string | null }[];
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
@@ -103,13 +105,18 @@ export function TasksPage({
   const [showArchived, setShowArchived] = React.useState(false);
   const isFiltered = Object.values(taskFilters).some((v) => v !== "all");
 
+  // Team members only see their own tasks; founders see everything
+  const scopedTasks = isFounder(role)
+    ? filteredTasks
+    : filteredTasks.filter((t) => t.assignee_name === userName);
+
   // When the status filter is pinned to completed/archived, show those directly.
   // Otherwise default to hiding them behind the toggle.
   const statusPinned = taskFilters.status === "completed" || taskFilters.status === "archived";
-  const activeTasks = filteredTasks.filter((t) => t.status !== "completed" && t.status !== "archived");
-  const archivedTasks = filteredTasks.filter((t) => t.status === "completed" || t.status === "archived");
+  const activeTasks = scopedTasks.filter((t) => t.status !== "completed" && t.status !== "archived");
+  const archivedTasks = scopedTasks.filter((t) => t.status === "completed" || t.status === "archived");
   const displayedTasks = statusPinned
-    ? filteredTasks
+    ? scopedTasks
     : showArchived
     ? archivedTasks
     : activeTasks;
@@ -172,6 +179,10 @@ export function TasksPage({
         </div>
 
         <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
+
+        {!statusPinned && !isFounder(role) && (
+          <p className="text-xs text-neutral-400 mt-1">Showing your assigned tasks only.</p>
+        )}
 
         {!statusPinned && archivedTasks.length > 0 && (
           <button
