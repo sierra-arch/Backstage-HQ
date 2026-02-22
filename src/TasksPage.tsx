@@ -120,14 +120,11 @@ export function TasksPage({
       );
 
   // When the status filter is pinned to completed/archived, show those directly.
-  // Founders always see all statuses by default (no hiding behind toggle).
-  // Team members default to hiding completed/archived behind the toggle.
+  // Otherwise show only active/focus/submitted by default, with a toggle for completed/archived.
   const statusPinned = taskFilters.status === "completed" || taskFilters.status === "archived";
   const activeTasks = scopedTasks.filter((t) => t.status !== "completed" && t.status !== "archived");
   const archivedTasks = scopedTasks.filter((t) => t.status === "completed" || t.status === "archived");
   const unsortedTasks = statusPinned
-    ? scopedTasks
-    : isFounder(role)
     ? scopedTasks
     : showArchived
     ? archivedTasks
@@ -222,7 +219,7 @@ export function TasksPage({
           <p className="text-xs text-neutral-400 mt-1">Showing your tasks and unassigned tasks.</p>
         )}
 
-        {!statusPinned && !isFounder(role) && archivedTasks.length > 0 && (
+        {!statusPinned && archivedTasks.length > 0 && (
           <button
             onClick={() => setShowArchived((v) => !v)}
             className="mt-4 w-full text-xs text-neutral-400 hover:text-neutral-600 border border-dashed rounded-xl py-2 transition-colors">
