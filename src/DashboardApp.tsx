@@ -192,6 +192,9 @@ function SettingsPage({ userName, userEmail, userId, googleDocId }: {
   );
 }
 
+// Stable reference — defined outside component so useTasks doesn't re-subscribe every render
+const ALL_STATUSES = ["focus", "active", "submitted", "completed", "archived"] as const;
+
 /* ──────────────────────────────────────────────────────────────────
    Main App
    ────────────────────────────────────────────────────────────────── */
@@ -199,7 +202,7 @@ export default function DashboardApp() {
   const session = useSession();
   const { profile, refetch: refetchProfile } = useProfile();
   const { teamMembers } = useTeamMembers();
-  const { tasks, loading: tasksLoading, refetch } = useTasks({ status: ["focus", "active", "submitted", "completed", "archived"] });
+  const { tasks, loading: tasksLoading, refetch } = useTasks({ status: ALL_STATUSES as any });
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
   const { clients: allClients, refetch: refetchClients } = useClients();
   const { products: allProducts, refetch: refetchProducts } = useProducts();

@@ -197,7 +197,13 @@ export function TaskCreateModal({
   >("none");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
 
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
   async function handleCreate() {
+    setCreating(true);
+    setCreateError(null);
+
     const companyData = await getCompanyByName(company);
     const estimate = TIME_BY_LEVEL[level];
 
@@ -220,10 +226,10 @@ export function TaskCreateModal({
     const assignedMember = teamMembers.find((tm) => tm.display_name === assignee);
     const assignedToId = assignedMember?.id ?? null;
 
-    await dbCreateTask({
+    const result = await dbCreateTask({
       title,
       description,
-      company_id: companyData?.id,
+      company_id: companyData?.id ?? null,
       assigned_to: assignedToId,
       status: "active",
       priority: "medium",
@@ -232,6 +238,13 @@ export function TaskCreateModal({
       due_date: deadline || null,
       photo_url: photoUrl,
     });
+
+    setCreating(false);
+
+    if (!result) {
+      setCreateError("Failed to create task. Check your connection and try again.");
+      return;
+    }
 
     setTitle("");
     setDescription("");
@@ -321,13 +334,16 @@ export function TaskCreateModal({
         )}
 
         {/* Actions */}
+        {createError && (
+          <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{createError}</p>
+        )}
         <div className="flex gap-2 pt-2 border-t">
           <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">
             Cancel
           </button>
-          <button onClick={handleCreate} disabled={!title}
+          <button onClick={handleCreate} disabled={!title || creating}
             className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium disabled:opacity-40">
-            Create Task
+            {creating ? "Creating..." : "Create Task"}
           </button>
         </div>
       </div>
