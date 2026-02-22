@@ -22,7 +22,7 @@ import {
 import { connectGoogle, getTokenSilently, createGoogleDoc, appendToDoc } from "./useGoogleDocs";
 import {
   fromDbToUi, isFounder,
-  COMPANIES, LEVEL_XP_THRESHOLD, XP_BY_IMPACT,
+  COMPANIES, XP_BY_IMPACT,
   Role, AppRole, Page, Client, Product, DBTask,
 } from "./types";
 
@@ -34,9 +34,10 @@ import { TodayFounder, TodayTeam, Confetti } from "./TodayPage";
 import { TasksPage } from "./TasksPage";
 import { MyTeamPage } from "./MyTeamPage";
 import { PlaybookPage } from "./PlaybookPage";
+import { CareerPathPage } from "./CareerPathPage";
 import { MeetingsPage } from "./MeetingsPage";
 import { Sidebar, TopHeader } from "./Navigation";
-import { Card, LevelRing } from "./ui";
+import { Card } from "./ui";
 import {
   TaskModal,
   TaskCreateModal,
@@ -439,40 +440,10 @@ export default function DashboardApp() {
           )}
 
           {page === "Career Path" && !isFounder(role) && (
-            <div className="space-y-4">
-              <Card>
-                <div className="flex items-center gap-6">
-                  <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} size={120} stroke={14} />
-                  <div>
-                    <div className="text-2xl font-semibold">Level {level}</div>
-                    <div className="text-sm text-neutral-500 mt-1">{xp} / {LEVEL_XP_THRESHOLD} XP to next level</div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Small task = 5 XP</span>
-                      <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Medium task = 10 XP</span>
-                      <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Large task = 20 XP</span>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-              <Card title="Completed Tasks">
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {tasks.filter((t) => t.status === "completed" && t.assignee_name === userName).length === 0 && (
-                    <div className="text-sm text-neutral-500 text-center py-8">No completed tasks yet — finish your first one!</div>
-                  )}
-                  {tasks.filter((t) => t.status === "completed" && t.assignee_name === userName).map((t) => (
-                    <div key={t.id} className="rounded-xl border p-3 flex items-center justify-between bg-white">
-                      <div>
-                        <div className="text-sm font-medium">{t.title}</div>
-                        <div className="text-xs text-neutral-500 mt-0.5">{t.company_name}</div>
-                      </div>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 flex-shrink-0">
-                        +{XP_BY_IMPACT[t.impact]} XP
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
+            <CareerPathPage
+              level={level} xp={xp} tasks={tasks}
+              userName={userName} userId={profile?.id ?? ""}
+            />
           )}
 
           {page === "Playbook" && <PlaybookPage role={role} />}

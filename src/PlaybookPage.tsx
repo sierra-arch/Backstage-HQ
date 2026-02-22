@@ -9,7 +9,11 @@ import { Modal } from "./TaskModals";
 /* ──────────────────────────────────────────────────────────────────
    SOP Detail Modal
    ────────────────────────────────────────────────────────────────── */
-function SOPModal({ sop, isOpen, onClose }: { sop: SOP | null; isOpen: boolean; onClose: () => void }) {
+function SOPModal({
+  sop, isOpen, onClose, role, onEdit,
+}: {
+  sop: SOP | null; isOpen: boolean; onClose: () => void; role: Role; onEdit: () => void;
+}) {
   if (!sop) return null;
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={sop.title} size="large">
@@ -42,7 +46,7 @@ function SOPModal({ sop, isOpen, onClose }: { sop: SOP | null; isOpen: boolean; 
         )}
         {sop.full_description && (
           <div>
-            <label className="text-sm font-medium text-neutral-700">Full Description</label>
+            <label className="text-sm font-medium text-neutral-700">Notes</label>
             <p className="text-sm text-neutral-600 mt-1 whitespace-pre-wrap">{sop.full_description}</p>
           </div>
         )}
@@ -53,44 +57,84 @@ function SOPModal({ sop, isOpen, onClose }: { sop: SOP | null; isOpen: boolean; 
             ))}
           </div>
         )}
+        {isFounder(role) && (
+          <div className="pt-4 border-t">
+            <button onClick={onEdit}
+              className="w-full border rounded-xl py-2 text-sm hover:bg-neutral-50 font-medium">
+              Edit Entry
+            </button>
+          </div>
+        )}
       </div>
     </Modal>
   );
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Create SOP Modal
+   Create / Edit SOP Modal
    ────────────────────────────────────────────────────────────────── */
-function CreateSOPModal({ isOpen, onClose, onCreated }: { isOpen: boolean; onClose: () => void; onCreated: () => void }) {
-  const [title, setTitle] = useState("");
-  const [shortDesc, setShortDesc] = useState("");
-  const [fullDesc, setFullDesc] = useState("");
-  const [company, setCompany] = useState("");
-  const [roleContext, setRoleContext] = useState("");
+function SOPFormModal({
+  isOpen, onClose, onSaved, existing,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+  existing?: SOP | null;
+}) {
+  const [title, setTitle] = useState(existing?.title ?? "");
+  const [shortDesc, setShortDesc] = useState(existing?.short_description ?? "");
+  const [fullDesc, setFullDesc] = useState(existing?.full_description ?? "");
+  const [roleContext, setRoleContext] = useState(existing?.role_context ?? "");
+  const [steps, setSteps] = useState<string[]>(
+    existing?.instructions?.map((s) => s.text) ?? [""]
+  );
+  const [tagInput, setTagInput] = useState("");
+  const [tags, setTags] = useState<string[]>(existing?.tags ?? []);
   const [saving, setSaving] = useState(false);
 
-  async function handleCreate() {
+  function addStep() { setSteps((s) => [...s, ""]); }
+  function removeStep(i: number) { setSteps((s) => s.filter((_, idx) => idx !== i)); }
+  function updateStep(i: number, val: string) {
+    setSteps((s) => { const n = [...s]; n[i] = val; return n; });
+  }
+
+  function addTag(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const t = tagInput.trim().toLowerCase();
+      if (t && !tags.includes(t)) setTags((prev) => [...prev, t]);
+      setTagInput("");
+    }
+  }
+  function removeTag(t: string) { setTags((prev) => prev.filter((x) => x !== t)); }
+
+  async function handleSave() {
     if (!title.trim()) return;
     setSaving(true);
-    await saveSOP({
-      title,
-      short_description: shortDesc || null,
-      full_description: fullDesc || null,
-      role_context: roleContext || null,
-      company_id: null,
-      instructions: null,
-      tags: null,
-      is_active: true,
-      task_count: 0,
-    });
+    const instructions = steps
+      .filter((s) => s.trim())
+      .map((text, i) => ({ step: i + 1, text }));
+    await saveSOP(
+      {
+        title,
+        short_description: shortDesc || null,
+        full_description: fullDesc || null,
+        role_context: roleContext || null,
+        instructions: instructions.length > 0 ? instructions : null,
+        tags: tags.length > 0 ? tags : null,
+        is_active: true,
+        task_count: existing?.task_count ?? 0,
+        company_id: existing?.company_id ?? null,
+      },
+      existing?.id,
+    );
     setSaving(false);
-    setTitle(""); setShortDesc(""); setFullDesc(""); setCompany(""); setRoleContext("");
-    onCreated();
+    onSaved();
     onClose();
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="New Playbook Entry" size="medium">
+    <Modal isOpen={isOpen} onClose={onClose} title={existing ? "Edit Entry" : "New Playbook Entry"} size="large">
       <div className="space-y-4">
         <div>
           <label className="text-sm font-medium text-neutral-700">Title *</label>
@@ -99,29 +143,82 @@ function CreateSOPModal({ isOpen, onClose, onCreated }: { isOpen: boolean; onClo
             className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
         </div>
         <div>
-          <label className="text-sm font-medium text-neutral-700">Overview</label>
+          <label className="text-sm font-medium text-neutral-700">One-line overview</label>
           <input type="text" value={shortDesc} onChange={(e) => setShortDesc(e.target.value)}
-            placeholder="One-line summary"
+            placeholder="Quick summary visible on the card"
             className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
         </div>
         <div>
-          <label className="text-sm font-medium text-neutral-700">Role Context</label>
+          <label className="text-sm font-medium text-neutral-700">Who this is for</label>
           <input type="text" value={roleContext} onChange={(e) => setRoleContext(e.target.value)}
-            placeholder="Who this is for (e.g. Team, Founder)"
+            placeholder="e.g. All team members, Founder only, New hires"
             className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
         </div>
+
+        {/* Step builder */}
         <div>
-          <label className="text-sm font-medium text-neutral-700">Full Content</label>
-          <textarea value={fullDesc} onChange={(e) => setFullDesc(e.target.value)}
-            placeholder="Full SOP content, steps, notes..."
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[120px] focus:ring-2 focus:ring-teal-200 outline-none" />
-        </div>
-        <div className="flex gap-3 pt-4 border-t">
-          <button onClick={handleCreate} disabled={!title.trim() || saving}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50">
-            {saving ? "Saving..." : "Create Entry"}
+          <label className="text-sm font-medium text-neutral-700 mb-2 block">Steps</label>
+          <div className="space-y-2">
+            {steps.map((step, i) => (
+              <div key={i} className="flex gap-2 items-start">
+                <div className="w-6 h-6 rounded-full bg-teal-600 text-white text-xs flex items-center justify-center flex-shrink-0 mt-2">
+                  {i + 1}
+                </div>
+                <input
+                  value={step}
+                  onChange={(e) => updateStep(i, e.target.value)}
+                  placeholder={`Step ${i + 1}...`}
+                  className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                />
+                {steps.length > 1 && (
+                  <button onClick={() => removeStep(i)}
+                    className="text-neutral-400 hover:text-red-500 text-lg leading-none mt-1.5 px-1">
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button onClick={addStep}
+            className="mt-2 text-xs text-teal-600 hover:text-teal-800 font-medium flex items-center gap-1">
+            + Add step
           </button>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Notes / Full content</label>
+          <textarea value={fullDesc} onChange={(e) => setFullDesc(e.target.value)}
+            placeholder="Additional context, tips, links..."
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[80px] focus:ring-2 focus:ring-teal-200 outline-none resize-none" />
+        </div>
+
+        {/* Tags */}
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Tags</label>
+          <div className="mt-1 flex flex-wrap gap-1.5 rounded-xl border px-3 py-2 focus-within:ring-2 focus-within:ring-teal-200 bg-white min-h-[38px]">
+            {tags.map((t) => (
+              <span key={t} className="flex items-center gap-1 text-[11px] bg-teal-50 text-teal-800 border border-teal-200 rounded-full px-2 py-0.5">
+                {t}
+                <button onClick={() => removeTag(t)} className="text-teal-400 hover:text-teal-700 leading-none">×</button>
+              </span>
+            ))}
+            <input
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={addTag}
+              placeholder={tags.length === 0 ? "Type a tag and press Enter..." : ""}
+              className="flex-1 min-w-[120px] outline-none text-sm bg-transparent"
+            />
+          </div>
+          <p className="text-xs text-neutral-400 mt-1">Press Enter or comma to add a tag</p>
+        </div>
+
+        <div className="flex gap-3 pt-4 border-t">
           <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
+          <button onClick={handleSave} disabled={!title.trim() || saving}
+            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50">
+            {saving ? "Saving..." : existing ? "Save Changes" : "Create Entry"}
+          </button>
         </div>
       </div>
     </Modal>
@@ -134,22 +231,22 @@ function CreateSOPModal({ isOpen, onClose, onCreated }: { isOpen: boolean; onClo
 export function PlaybookPage({ role }: { role: Role }) {
   const { sops, loading, refetch } = useSOPs();
   const [selectedSOP, setSelectedSOP] = useState<SOP | null>(null);
+  const [editingSOP, setEditingSOP] = useState<SOP | null | undefined>(undefined);
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState("");
-  const [filterCompany, setFilterCompany] = useState("all");
 
-  const filtered = sops.filter((s) => {
-    const matchSearch = s.title.toLowerCase().includes(search.toLowerCase()) ||
-      s.short_description?.toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
-  });
+  const filtered = sops.filter((s) =>
+    s.title.toLowerCase().includes(search.toLowerCase()) ||
+    s.short_description?.toLowerCase().includes(search.toLowerCase()) ||
+    s.tags?.some((t) => t.toLowerCase().includes(search.toLowerCase()))
+  );
 
   return (
     <div className="space-y-4">
       <Card title="Playbook" subtitle="SOPs and guides for your team">
         <div className="flex items-center gap-3 mb-4">
           <input
-            placeholder="Search playbook..."
+            placeholder="Search by title, description, or tag..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
@@ -157,7 +254,7 @@ export function PlaybookPage({ role }: { role: Role }) {
           {isFounder(role) && (
             <button onClick={() => setShowCreate(true)}
               className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-2 hover:bg-teal-50 text-sm font-medium flex-shrink-0">
-              NEW
+              + New Entry
             </button>
           )}
         </div>
@@ -166,7 +263,9 @@ export function PlaybookPage({ role }: { role: Role }) {
           <div className="text-sm text-neutral-500 text-center py-8">Loading playbook...</div>
         ) : filtered.length === 0 ? (
           <div className="text-sm text-neutral-500 text-center py-8">
-            {sops.length === 0 ? "No entries yet — add your first SOP!" : "No results for that search."}
+            {sops.length === 0
+              ? "No entries yet — founders can add SOPs and guides for the team."
+              : "No results for that search."}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -191,11 +290,11 @@ export function PlaybookPage({ role }: { role: Role }) {
                   )}
                 </div>
                 {sop.role_context && (
-                  <div className="mt-2 text-[11px] text-neutral-500">{sop.role_context}</div>
+                  <div className="mt-2 text-[11px] text-neutral-500 italic">{sop.role_context}</div>
                 )}
                 {sop.tags && sop.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {sop.tags.slice(0, 3).map((tag) => (
+                    {sop.tags.slice(0, 4).map((tag) => (
                       <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded-full bg-neutral-100 text-neutral-500">{tag}</span>
                     ))}
                   </div>
@@ -206,11 +305,35 @@ export function PlaybookPage({ role }: { role: Role }) {
         )}
       </Card>
 
-      <SOPModal sop={selectedSOP} isOpen={!!selectedSOP} onClose={() => setSelectedSOP(null)} />
+      {/* View modal */}
+      <SOPModal
+        sop={selectedSOP}
+        isOpen={!!selectedSOP}
+        onClose={() => setSelectedSOP(null)}
+        role={role}
+        onEdit={() => { setEditingSOP(selectedSOP); setSelectedSOP(null); }}
+      />
 
+      {/* Create modal */}
       <AnimatePresence>
         {showCreate && (
-          <CreateSOPModal isOpen={showCreate} onClose={() => setShowCreate(false)} onCreated={refetch} />
+          <SOPFormModal
+            isOpen={showCreate}
+            onClose={() => setShowCreate(false)}
+            onSaved={refetch}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Edit modal */}
+      <AnimatePresence>
+        {editingSOP !== undefined && (
+          <SOPFormModal
+            isOpen={editingSOP !== undefined}
+            onClose={() => setEditingSOP(undefined)}
+            onSaved={refetch}
+            existing={editingSOP}
+          />
         )}
       </AnimatePresence>
     </div>
