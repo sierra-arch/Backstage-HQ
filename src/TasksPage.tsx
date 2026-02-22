@@ -105,6 +105,7 @@ export function TasksPage({
   onSubmit?: (task: DBTask) => void;
 }) {
   const [showArchived, setShowArchived] = React.useState(false);
+  const [sortBy, setSortBy] = React.useState<"default" | "due_date" | "impact" | "status">("default");
   const isFiltered = Object.values(taskFilters).some((v) => v !== "all");
 
   // Team members see their own tasks + unassigned tasks (so null-assigned legacy tasks are visible)
@@ -124,13 +125,31 @@ export function TasksPage({
   const statusPinned = taskFilters.status === "completed" || taskFilters.status === "archived";
   const activeTasks = scopedTasks.filter((t) => t.status !== "completed" && t.status !== "archived");
   const archivedTasks = scopedTasks.filter((t) => t.status === "completed" || t.status === "archived");
-  const displayedTasks = statusPinned
+  const unsortedTasks = statusPinned
     ? scopedTasks
     : isFounder(role)
     ? scopedTasks
     : showArchived
     ? archivedTasks
     : activeTasks;
+
+  const IMPACT_ORDER = { large: 0, medium: 1, small: 2 };
+  const STATUS_ORDER = { focus: 0, active: 1, submitted: 2, completed: 3, archived: 4 };
+
+  const displayedTasks = [...unsortedTasks].sort((a, b) => {
+    if (sortBy === "due_date") {
+      const da = a.due_date ? new Date(a.due_date).getTime() : Infinity;
+      const db = b.due_date ? new Date(b.due_date).getTime() : Infinity;
+      return da - db;
+    }
+    if (sortBy === "impact") {
+      return (IMPACT_ORDER[a.impact] ?? 9) - (IMPACT_ORDER[b.impact] ?? 9);
+    }
+    if (sortBy === "status") {
+      return (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+    }
+    return 0; // default: DB order (sort_order / created_at from fetchTasks)
+  });
 
   return (
     <div className="space-y-4">
@@ -180,9 +199,17 @@ export function TasksPage({
             </select>
           )}
 
-          {isFiltered && (
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${sortBy !== "default" ? "border-teal-400 text-teal-700" : ""}`}>
+            <option value="default">Sort</option>
+            <option value="due_date">Due Date</option>
+            <option value="impact">Impact</option>
+            <option value="status">Status</option>
+          </select>
+
+          {(isFiltered || sortBy !== "default") && (
             <button
-              onClick={() => setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" })}
+              onClick={() => { setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" }); setSortBy("default"); }}
               className="text-xs text-neutral-400 hover:text-neutral-600 ml-1">
               ✕ Clear
             </button>
