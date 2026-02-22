@@ -87,6 +87,65 @@ function WelcomeCard({
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Weekly Stats Bar
+   ────────────────────────────────────────────────────────────────── */
+const DAY_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function WeeklyStatsBar({
+  completedThisWeek,
+  focusCount,
+  submittedCount,
+  dueTodayCount,
+}: {
+  completedThisWeek: number;
+  focusCount: number;
+  submittedCount: number;
+  dueTodayCount: number;
+}) {
+  const today = new Date();
+  // 0=Sun…6=Sat → convert to Mon=0…Sun=6
+  const todayIdx = (today.getDay() + 6) % 7;
+
+  return (
+    <div className="rounded-2xl border bg-white px-4 py-3 flex flex-wrap items-center gap-4 md:gap-6">
+      {/* Day-of-week strip */}
+      <div className="flex items-center gap-1.5">
+        {DAY_LABELS.map((d, i) => (
+          <div key={d} className="flex flex-col items-center gap-0.5">
+            <div className={`text-[9px] font-medium ${i === todayIdx ? "text-teal-700" : "text-neutral-400"}`}>{d}</div>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
+              i < todayIdx
+                ? "bg-teal-100 text-teal-700"
+                : i === todayIdx
+                ? "bg-teal-600 text-white ring-2 ring-teal-300"
+                : "bg-neutral-100 text-neutral-300"
+            }`}>
+              {i < todayIdx ? "✓" : i === todayIdx ? d[0] : ""}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Divider */}
+      <div className="hidden md:block w-px h-8 bg-neutral-200" />
+
+      {/* Stats */}
+      {[
+        { label: "Done this week", value: completedThisWeek, color: "text-teal-700" },
+        { label: "Focus tasks", value: focusCount, color: "text-neutral-700" },
+        { label: "Pending review", value: submittedCount, color: "text-amber-600" },
+        { label: "Due today", value: dueTodayCount, color: dueTodayCount > 0 ? "text-red-600" : "text-neutral-400" },
+      ].map((s) => (
+        <div key={s.label} className="flex flex-col items-center min-w-[48px]">
+          <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+          <div className="text-[10px] text-neutral-400 leading-tight text-center">{s.label}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Company Snapshot
    ────────────────────────────────────────────────────────────────── */
 // 0 open tasks = 100% (clear plate). Each task reduces the bar. Cap at 10 tasks = 0%.
@@ -279,6 +338,16 @@ export function TodayFounder({
   refetch: () => void;
 }) {
   const equalCardH = "h-[360px]";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const dueTodayCount = allActiveTasks.filter(
+    (t) => t.due_date && new Date(t.due_date) >= today && new Date(t.due_date) < tomorrow
+  ).length;
+
+  // Top focus task gets special highlight treatment
+  const [topFocus, ...restFocus] = focusTasks;
 
   return (
     <>
@@ -290,6 +359,13 @@ export function TodayFounder({
           <NotesCard onSave={onSaveNote} />
         </div>
       </div>
+
+      <WeeklyStatsBar
+        completedThisWeek={completedThisWeek}
+        focusCount={focusTasks.length}
+        submittedCount={submittedTasks.length}
+        dueTodayCount={dueTodayCount}
+      />
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
@@ -305,7 +381,27 @@ export function TodayFounder({
               </button>
             </header>
             <div className="relative h-[300px] overflow-y-auto pr-1">
-              <TaskList tasks={focusTasks} onTaskClick={onTaskClick} />
+              {/* Top priority task gets a highlighted card */}
+              {topFocus && (
+                <div
+                  onClick={() => onTaskClick(topFocus)}
+                  className="mb-2 rounded-xl border-2 border-teal-500 bg-white p-3 cursor-pointer hover:border-teal-600 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wide">#1 Priority</span>
+                  </div>
+                  <div className="text-sm font-semibold">{topFocus.title}</div>
+                  {topFocus.description && (
+                    <div className="text-xs text-neutral-500 mt-0.5 truncate">{topFocus.description}</div>
+                  )}
+                  {topFocus.due_date && (
+                    <div className={`text-[10px] mt-1 font-medium ${new Date(topFocus.due_date) < new Date() ? "text-red-600" : "text-teal-700"}`}>
+                      Due {new Date(topFocus.due_date).toLocaleDateString([], { month: "short", day: "numeric" })}
+                    </div>
+                  )}
+                </div>
+              )}
+              <TaskList tasks={restFocus} onTaskClick={onTaskClick} />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#ECF7F3] to-transparent" />
             </div>
           </section>
@@ -390,6 +486,16 @@ export function TodayTeam({
 }) {
   const myTasks = filteredTasks.filter((t) => t.assignee_name === userName);
   const equalCardH = "h-[360px]";
+  const myFocusTasks = focusTasks.filter((t) => t.assignee_name === userName);
+  const mySubmittedTasks = submittedTasks.filter((t) => t.assignee_name === userName);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const dueTodayCount = myTasks.filter(
+    (t) => t.due_date && new Date(t.due_date) >= today && new Date(t.due_date) < tomorrow
+  ).length;
+  const [topFocus, ...restFocus] = myFocusTasks;
 
   return (
     <>
@@ -401,6 +507,13 @@ export function TodayTeam({
           <NotesCard onSave={onSaveNote} />
         </div>
       </div>
+
+      <WeeklyStatsBar
+        completedThisWeek={completedThisWeek}
+        focusCount={myFocusTasks.length}
+        submittedCount={mySubmittedTasks.length}
+        dueTodayCount={dueTodayCount}
+      />
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
@@ -416,7 +529,26 @@ export function TodayTeam({
               </button>
             </header>
             <div className="relative h-[300px] overflow-y-auto pr-1">
-              <TaskList tasks={focusTasks.filter((t) => t.assignee_name === userName)} onTaskClick={onTaskClick} />
+              {topFocus && (
+                <div
+                  onClick={() => onTaskClick(topFocus)}
+                  className="mb-2 rounded-xl border-2 border-teal-500 bg-white p-3 cursor-pointer hover:border-teal-600 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-teal-600 uppercase tracking-wide">#1 Priority</span>
+                  </div>
+                  <div className="text-sm font-semibold">{topFocus.title}</div>
+                  {topFocus.description && (
+                    <div className="text-xs text-neutral-500 mt-0.5 truncate">{topFocus.description}</div>
+                  )}
+                  {topFocus.due_date && (
+                    <div className={`text-[10px] mt-1 font-medium ${new Date(topFocus.due_date) < new Date() ? "text-red-600" : "text-teal-700"}`}>
+                      Due {new Date(topFocus.due_date).toLocaleDateString([], { month: "short", day: "numeric" })}
+                    </div>
+                  )}
+                </div>
+              )}
+              <TaskList tasks={restFocus} onTaskClick={onTaskClick} />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#ECF7F3] to-transparent" />
             </div>
           </section>
@@ -443,10 +575,10 @@ export function TodayTeam({
           <Card title="Submitted for Approval" subtitle="Waiting on founder" className={`${equalCardH} flex flex-col`}>
             <div className="relative flex-1 overflow-y-auto pr-1">
               <div className="space-y-2">
-                {submittedTasks.filter((t) => t.assignee_name === userName).length === 0 && (
+                {mySubmittedTasks.length === 0 && (
                   <div className="text-xs text-neutral-500">You have no pending submissions.</div>
                 )}
-                {submittedTasks.filter((t) => t.assignee_name === userName).map((t) => (
+                {mySubmittedTasks.map((t) => (
                   <div key={t.id} onClick={() => onTaskClick(t)}
                     className="rounded-xl border p-3 flex items-center justify-between gap-3 bg-white cursor-pointer hover:border-teal-300">
                     <div className="flex items-center gap-2">
