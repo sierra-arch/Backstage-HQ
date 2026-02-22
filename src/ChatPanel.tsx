@@ -69,6 +69,12 @@ export function ChatPanel({
   if (!isOpen) return null;
 
   return (
+    <>
+      {/* Backdrop — clicking outside the panel closes it */}
+      <div
+        className="fixed inset-0 z-39"
+        onClick={onClose}
+      />
     <motion.div
       initial={{ x: 400 }}
       animate={{ x: 0 }}
@@ -159,5 +165,6 @@ export function ChatPanel({
         </div>
       </div>
     </motion.div>
+    </>
   );
 }

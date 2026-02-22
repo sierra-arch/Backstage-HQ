@@ -107,18 +107,26 @@ export function TasksPage({
   const [showArchived, setShowArchived] = React.useState(false);
   const isFiltered = Object.values(taskFilters).some((v) => v !== "all");
 
-  // Team members only see their own tasks (matched by UUID, falling back to display name)
+  // Team members see their own tasks + unassigned tasks (so null-assigned legacy tasks are visible)
   // Founders see everything
   const scopedTasks = isFounder(role)
     ? filteredTasks
-    : filteredTasks.filter((t) => t.assigned_to === userId || t.assignee_name === userName);
+    : filteredTasks.filter(
+        (t) =>
+          t.assigned_to === userId ||
+          t.assignee_name === userName ||
+          (!t.assigned_to && !t.assignee_name)
+      );
 
   // When the status filter is pinned to completed/archived, show those directly.
-  // Otherwise default to hiding them behind the toggle.
+  // Founders always see all statuses by default (no hiding behind toggle).
+  // Team members default to hiding completed/archived behind the toggle.
   const statusPinned = taskFilters.status === "completed" || taskFilters.status === "archived";
   const activeTasks = scopedTasks.filter((t) => t.status !== "completed" && t.status !== "archived");
   const archivedTasks = scopedTasks.filter((t) => t.status === "completed" || t.status === "archived");
   const displayedTasks = statusPinned
+    ? scopedTasks
+    : isFounder(role)
     ? scopedTasks
     : showArchived
     ? archivedTasks
@@ -184,16 +192,16 @@ export function TasksPage({
         <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
 
         {!statusPinned && !isFounder(role) && (
-          <p className="text-xs text-neutral-400 mt-1">Showing your assigned tasks only.</p>
+          <p className="text-xs text-neutral-400 mt-1">Showing your tasks and unassigned tasks.</p>
         )}
 
-        {!statusPinned && archivedTasks.length > 0 && (
+        {!statusPinned && !isFounder(role) && archivedTasks.length > 0 && (
           <button
             onClick={() => setShowArchived((v) => !v)}
             className="mt-4 w-full text-xs text-neutral-400 hover:text-neutral-600 border border-dashed rounded-xl py-2 transition-colors">
             {showArchived
-              ? "Hide archived tasks"
-              : `Show archived & completed tasks (${archivedTasks.length})`}
+              ? "Hide completed & archived tasks"
+              : `Show completed & archived tasks (${archivedTasks.length})`}
           </button>
         )}
       </Card>

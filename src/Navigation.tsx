@@ -19,9 +19,12 @@ export function Sidebar({
 
   return (
     <aside className="w-72 shrink-0 border-r bg-white/90 backdrop-blur-sm sticky top-0 h-screen p-4 flex flex-col">
-      <div className="text-[22px] font-semibold leading-none mb-6 tracking-tight">
+      <button
+        onClick={() => onSelect("Today" as Page)}
+        className="text-[22px] font-semibold leading-none mb-6 tracking-tight text-left hover:text-teal-700 transition-colors"
+      >
         Backstage HQ
-      </div>
+      </button>
       <nav className="space-y-1 text-[15px]">
         {nav.map((item) => {
           const isActive = active === item;
