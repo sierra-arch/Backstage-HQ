@@ -87,6 +87,7 @@ export function TasksPage({
   setTaskFilters,
   role,
   userName,
+  userId,
   teamMembers,
   onOpenCreateTask,
   onTaskClick,
@@ -97,6 +98,7 @@ export function TasksPage({
   setTaskFilters: (f: any) => void;
   role: Role;
   userName: string;
+  userId: string;
   teamMembers: { id: string; display_name: string | null }[];
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
@@ -105,10 +107,11 @@ export function TasksPage({
   const [showArchived, setShowArchived] = React.useState(false);
   const isFiltered = Object.values(taskFilters).some((v) => v !== "all");
 
-  // Team members only see their own tasks; founders see everything
+  // Team members only see their own tasks (matched by UUID, falling back to display name)
+  // Founders see everything
   const scopedTasks = isFounder(role)
     ? filteredTasks
-    : filteredTasks.filter((t) => t.assignee_name === userName);
+    : filteredTasks.filter((t) => t.assigned_to === userId || t.assignee_name === userName);
 
   // When the status filter is pinned to completed/archived, show those directly.
   // Otherwise default to hiding them behind the toggle.
