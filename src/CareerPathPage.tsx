@@ -4,16 +4,16 @@ import { DBTask, XP_BY_IMPACT, LEVEL_XP_THRESHOLD } from "./types";
 import { Card, LevelRing } from "./ui";
 
 const LEVEL_TITLES: Record<number, string> = {
-  1: "Newcomer",
-  2: "Rising Star",
-  3: "Contributor",
-  4: "Go-Getter",
-  5: "Catalyst",
-  6: "Powerhouse",
-  7: "Trailblazer",
-  8: "Visionary",
-  9: "Legend",
-  10: "Icon",
+  1: "Crew",
+  2: "Stagehand",
+  3: "Builder",
+  4: "Hustler",
+  5: "Performer",
+  6: "Show Runner",
+  7: "Director",
+  8: "Producer",
+  9: "Executive",
+  10: "Mogul",
 };
 
 function getLevelTitle(level: number) {
@@ -49,10 +49,6 @@ export function CareerPathPage({
     (t) => t.completed_at && new Date(t.completed_at) >= startOfMonth
   );
   const totalXPEarned = myCompleted.reduce((sum, t) => sum + XP_BY_IMPACT[t.impact], 0);
-
-  // Levels to show in the milestone strip: show levels around the current one
-  const maxLevel = 10;
-  const milestones = Array.from({ length: maxLevel }, (_, i) => i + 1);
 
   return (
     <div className="space-y-4">
@@ -90,31 +86,6 @@ export function CareerPathPage({
           </div>
         ))}
       </div>
-
-      {/* Level milestone strip */}
-      <Card title="Level Journey">
-        <div className="flex items-end gap-1 overflow-x-auto pb-2">
-          {milestones.map((lvl) => {
-            const isReached = lvl <= level;
-            const isCurrent = lvl === level;
-            return (
-              <div key={lvl} className="flex flex-col items-center gap-1 min-w-[56px]">
-                <div className={`text-[10px] font-medium ${isCurrent ? "text-teal-700" : isReached ? "text-neutral-500" : "text-neutral-300"}`}>
-                  {getLevelTitle(lvl)}
-                </div>
-                <div className={`w-full rounded-t-lg transition-all ${
-                  isCurrent ? "bg-teal-600 h-10 ring-2 ring-teal-400 ring-offset-1" :
-                  isReached ? "bg-teal-300 h-8" :
-                  "bg-neutral-100 h-5"
-                }`} />
-                <div className={`text-xs font-bold ${isCurrent ? "text-teal-700" : isReached ? "text-neutral-500" : "text-neutral-300"}`}>
-                  {lvl}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
 
       {/* Completed task history */}
       <Card title={`Completed Tasks (${myCompleted.length})`}>
