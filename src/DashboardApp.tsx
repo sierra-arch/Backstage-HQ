@@ -208,6 +208,7 @@ export default function DashboardApp() {
   const { products: allProducts, refetch: refetchProducts } = useProducts();
 
   const [celebrate, setCelebrate] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [page, setPage] = useState<Page>("Today");
   const [selectedTask, setSelectedTask] = useState<DBTask | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -367,11 +368,15 @@ export default function DashboardApp() {
     <div className="min-h-screen bg-neutral-50 text-neutral-900 relative text-[15px]">
       <Confetti fire={celebrate} />
       <div className="flex">
-        <Sidebar role={role} active={page} onSelect={setPage as any} userName={userName} />
+        <Sidebar
+          role={role} active={page} onSelect={setPage as any} userName={userName}
+          mobileOpen={mobileMenuOpen} onMobileClose={() => setMobileMenuOpen(false)}
+        />
         <main className="flex-1 p-4 md:p-6 lg:p-8 pt-0 space-y-6">
           <TopHeader
             onSearch={setSearchQuery}
             onOpenChat={() => setShowChat(true)}
+            onOpenMobileMenu={() => setMobileMenuOpen(true)}
             unreadCount={unreadCount}
             userName={userName}
           />
