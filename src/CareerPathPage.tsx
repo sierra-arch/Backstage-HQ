@@ -3,22 +3,6 @@ import React from "react";
 import { DBTask, XP_BY_IMPACT, LEVEL_XP_THRESHOLD } from "./types";
 import { Card, LevelRing } from "./ui";
 
-const LEVEL_TITLES: Record<number, string> = {
-  1: "Crew",
-  2: "Stagehand",
-  3: "Builder",
-  4: "Hustler",
-  5: "Performer",
-  6: "Show Runner",
-  7: "Director",
-  8: "Producer",
-  9: "Executive",
-  10: "Mogul",
-};
-
-function getLevelTitle(level: number) {
-  return LEVEL_TITLES[Math.min(level, 10)] ?? "Icon";
-}
 
 export function CareerPathPage({
   level,
@@ -57,8 +41,7 @@ export function CareerPathPage({
         <div className="flex flex-col sm:flex-row items-center gap-6">
           <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} size={120} stroke={14} />
           <div className="text-center sm:text-left">
-            <div className="text-xs font-medium text-teal-600 uppercase tracking-widest mb-1">Level {level}</div>
-            <div className="text-3xl font-bold">{getLevelTitle(level)}</div>
+            <div className="text-3xl font-bold">Level {level}</div>
             <div className="text-sm text-neutral-500 mt-1">
               {xp} / {LEVEL_XP_THRESHOLD} XP — {LEVEL_XP_THRESHOLD - xp} XP to level {level + 1}
             </div>
