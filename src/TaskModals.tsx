@@ -460,16 +460,14 @@ export function AddAccomplishmentModal({
   isOpen: boolean;
   onClose: () => void;
   userName: string;
-  onAdd: (text: string, postToTeam: boolean) => void;
+  onAdd: (text: string) => void;
 }) {
   const [text, setText] = useState("");
-  const [postToTeam, setPostToTeam] = useState(false);
 
   function handleAdd() {
     if (!text.trim()) return;
-    onAdd(text, postToTeam);
+    onAdd(text);
     setText("");
-    setPostToTeam(false);
     onClose();
   }
 
@@ -482,11 +480,7 @@ export function AddAccomplishmentModal({
             placeholder="Shipped Q3 client presentation..."
             className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none" />
         </div>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={postToTeam} onChange={(e) => setPostToTeam(e.target.checked)}
-            className="w-4 h-4 accent-teal-600" />
-          <span className="text-sm text-neutral-700">Post to Team Chat</span>
-        </label>
+        <p className="text-xs text-neutral-400">This will be shared with your team.</p>
         <div className="flex gap-3 pt-4 border-t">
           <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
           <button onClick={handleAdd} disabled={!text.trim()}

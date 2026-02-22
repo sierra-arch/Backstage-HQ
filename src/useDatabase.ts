@@ -1459,6 +1459,32 @@ export function useAccomplishments() {
   return { accomplishments, loading, refetch: load };
 }
 
+export function useAllAccomplishments() {
+  const [accomplishments, setAccomplishments] = useState<AccomplishmentDB[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("accomplishments")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (!error) setAccomplishments(data || []);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) load();
+    const sub = supabase.channel("all-accomplishment-changes")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "accomplishments" },
+        () => { if (mounted) load(); })
+      .subscribe();
+    return () => { mounted = false; sub.unsubscribe(); };
+  }, [load]);
+
+  return { accomplishments, loading, refetch: load };
+}
+
 export function useMessages() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);

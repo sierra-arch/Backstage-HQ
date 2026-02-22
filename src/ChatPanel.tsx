@@ -132,7 +132,13 @@ export function ChatPanel({
             filteredMessages.map((msg) => (
               <div
                 key={msg.id}
-                className={`rounded-xl p-3 ${msg.is_kudos ? "bg-yellow-50 border border-yellow-200" : "bg-neutral-50"}`}
+                className={`rounded-xl p-3 ${
+                  msg.is_kudos
+                    ? "bg-yellow-50 border border-yellow-200"
+                    : msg.content.startsWith("🎉")
+                    ? "bg-violet-50 border border-violet-200"
+                    : "bg-neutral-50"
+                }`}
               >
                 <div className="flex items-center gap-2 mb-1">
                   <Avatar name={msg.from_name || "Unknown"} size={20} />

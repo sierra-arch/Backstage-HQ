@@ -17,7 +17,7 @@ import {
   updateProfileGoogleDocId,
   addXPToProfile,
   saveAccomplishment,
-  useAccomplishments,
+  useAllAccomplishments,
 } from "./useDatabase";
 import { connectGoogle, getTokenSilently, createGoogleDoc, appendToDoc } from "./useGoogleDocs";
 import {
@@ -218,7 +218,7 @@ export default function DashboardApp() {
   const [kudosTask, setKudosTask] = useState<DBTask | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showAddAccomplishment, setShowAddAccomplishment] = useState(false);
-  const { accomplishments, refetch: refetchAccomplishments } = useAccomplishments();
+  const { accomplishments, refetch: refetchAccomplishments } = useAllAccomplishments();
   const [searchQuery, setSearchQuery] = useState("");
   const [taskFilters, setTaskFilters] = useState({
     company: "all", impact: "all", priority: "all", status: "all", assignee: "all",
@@ -316,13 +316,11 @@ export default function DashboardApp() {
     await appendToDoc(profile.google_doc_id, text, token);
   }
 
-  async function handleAddAccomplishment(text: string, postToTeam: boolean) {
-    await saveAccomplishment(text, userName, postToTeam);
+  async function handleAddAccomplishment(text: string) {
+    await saveAccomplishment(text, userName, true);
     refetchAccomplishments();
-    if (postToTeam) {
-      await sendMessage(`🎉 ${text}`, undefined, false, undefined);
-      refetchMessages();
-    }
+    await sendMessage(`🎉 ${text}`, undefined, false, undefined);
+    refetchMessages();
     if (profile?.google_doc_id) {
       const token = await getTokenSilently();
       if (token) {

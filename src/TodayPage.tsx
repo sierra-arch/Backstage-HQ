@@ -223,13 +223,13 @@ function AccomplishmentsCard({
         </button>
       </div>
       <div className="space-y-3 overflow-y-auto flex-1">
-        {accomplishments.slice(0, 5).map((acc) => (
+        {accomplishments.map((acc) => (
           <div key={acc.id} className="rounded-xl border p-3 bg-white">
-            <div className="text-sm font-medium">{acc.text}</div>
-            <div className="text-xs text-neutral-500 mt-1">
-              {new Date(acc.created_at).toLocaleDateString()}
-              {acc.posted_to_team && " • Posted to team"}
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-xs font-semibold text-teal-700">{acc.user_name}</span>
+              <span className="text-xs text-neutral-400">· {new Date(acc.created_at).toLocaleDateString()}</span>
             </div>
+            <div className="text-sm">{acc.text}</div>
           </div>
         ))}
         {accomplishments.length === 0 && (
