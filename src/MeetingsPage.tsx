@@ -279,9 +279,10 @@ export function MeetingsPage({ role }: { role: Role }) {
   const upcoming = meetings.filter((m) => new Date(m.scheduled_at) >= now);
   const past = meetings.filter((m) => new Date(m.scheduled_at) < now);
 
-  // When a date is selected on the calendar, show all meetings on that day
+  // When a date is selected, show all meetings that day (past or future)
+  // When no date selected, show only upcoming
   const displayedUpcoming = selectedDate
-    ? upcoming.filter((m) => new Date(m.scheduled_at).toLocaleDateString("en-CA") === selectedDate)
+    ? meetings.filter((m) => new Date(m.scheduled_at).toLocaleDateString("en-CA") === selectedDate)
     : upcoming;
 
   async function handleDelete(id: string) {
@@ -329,10 +330,12 @@ export function MeetingsPage({ role }: { role: Role }) {
             </div>
           ) : (
             <div className="space-y-2">
-              {displayedUpcoming.map((m) => (
+              {displayedUpcoming.map((m) => {
+                const isPast = new Date(m.scheduled_at) < now;
+                return (
                 <div key={m.id}
                   onClick={() => setSelectedMeeting(m)}
-                  className="rounded-xl border p-3 bg-white flex items-start justify-between gap-3 cursor-pointer hover:border-teal-300 transition-colors">
+                  className={`rounded-xl border p-3 flex items-start justify-between gap-3 cursor-pointer hover:border-teal-300 transition-colors ${isPast ? "bg-neutral-50 opacity-70" : "bg-white"}`}>
                   <div className="min-w-0">
                     <div className="text-sm font-medium truncate">{m.title}</div>
                     <div className="text-xs text-neutral-500">{formatMeetingTime(m.scheduled_at)}</div>
@@ -352,7 +355,8 @@ export function MeetingsPage({ role }: { role: Role }) {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </Card>
