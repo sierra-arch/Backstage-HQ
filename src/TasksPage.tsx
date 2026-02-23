@@ -68,7 +68,7 @@ export function TaskRow({
             {task.status === "focus" ? "★" : "☆"}
           </button>
         )}
-        {onSubmit && task.status === "active" && (
+        {onSubmit && (task.status === "active" || task.status === "focus") && (
           <button
             onClick={(e) => { e.stopPropagation(); onSubmit(task); }}
             className="text-[11px] rounded-xl border border-teal-300 bg-teal-50 text-teal-800 px-2.5 py-1 hover:bg-teal-100 font-medium"
