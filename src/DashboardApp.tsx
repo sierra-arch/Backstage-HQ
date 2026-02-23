@@ -480,6 +480,8 @@ export default function DashboardApp() {
             onOpenMobileMenu={() => setMobileMenuOpen(true)}
             unreadCount={unreadCount}
             userName={userName}
+            tasks={tasks}
+            onTaskClick={openTaskModal}
           />
 
           {page === "Today" && isFounder(role) && (

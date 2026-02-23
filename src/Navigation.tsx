@@ -1,7 +1,8 @@
 // Navigation.tsx - Sidebar and TopHeader
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Role, Page, FounderPage, TeamPage, isFounder } from "./types";
+import { Role, Page, FounderPage, TeamPage, isFounder, DBTask } from "./types";
+import { CompanyChip, Avatar } from "./ui";
 
 export function Sidebar({
   role,
@@ -114,6 +115,8 @@ export function TopHeader({
   onOpenMobileMenu,
   unreadCount,
   userName,
+  tasks = [],
+  onTaskClick,
 }: {
   onSearch: (q: string) => void;
   searchValue: string;
@@ -121,8 +124,39 @@ export function TopHeader({
   onOpenMobileMenu?: () => void;
   unreadCount: number;
   userName: string;
+  tasks?: DBTask[];
+  onTaskClick?: (task: DBTask) => void;
 }) {
   const greeting = useGreeting(userName);
+  const [focused, setFocused] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setFocused(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const q = searchValue.trim().toLowerCase();
+  const results = q.length >= 1
+    ? tasks.filter((t) =>
+        t.title.toLowerCase().includes(q) ||
+        t.description?.toLowerCase().includes(q) ||
+        t.company_name?.toLowerCase().includes(q) ||
+        t.assignee_name?.toLowerCase().includes(q)
+      ).slice(0, 7)
+    : [];
+  const showDropdown = focused && q.length >= 1;
+
+  function handleSelect(task: DBTask) {
+    onSearch("");
+    setFocused(false);
+    onTaskClick?.(task);
+  }
 
   return (
     <div className="sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
@@ -141,21 +175,58 @@ export function TopHeader({
         <div className="text-[14px] font-medium text-neutral-700 pl-1 hidden md:block">{greeting}</div>
 
         <div className="flex items-center gap-2 ml-auto">
-          <div className="relative flex items-center w-[160px] md:w-[280px]">
+          <div ref={wrapperRef} className="relative flex items-center w-[160px] md:w-[280px]">
             <input
               type="text"
               placeholder="Search tasks..."
               value={searchValue}
               onChange={(e) => onSearch(e.target.value)}
+              onFocus={() => setFocused(true)}
               className="w-full rounded-full border px-3 py-1.5 text-[12px] outline-none focus:ring-2 focus:ring-teal-200 pr-7"
             />
             {searchValue && (
               <button
-                onClick={() => onSearch("")}
+                onClick={() => { onSearch(""); setFocused(false); }}
                 className="absolute right-2.5 text-neutral-400 hover:text-neutral-600 leading-none text-xs"
               >
                 ✕
               </button>
+            )}
+
+            {/* Dropdown */}
+            {showDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-1.5 bg-white border rounded-2xl shadow-xl overflow-hidden z-50">
+                {results.length === 0 ? (
+                  <div className="px-4 py-3 text-xs text-neutral-400">No tasks found</div>
+                ) : (
+                  results.map((task) => (
+                    <button
+                      key={task.id}
+                      onMouseDown={(e) => { e.preventDefault(); handleSelect(task); }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-teal-50 transition-colors border-b last:border-b-0 flex items-center gap-3"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] font-medium truncate">{task.title}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <CompanyChip name={task.company_name || "Unknown"} />
+                          {task.assignee_name && (
+                            <span className="text-[10px] text-neutral-400 flex items-center gap-1">
+                              <Avatar name={task.assignee_name} size={12} />
+                              {task.assignee_name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full border flex-shrink-0 capitalize ${
+                        task.status === "focus" ? "bg-teal-50 border-teal-200 text-teal-800" :
+                        task.status === "submitted" ? "bg-amber-50 border-amber-200 text-amber-800" :
+                        task.status === "completed" ? "bg-neutral-100 border-neutral-200 text-neutral-500" :
+                        "bg-neutral-50 border-neutral-200 text-neutral-600"
+                      }`}>{task.status}</span>
+                    </button>
+                  ))
+                )}
+              </div>
             )}
           </div>
           <button
