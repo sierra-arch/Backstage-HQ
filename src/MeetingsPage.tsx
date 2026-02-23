@@ -18,19 +18,46 @@ function MeetingFormModal({
   existing?: Meeting;
 }) {
   const [title, setTitle] = useState(existing?.title ?? "");
-  const [scheduledAt, setScheduledAt] = useState(
-    existing?.scheduled_at ? existing.scheduled_at.slice(0, 16) : ""
+  const existingDt = existing?.scheduled_at ? new Date(existing.scheduled_at) : null;
+  const [scheduledDate, setScheduledDate] = useState(
+    existingDt ? existingDt.toLocaleDateString("en-CA") : ""
   );
+  const [scheduledTime, setScheduledTime] = useState(() => {
+    if (!existingDt) return "09:00";
+    const h = String(existingDt.getHours()).padStart(2, "0");
+    // snap to nearest :00/:15/:30/:45
+    const rawMin = existingDt.getMinutes();
+    const snapped = [0, 15, 30, 45].reduce((prev, cur) =>
+      Math.abs(cur - rawMin) < Math.abs(prev - rawMin) ? cur : prev
+    );
+    return `${h}:${String(snapped).padStart(2, "0")}`;
+  });
   const [notes, setNotes] = useState(existing?.notes ?? "");
   const [saving, setSaving] = useState(false);
 
+  const TIME_OPTIONS: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 15, 30, 45]) {
+      TIME_OPTIONS.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
+  }
+
+  function formatTimeLabel(t: string) {
+    const [hStr, mStr] = t.split(":");
+    const h = parseInt(hStr);
+    const suffix = h >= 12 ? "PM" : "AM";
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return `${h12}:${mStr} ${suffix}`;
+  }
+
   async function handleSave() {
-    if (!title.trim() || !scheduledAt) return;
+    if (!title.trim() || !scheduledDate) return;
     setSaving(true);
+    const isoString = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
     if (existing) {
-      await updateMeeting(existing.id, { title, scheduled_at: new Date(scheduledAt).toISOString(), notes: notes || null });
+      await updateMeeting(existing.id, { title, scheduled_at: isoString, notes: notes || null });
     } else {
-      await createMeeting({ title, scheduled_at: new Date(scheduledAt).toISOString(), notes: notes || null, company_id: null, created_by: null });
+      await createMeeting({ title, scheduled_at: isoString, notes: notes || null, company_id: null, created_by: null });
     }
     setSaving(false);
     onSaved();
@@ -47,9 +74,18 @@ function MeetingFormModal({
             className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
         </div>
         <div>
-          <label className="text-sm font-medium text-neutral-700">Date & Time *</label>
-          <input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)}
+          <label className="text-sm font-medium text-neutral-700">Date *</label>
+          <input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)}
             className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+        </div>
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Time *</label>
+          <select value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none bg-white">
+            {TIME_OPTIONS.map((t) => (
+              <option key={t} value={t}>{formatTimeLabel(t)}</option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="text-sm font-medium text-neutral-700">Notes / Agenda</label>
@@ -58,7 +94,7 @@ function MeetingFormModal({
             className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none" />
         </div>
         <div className="flex gap-3 pt-4 border-t">
-          <button onClick={handleSave} disabled={!title.trim() || !scheduledAt || saving}
+          <button onClick={handleSave} disabled={!title.trim() || !scheduledDate || saving}
             className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50">
             {saving ? "Saving..." : existing ? "Save Changes" : "Schedule"}
           </button>
@@ -321,24 +357,6 @@ export function MeetingsPage({ role }: { role: Role }) {
           )}
         </Card>
       </div>
-
-      {past.length > 0 && (
-        <Card title="Past Meetings">
-          <div className="space-y-2">
-            {past.slice(0, 5).map((m) => (
-              <div key={m.id}
-                onClick={() => setSelectedMeeting(m)}
-                className="rounded-xl border p-3 bg-neutral-50 flex items-center justify-between cursor-pointer hover:border-teal-300 transition-colors opacity-70">
-                <div>
-                  <div className="text-sm font-medium">{m.title}</div>
-                  <div className="text-xs text-neutral-500">{formatMeetingTime(m.scheduled_at)}</div>
-                </div>
-                {m.notes && <span className="text-xs text-neutral-400">Has notes</span>}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
 
       <MeetingDetailModal
         meeting={selectedMeeting} isOpen={!!selectedMeeting} role={role}

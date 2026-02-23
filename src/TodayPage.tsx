@@ -1,7 +1,7 @@
 // TodayPage.tsx - Today page for Founder and Team views
 import React from "react";
 import { DBTask, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
-import { AccomplishmentDB } from "./useDatabase";
+import { AccomplishmentDB, useMeetings } from "./useDatabase";
 import { Card, Chip, Avatar, CompanyChip, LevelRing } from "./ui";
 import { TaskList } from "./TasksPage";
 import { updateTask as dbUpdateTask, useCompanyGoals, upsertCompanyGoal } from "./useDatabase";
@@ -365,7 +365,7 @@ export function TodayFounder({
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
-          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
+          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#99F6E4" }}>
             <header className="mb-3 flex-shrink-0 flex items-center justify-between">
               <div>
                 <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
@@ -379,7 +379,7 @@ export function TodayFounder({
             <div className="flex-1 overflow-y-auto pr-1">
               <TaskList tasks={focusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
             </div>
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent" />
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent z-10" />
           </section>
         </div>
 
@@ -431,6 +431,57 @@ export function TodayFounder({
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Today Mini Calendar (team view)
+   ────────────────────────────────────────────────────────────────── */
+function TodayCalendar() {
+  const { meetings } = useMeetings();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = now.toLocaleDateString("en-CA");
+  const DAYS = ["S", "M", "T", "W", "T", "F", "S"];
+
+  const byDay: Record<string, true> = {};
+  meetings.forEach((m) => {
+    byDay[new Date(m.scheduled_at).toLocaleDateString("en-CA")] = true;
+  });
+
+  return (
+    <Card variant="compact" className="h-full">
+      <div className="text-xs font-semibold text-neutral-500 mb-2">
+        {now.toLocaleDateString([], { month: "long", year: "numeric" })}
+      </div>
+      <div className="grid grid-cols-7 mb-1">
+        {DAYS.map((d, i) => (
+          <div key={i} className="text-center text-[9px] font-semibold text-neutral-400 uppercase py-0.5">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-y-1">
+        {Array.from({ length: firstDow }).map((_, i) => <div key={`b-${i}`} />)}
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const isToday = dateStr === todayStr;
+          const hasMeeting = !!byDay[dateStr];
+          return (
+            <div key={dateStr} className={`relative flex flex-col items-center justify-center rounded-lg py-1.5 text-[11px] ${
+              isToday ? "bg-teal-600 text-white font-semibold" : "text-neutral-600"
+            }`}>
+              {day}
+              {hasMeeting && (
+                <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${isToday ? "bg-white" : "bg-teal-400"}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
    TodayTeam
    ────────────────────────────────────────────────────────────────── */
 export function TodayTeam({
@@ -473,14 +524,17 @@ export function TodayTeam({
         <div className="col-span-12 md:col-span-4">
           <WelcomeCard name={userName} doneThisWeek={completedThisWeek} level={level} levelXP={xp} levelMax={LEVEL_XP_THRESHOLD} className="h-full" />
         </div>
-        <div className="col-span-12 md:col-span-8">
+        <div className="col-span-12 md:col-span-5">
           <NotesCard onSave={onSaveNote} />
+        </div>
+        <div className="col-span-12 md:col-span-3">
+          <TodayCalendar />
         </div>
       </div>
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
-          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
+          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#99F6E4" }}>
             <header className="mb-3 flex-shrink-0 flex items-center justify-between">
               <div>
                 <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
@@ -494,23 +548,25 @@ export function TodayTeam({
             <div className="flex-1 overflow-y-auto pr-1">
               <TaskList tasks={myFocusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
             </div>
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent" />
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent z-10" />
           </section>
         </div>
 
         <div className="col-span-12 md:col-span-6">
-          <Card title="Full Task List" subtitle="Everything on your plate" className={`${equalCardH} flex flex-col`}>
-            <div className="mb-3">
-              <button onClick={onOpenCreateTask}
-                className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium">
-                + Add Task
-              </button>
-            </div>
-            <div className="relative flex-1 overflow-y-auto pr-1">
-              <TaskList tasks={myTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white to-transparent" />
-            </div>
-          </Card>
+          <div className={`relative ${equalCardH} flex flex-col`}>
+            <Card title="Full Task List" subtitle="Everything on your plate" className="h-full flex flex-col">
+              <div className="mb-3 flex-shrink-0">
+                <button onClick={onOpenCreateTask}
+                  className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium">
+                  + Add Task
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto pr-1">
+                <TaskList tasks={myTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
+              </div>
+            </Card>
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-white to-transparent z-10" />
+          </div>
         </div>
       </div>
 
