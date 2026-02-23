@@ -13,7 +13,6 @@ export function ChatPanel({
   onSendMessage,
   teamMembers = [],
   onTaskClick,
-  onSendKudos,
 }: {
   userName: string;
   isOpen: boolean;
@@ -22,7 +21,6 @@ export function ChatPanel({
   onSendMessage: (content: string, to?: string) => void;
   teamMembers?: { id: string; display_name: string | null }[];
   onTaskClick?: (taskId: string) => void;
-  onSendKudos?: () => void;
 }) {
   const { profile } = useProfile();
   const currentUserId = profile?.id;
@@ -100,17 +98,8 @@ export function ChatPanel({
       >
         {/* Sidebar */}
         <div className="w-48 bg-neutral-50 border-r flex flex-col">
-          <div className="border-b px-3 py-3 flex items-center justify-between">
+          <div className="border-b px-3 py-3">
             <h3 className="font-semibold text-sm text-neutral-700">Messages</h3>
-            {onSendKudos && (
-              <button
-                onClick={onSendKudos}
-                title="Send Kudos"
-                className="text-sm hover:scale-110 transition-transform"
-              >
-                🏆
-              </button>
-            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             {/* Team Chat */}
@@ -122,7 +111,7 @@ export function ChatPanel({
                   activeChannel === "team" ? "bg-teal-100 text-teal-900 font-medium" : "hover:bg-neutral-100"
                 }`}
               >
-                # Team Chat
+                Team Chat
               </button>
             </div>
 
