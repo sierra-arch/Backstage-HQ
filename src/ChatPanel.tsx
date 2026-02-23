@@ -77,8 +77,6 @@ export function ChatPanel({
     }
   });
 
-  // Unread DM senders for the banner
-  const unreadDMSenders = teammates.filter((p) => hasUnreadDM(p));
 
   function switchChannel(channel: string) {
     setActiveChannel(channel);
@@ -164,23 +162,6 @@ export function ChatPanel({
             <button onClick={onClose} className="text-neutral-500 hover:text-neutral-900 text-xl">×</button>
           </div>
 
-          {/* Unread DM banner — shown in team chat when there are unread DMs */}
-          {activeChannel === "team" && unreadDMSenders.length > 0 && (
-            <div className="mx-3 mt-3 rounded-xl bg-orange-50 border border-orange-200 px-3 py-2.5 flex items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold text-orange-800">
-                  Unread message{unreadDMSenders.length > 1 ? "s" : ""} from {unreadDMSenders.join(", ")}
-                </p>
-                <p className="text-[11px] text-orange-600 mt-0.5">Click their name on the left to read</p>
-              </div>
-              <button
-                onClick={() => switchChannel(unreadDMSenders[0])}
-                className="text-xs bg-orange-500 text-white px-2.5 py-1 rounded-lg hover:bg-orange-600 flex-shrink-0"
-              >
-                Open
-              </button>
-            </div>
-          )}
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {filteredMessages.length === 0 ? (
