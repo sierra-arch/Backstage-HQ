@@ -360,7 +360,7 @@ export function TaskCreateModal({
 
   const [showAdvanced, setShowAdvanced] = useState(false);
   const teamMemberNames = teamMembers.map((tm) => tm.display_name || "Unknown");
-  const assignOptions = isFounder(role) ? ["", ...teamMemberNames] : [userName, "Founder"];
+  const assignOptions = isFounder(role) ? teamMemberNames : [userName, "Founder"];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Task" size="small">

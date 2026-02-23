@@ -462,7 +462,7 @@ export function TodayTeam({
   onSaveNote: (text: string) => Promise<void>;
   onPinTask?: (task: DBTask) => void;
 }) {
-  const myTasks = filteredTasks.filter((t) => t.assignee_name === userName);
+  const myTasks = filteredTasks.filter((t) => t.assignee_name === userName && t.status !== "completed" && t.status !== "archived");
   const equalCardH = "h-[360px]";
   const myFocusTasks = focusTasks.filter((t) => t.assignee_name === userName);
   const mySubmittedTasks = submittedTasks.filter((t) => t.assignee_name === userName);
