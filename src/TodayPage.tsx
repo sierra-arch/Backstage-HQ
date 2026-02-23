@@ -365,8 +365,8 @@ export function TodayFounder({
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
-          <section className="rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3]" style={{ borderColor: "#0F766E" }}>
-            <header className="mb-3 flex items-center justify-between">
+          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
+            <header className="mb-3 flex-shrink-0 flex items-center justify-between">
               <div>
                 <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
                 <p className="text-xs text-neutral-600">Smartly chosen by due date, priority & quick wins</p>
@@ -376,10 +376,10 @@ export function TodayFounder({
                 NEW
               </button>
             </header>
-            <div className="relative h-[300px] overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto pr-1">
               <TaskList tasks={focusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#ECF7F3] to-transparent" />
             </div>
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent" />
           </section>
         </div>
 
@@ -480,8 +480,8 @@ export function TodayTeam({
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
-          <section className="rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3]" style={{ borderColor: "#0F766E" }}>
-            <header className="mb-3 flex items-center justify-between">
+          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border-2 bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
+            <header className="mb-3 flex-shrink-0 flex items-center justify-between">
               <div>
                 <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
                 <p className="text-xs text-neutral-600">Your top priorities</p>
@@ -491,10 +491,10 @@ export function TodayTeam({
                 NEW
               </button>
             </header>
-            <div className="relative h-[300px] overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto pr-1">
               <TaskList tasks={myFocusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
-              <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#ECF7F3] to-transparent" />
             </div>
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent" />
           </section>
         </div>
 
