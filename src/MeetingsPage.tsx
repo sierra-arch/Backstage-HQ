@@ -175,9 +175,9 @@ function MiniCalendar({
       </div>
 
       {/* Date cells */}
-      <div className="grid grid-cols-7 gap-y-1">
+      <div className="grid grid-cols-7 gap-y-2">
         {/* Leading blanks */}
-        {Array.from({ length: firstDow }).map((_, i) => <div key={`blank-${i}`} />)}
+        {Array.from({ length: firstDow }).map((_, i) => <div key={`blank-${i}`} className="py-3" />)}
 
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
@@ -190,7 +190,7 @@ function MiniCalendar({
             <button
               key={dateStr}
               onClick={() => onSelectDate(isSelected ? null : dateStr)}
-              className={`relative flex flex-col items-center justify-center rounded-xl py-1.5 text-sm transition-colors ${
+              className={`relative flex flex-col items-center justify-center rounded-xl py-3 text-sm transition-colors ${
                 isSelected
                   ? "bg-teal-600 text-white font-semibold"
                   : isToday
