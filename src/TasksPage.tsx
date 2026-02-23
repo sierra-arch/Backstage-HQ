@@ -174,110 +174,116 @@ export function TasksPage({
   return (
     <div className="space-y-4">
       <Card title="All Tasks">
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          <button onClick={onOpenCreateTask}
-            className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-1.5 hover:bg-teal-50 text-xs font-medium flex-shrink-0">
-            + New Task
-          </button>
-
-          <select value={taskFilters.company}
-            onChange={(e) => setTaskFilters({ ...taskFilters, company: e.target.value })}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.company !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-            <option value="all">Company</option>
-            {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-
-          <select value={taskFilters.status}
-            onChange={(e) => setTaskFilters({ ...taskFilters, status: e.target.value })}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.status !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-            <option value="all">Status</option>
-            <option value="focus">Focus</option>
-            <option value="active">Active</option>
-            <option value="submitted">Submitted</option>
-            <option value="completed">Completed</option>
-            <option value="archived">Archived</option>
-          </select>
-
-          <select value={taskFilters.impact}
-            onChange={(e) => setTaskFilters({ ...taskFilters, impact: e.target.value })}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.impact !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-            <option value="all">Level</option>
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
-          </select>
-
-          {isFounder(role) && (
-            <select value={taskFilters.assignee}
-              onChange={(e) => setTaskFilters({ ...taskFilters, assignee: e.target.value })}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.assignee !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-              <option value="all">Assignee</option>
-              {teamMembers.map((tm) => (
-                <option key={tm.id} value={tm.display_name || ""}>{tm.display_name || "Unknown"}</option>
-              ))}
-              <option value="">Unassigned</option>
-            </select>
-          )}
-
-          <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
-            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${sortBy !== "default" ? "border-teal-400 text-teal-700" : ""}`}>
-            <option value="default">Sort</option>
-            <option value="due_date">Due Date</option>
-            <option value="impact">Impact</option>
-            <option value="status">Status</option>
-          </select>
-
-          {(isFiltered || sortBy !== "default") && (
-            <button
-              onClick={() => { setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" }); setSortBy("default"); }}
-              className="text-xs text-neutral-400 hover:text-neutral-600 ml-1">
-              ✕ Clear
+        <div className="flex gap-5">
+          {/* Left sidebar — filters */}
+          <div className="w-40 flex-shrink-0 space-y-2">
+            <button onClick={onOpenCreateTask}
+              className="w-full rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1.5 hover:bg-teal-50 text-xs font-medium">
+              + New Task
             </button>
-          )}
-        </div>
 
-        {statusPinned ? (
-          /* Archived/completed view — single column */
-          <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
-        ) : (
-          /* Two-column split */
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">My Tasks</p>
-              <TaskList
-                tasks={displayedTasks.filter((t) =>
-                  t.assigned_to === userId || t.assignee_name === userName
-                )}
-                onTaskClick={onTaskClick}
-                onSubmit={onSubmit}
-              />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
-                {isFounder(role) ? "All Open Tasks" : "Unassigned"}
-              </p>
-              <TaskList
-                tasks={displayedTasks.filter((t) =>
-                  isFounder(role)
-                    ? t.assigned_to !== userId && t.assignee_name !== userName
-                    : !t.assigned_to && !t.assignee_name
-                )}
-                onTaskClick={onTaskClick}
-                onSubmit={onSubmit}
-              />
-            </div>
+            <select value={taskFilters.company}
+              onChange={(e) => setTaskFilters({ ...taskFilters, company: e.target.value })}
+              className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.company !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+              <option value="all">Company</option>
+              {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            <select value={taskFilters.status}
+              onChange={(e) => setTaskFilters({ ...taskFilters, status: e.target.value })}
+              className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.status !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+              <option value="all">Status</option>
+              <option value="focus">Focus</option>
+              <option value="active">Active</option>
+              <option value="submitted">Submitted</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+            </select>
+
+            <select value={taskFilters.impact}
+              onChange={(e) => setTaskFilters({ ...taskFilters, impact: e.target.value })}
+              className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.impact !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+              <option value="all">Level</option>
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+
+            {isFounder(role) && (
+              <select value={taskFilters.assignee}
+                onChange={(e) => setTaskFilters({ ...taskFilters, assignee: e.target.value })}
+                className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.assignee !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+                <option value="all">Assignee</option>
+                {teamMembers.map((tm) => (
+                  <option key={tm.id} value={tm.display_name || ""}>{tm.display_name || "Unknown"}</option>
+                ))}
+                <option value="">Unassigned</option>
+              </select>
+            )}
+
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+              className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${sortBy !== "default" ? "border-teal-400 text-teal-700" : ""}`}>
+              <option value="default">Sort</option>
+              <option value="due_date">Due Date</option>
+              <option value="impact">Impact</option>
+              <option value="status">Status</option>
+            </select>
+
+            {(isFiltered || sortBy !== "default") && (
+              <button
+                onClick={() => { setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" }); setSortBy("default"); }}
+                className="w-full text-xs text-neutral-400 hover:text-neutral-600">
+                ✕ Clear filters
+              </button>
+            )}
           </div>
-        )}
 
-        {!statusPinned && archivedTasks.length > 0 && (
-          <button
-            onClick={() => setShowArchived((v) => !v)}
-            className="mt-4 w-full text-xs text-neutral-400 hover:text-neutral-600 border border-dashed rounded-xl py-2 transition-colors">
-            {showArchived
-              ? "Hide completed & archived tasks"
-              : `Show completed & archived tasks (${archivedTasks.length})`}
-          </button>
-        )}
+          {/* Right — task columns */}
+          <div className="flex-1 min-w-0">
+            {statusPinned ? (
+              /* Archived/completed view — single column */
+              <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
+            ) : (
+              /* Two-column split */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-2xl p-4 bg-[#ECF7F3]">
+                  <p className="text-xs font-semibold text-neutral-600 uppercase tracking-wider mb-3">My Tasks</p>
+                  <TaskList
+                    tasks={displayedTasks.filter((t) =>
+                      t.assigned_to === userId || t.assignee_name === userName
+                    )}
+                    onTaskClick={onTaskClick}
+                    onSubmit={onSubmit}
+                  />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3 pt-4 md:pt-0">
+                    {isFounder(role) ? "All Open Tasks" : "Unassigned"}
+                  </p>
+                  <TaskList
+                    tasks={displayedTasks.filter((t) =>
+                      isFounder(role)
+                        ? t.assigned_to !== userId && t.assignee_name !== userName
+                        : !t.assigned_to && !t.assignee_name
+                    )}
+                    onTaskClick={onTaskClick}
+                    onSubmit={onSubmit}
+                  />
+                </div>
+              </div>
+            )}
+
+            {!statusPinned && archivedTasks.length > 0 && (
+              <button
+                onClick={() => setShowArchived((v) => !v)}
+                className="mt-4 w-full text-xs text-neutral-400 hover:text-neutral-600 border border-dashed rounded-xl py-2 transition-colors">
+                {showArchived
+                  ? "Hide completed & archived tasks"
+                  : `Show completed & archived tasks (${archivedTasks.length})`}
+              </button>
+            )}
+          </div>
+        </div>
       </Card>
     </div>
   );
