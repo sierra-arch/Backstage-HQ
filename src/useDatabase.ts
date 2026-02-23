@@ -1385,13 +1385,26 @@ export async function fetchCompanyGoals(companyId?: string): Promise<CompanyGoal
 }
 
 export async function upsertCompanyGoal(goal: Partial<CompanyGoal>): Promise<CompanyGoal | null> {
-  const { data, error } = await supabase
-    .from("company_goals")
-    .upsert(goal, { onConflict: "id" })
-    .select()
-    .single();
-  if (error) { console.error("Error upserting goal:", error); return null; }
-  return data;
+  if (goal.id) {
+    // Update existing
+    const { data, error } = await supabase
+      .from("company_goals")
+      .update(goal)
+      .eq("id", goal.id)
+      .select()
+      .single();
+    if (error) { console.error("Error updating goal:", error); return null; }
+    return data;
+  } else {
+    // Insert new
+    const { data, error } = await supabase
+      .from("company_goals")
+      .insert(goal)
+      .select()
+      .single();
+    if (error) { console.error("Error inserting goal:", error); return null; }
+    return data;
+  }
 }
 
 export function useCompanyGoals(companyId?: string) {
