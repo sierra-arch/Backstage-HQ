@@ -1,5 +1,5 @@
 // ChatPanel.tsx - Team chat and direct messages
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Message } from "./types";
 import { useProfile, markMessagesFromUserAsRead } from "./useDatabase";
@@ -29,6 +29,7 @@ export function ChatPanel({
 
   const [newMessage, setNewMessage] = useState("");
   const [activeChannel, setActiveChannel] = useState<"team" | string>("team");
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const teammates = teamMembers
     .filter((tm) => tm.id !== currentUserId)
@@ -77,6 +78,11 @@ export function ChatPanel({
     }
   });
 
+
+  // Scroll to newest message whenever messages update or channel changes
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [filteredMessages.length, activeChannel]);
 
   function switchChannel(channel: string) {
     setActiveChannel(channel);
@@ -196,6 +202,7 @@ export function ChatPanel({
                 </div>
               ))
             )}
+            <div ref={bottomRef} />
           </div>
 
           <div className="border-t p-4">
