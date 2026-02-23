@@ -444,6 +444,7 @@ export function TodayTeam({
   onTaskClick,
   onOpenAddAccomplishment,
   onSaveNote,
+  onPinTask,
 }: {
   userName: string;
   completedThisWeek: number;
@@ -457,6 +458,7 @@ export function TodayTeam({
   onTaskClick: (task: DBTask) => void;
   onOpenAddAccomplishment: () => void;
   onSaveNote: (text: string) => Promise<void>;
+  onPinTask?: (task: DBTask) => void;
 }) {
   const myTasks = filteredTasks.filter((t) => t.assignee_name === userName);
   const equalCardH = "h-[360px]";
@@ -488,7 +490,7 @@ export function TodayTeam({
               </button>
             </header>
             <div className="relative h-[300px] overflow-y-auto pr-1">
-              <TaskList tasks={myFocusTasks} onTaskClick={onTaskClick} />
+              <TaskList tasks={myFocusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#ECF7F3] to-transparent" />
             </div>
           </section>
@@ -503,7 +505,7 @@ export function TodayTeam({
               </button>
             </div>
             <div className="relative flex-1 overflow-y-auto pr-1">
-              <TaskList tasks={myTasks} onTaskClick={onTaskClick} />
+              <TaskList tasks={myTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white to-transparent" />
             </div>
           </Card>

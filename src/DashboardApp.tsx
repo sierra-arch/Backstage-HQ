@@ -131,14 +131,31 @@ function NotificationPrefsCard() {
   );
 }
 
-function SettingsPage({ userName, userEmail, userId, googleDocId }: {
-  userName: string; userEmail: string; userId: string; googleDocId?: string | null;
+function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl }: {
+  userName: string; userEmail: string; userId: string; googleDocId?: string | null; avatarUrl?: string | null;
 }) {
   const [displayName, setDisplayName] = useState(userName);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [docId, setDocId] = useState(googleDocId ?? null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(avatarUrl ?? null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  async function handlePhotoUpload(file: File) {
+    setUploadingPhoto(true);
+    const ext = file.name.split(".").pop();
+    const path = `${userId}.${ext}`;
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { contentType: file.type, upsert: true });
+    if (!uploadError && uploadData) {
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(uploadData.path);
+      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
+      setPhotoPreview(publicUrl);
+    }
+    setUploadingPhoto(false);
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -170,6 +187,33 @@ function SettingsPage({ userName, userEmail, userId, googleDocId }: {
     <div className="space-y-6">
       <Card title="Account Settings">
         <div className="space-y-4">
+          {/* Profile Photo */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex-shrink-0">
+              <div className="w-16 h-16 rounded-full overflow-hidden bg-teal-100 flex items-center justify-center border">
+                {photoPreview ? (
+                  <img src={photoPreview} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-semibold text-teal-700">{displayName[0]?.toUpperCase()}</span>
+                )}
+              </div>
+              <label className="absolute bottom-0 right-0 bg-white border rounded-full w-6 h-6 flex items-center justify-center cursor-pointer hover:bg-neutral-50 shadow-sm">
+                <span className="text-[11px] text-neutral-600">✎</span>
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPhotoPreview(URL.createObjectURL(file));
+                    handlePhotoUpload(file);
+                  }
+                }} />
+              </label>
+            </div>
+            <div>
+              <p className="font-medium text-sm">{displayName}</p>
+              <p className="text-xs text-neutral-400">{uploadingPhoto ? "Uploading photo…" : "Click pencil to change photo"}</p>
+            </div>
+          </div>
+
           <div>
             <label className="text-sm font-medium text-neutral-700">Display Name</label>
             <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
@@ -457,6 +501,10 @@ export default function DashboardApp() {
               onTaskClick={openTaskModal}
               onOpenAddAccomplishment={() => setShowAddAccomplishment(true)}
               onSaveNote={handleSaveNote}
+              onPinTask={async (task) => {
+                await dbUpdateTask(task.id, { status: task.status === "focus" ? "active" : "focus" });
+                refetch();
+              }}
             />
           )}
 
@@ -498,6 +546,7 @@ export default function DashboardApp() {
               userEmail={session?.user?.email ?? ""}
               userId={profile?.id ?? ""}
               googleDocId={profile?.google_doc_id}
+              avatarUrl={profile?.avatar_url}
             />
           )}
 
@@ -518,7 +567,14 @@ export default function DashboardApp() {
         onClose={() => setShowTaskModal(false)}
         onComplete={() => selectedTask && (isFounder(role) ? handleComplete(selectedTask) : handleSubmitForApproval(selectedTask))}
         onApprove={(task) => { setShowTaskModal(false); handleApprove(task); }}
-        onReassign={async (taskId, memberId) => { await dbUpdateTask(taskId, { assigned_to: memberId }); refetch(); }}
+        onReassign={async (taskId, memberId) => {
+          await dbUpdateTask(taskId, { assigned_to: memberId });
+          if (memberId && selectedTask) {
+            await sendMessage(`You've been assigned a task: "${selectedTask.title}"`, memberId, false, taskId);
+          }
+          refetch();
+        }}
+        onSave={async (taskId, updates) => { await dbUpdateTask(taskId, updates); refetch(); }}
         role={role}
         teamMembers={teamMembers}
       />

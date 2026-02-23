@@ -8,17 +8,24 @@ import { Card, CompanyChip, Avatar } from "./ui";
    Task Row & List (shared, used by TodayPage too)
    ────────────────────────────────────────────────────────────────── */
 export function TaskRow({
-  task, onClick, onSubmit,
+  task, onClick, onSubmit, onPin,
 }: {
   task: DBTask;
   onClick: () => void;
   onSubmit?: (task: DBTask) => void;
+  onPin?: (task: DBTask) => void;
 }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const isOverdue = !!task.due_date && task.due_date < todayStr
+    && task.status !== "completed" && task.status !== "archived";
+
   return (
     <motion.div
       layout
       onClick={onClick}
-      className="group flex items-center gap-3 rounded-xl border p-3 hover:border-teal-200 transition-colors bg-white cursor-pointer"
+      className={`group flex items-center gap-3 rounded-xl border p-3 hover:border-teal-200 transition-colors bg-white cursor-pointer ${
+        isOverdue ? "border-l-4 border-l-red-400" : ""
+      }`}
     >
       {task.photo_url && (
         <div
@@ -38,33 +45,49 @@ export function TaskRow({
           </span>
           {task.due_date && (
             <span className={`text-[10px] px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
-              new Date(task.due_date) < new Date()
-                ? "bg-red-50 text-red-700 border-red-200"
+              isOverdue
+                ? "bg-red-50 text-red-700 border-red-200 font-medium"
                 : "bg-neutral-50 text-neutral-600"
             }`}>
-              Due {new Date(task.due_date).toLocaleDateString([], { month: "short", day: "numeric" })}
+              {isOverdue ? "Overdue" : "Due"} · {new Date(task.due_date + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" })}
             </span>
           )}
         </div>
       </div>
-      {onSubmit && task.status === "active" && (
-        <button
-          onClick={(e) => { e.stopPropagation(); onSubmit(task); }}
-          className="flex-shrink-0 text-[11px] rounded-xl border border-teal-300 bg-teal-50 text-teal-800 px-2.5 py-1 hover:bg-teal-100 font-medium"
-        >
-          Submit
-        </button>
-      )}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
+        {onPin && (task.status === "active" || task.status === "focus") && (
+          <button
+            title={task.status === "focus" ? "Unpin from Focus" : "Pin to Today's Focus"}
+            onClick={(e) => { e.stopPropagation(); onPin(task); }}
+            className={`text-base leading-none transition-colors ${
+              task.status === "focus"
+                ? "text-teal-600 hover:text-neutral-400"
+                : "text-neutral-300 hover:text-teal-500"
+            }`}
+          >
+            {task.status === "focus" ? "★" : "☆"}
+          </button>
+        )}
+        {onSubmit && task.status === "active" && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onSubmit(task); }}
+            className="text-[11px] rounded-xl border border-teal-300 bg-teal-50 text-teal-800 px-2.5 py-1 hover:bg-teal-100 font-medium"
+          >
+            Submit
+          </button>
+        )}
+      </div>
     </motion.div>
   );
 }
 
 export function TaskList({
-  tasks, onTaskClick, onSubmit,
+  tasks, onTaskClick, onSubmit, onPin,
 }: {
   tasks: DBTask[];
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
+  onPin?: (task: DBTask) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -72,7 +95,7 @@ export function TaskList({
         <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
       )}
       {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} />
+        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} onPin={onPin} />
       ))}
     </div>
   );

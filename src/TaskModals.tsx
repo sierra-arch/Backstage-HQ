@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { DBTask, Client, Product, COMPANIES, TIME_BY_LEVEL, isFounder, Role } from "./types";
-import { createTask as dbCreateTask, getCompanyByName } from "./useDatabase";
+import { createTask as dbCreateTask, getCompanyByName, sendMessage } from "./useDatabase";
 import { supabase } from "./supabase";
 import { CompanyChip, Avatar } from "./ui";
 
@@ -62,7 +62,7 @@ export function Modal({
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Task Modal (view/complete)
+   Task Modal (view/edit/complete)
    ────────────────────────────────────────────────────────────────── */
 export function TaskModal({
   task,
@@ -71,6 +71,7 @@ export function TaskModal({
   onComplete,
   onReassign,
   onApprove,
+  onSave,
   role,
   teamMembers = [],
 }: {
@@ -80,10 +81,39 @@ export function TaskModal({
   onComplete: () => void;
   onReassign?: (taskId: string, memberId: string | null) => Promise<void>;
   onApprove?: (task: DBTask) => void;
+  onSave?: (taskId: string, updates: Partial<DBTask>) => Promise<void>;
   role: Role;
   teamMembers?: { id: string; display_name: string | null }[];
 }) {
   const [reassigning, setReassigning] = React.useState(false);
+  const [editing, setEditing] = React.useState(false);
+  const [editTitle, setEditTitle] = React.useState("");
+  const [editDesc, setEditDesc] = React.useState("");
+  const [editDue, setEditDue] = React.useState("");
+  const [editImpact, setEditImpact] = React.useState<DBTask["impact"]>("medium");
+  const [saving, setSaving] = React.useState(false);
+
+  function startEdit() {
+    setEditTitle(task!.title);
+    setEditDesc(task!.description || "");
+    setEditDue(task!.due_date ? task!.due_date.slice(0, 10) : "");
+    setEditImpact(task!.impact);
+    setEditing(true);
+  }
+
+  async function handleSave() {
+    if (!task || !onSave) return;
+    setSaving(true);
+    await onSave(task.id, {
+      title: editTitle.trim() || task.title,
+      description: editDesc.trim() || null,
+      due_date: editDue || null,
+      impact: editImpact,
+    });
+    setSaving(false);
+    setEditing(false);
+    onClose();
+  }
 
   if (!task) return null;
 
@@ -100,77 +130,121 @@ export function TaskModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={task.title} size="medium" coverImage={task.photo_url || undefined}>
+    <Modal isOpen={isOpen} onClose={() => { setEditing(false); onClose(); }} title={editing ? "Edit Task" : task.title} size="medium" coverImage={!editing ? task.photo_url || undefined : undefined}>
       <div className="space-y-4">
-        {isDone && (
-          <div className="flex items-center gap-2 text-sm text-neutral-500 bg-neutral-50 border rounded-xl px-4 py-2 capitalize">
-            <span className="w-2 h-2 rounded-full bg-neutral-400 flex-shrink-0" />
-            This task is {task.status}
-          </div>
-        )}
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Description</label>
-          <p className="text-sm text-neutral-600 mt-1">{task.description || "No description provided"}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-neutral-700">Company</label>
-            <div className="mt-1"><CompanyChip name={task.company_name || "Unknown"} /></div>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700">Assigned To</label>
-            {isFounder(role) && onReassign ? (
-              <select
-                defaultValue={task.assigned_to ?? ""}
-                onChange={handleReassign}
-                disabled={reassigning}
-                className="mt-1 w-full rounded-xl border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-teal-200 disabled:opacity-50"
-              >
-                <option value="">Unassigned</option>
-                {teamMembers.map((tm) => (
-                  <option key={tm.id} value={tm.id}>{tm.display_name || "Unknown"}</option>
-                ))}
-              </select>
-            ) : (
-              <div className="mt-1 flex items-center gap-2">
-                <Avatar name={task.assignee_name || "Unassigned"} size={20} />
-                <span className="text-sm text-neutral-600">{task.assignee_name || "Unassigned"}</span>
+        {editing ? (
+          /* ── Edit Mode ── */
+          <>
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Title</label>
+              <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)}
+                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Description</label>
+              <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
+                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[80px] focus:ring-2 focus:ring-teal-200 outline-none resize-none" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-neutral-700">Due Date</label>
+                <input type="date" value={editDue} onChange={(e) => setEditDue(e.target.value)}
+                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-neutral-700">Impact</label>
+                <select value={editImpact} onChange={(e) => setEditImpact(e.target.value as DBTask["impact"])}
+                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none">
+                  <option value="small">Small</option>
+                  <option value="medium">Medium</option>
+                  <option value="large">Large</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4 border-t">
+              <button onClick={handleSave} disabled={saving || !editTitle.trim()}
+                className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium disabled:opacity-50">
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+              <button onClick={() => setEditing(false)} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Cancel</button>
+            </div>
+          </>
+        ) : (
+          /* ── View Mode ── */
+          <>
+            {isDone && (
+              <div className="flex items-center gap-2 text-sm text-neutral-500 bg-neutral-50 border rounded-xl px-4 py-2 capitalize">
+                <span className="w-2 h-2 rounded-full bg-neutral-400 flex-shrink-0" />
+                This task is {task.status}
               </div>
             )}
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-4">
-          <div>
-            <label className="text-sm font-medium text-neutral-700">Priority</label>
-            <p className="text-sm text-neutral-600 mt-1 capitalize">{task.priority}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700">Impact</label>
-            <p className="text-sm text-neutral-600 mt-1 capitalize">{task.impact}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700">Estimate</label>
-            <p className="text-sm text-neutral-600 mt-1">{task.estimate_minutes} min</p>
-          </div>
-        </div>
-        <div className="flex gap-3 pt-4 border-t">
-          {!isDone && isSubmitted && isFounder(role) && onApprove ? (
-            <>
-              <button
-                onClick={() => { onApprove(task); onClose(); }}
-                className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
-              >
-                Review Submission
-              </button>
-              <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
-            </>
-          ) : !isDone ? (
-            <>
-              <button
-                onClick={() => { onComplete(); onClose(); }}
-                className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
-              >
-                {buttonText}
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Description</label>
+              <p className="text-sm text-neutral-600 mt-1">{task.description || "No description provided"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-neutral-700">Company</label>
+                <div className="mt-1"><CompanyChip name={task.company_name || "Unknown"} /></div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-neutral-700">Assigned To</label>
+                {isFounder(role) && onReassign ? (
+                  <select
+                    defaultValue={task.assigned_to ?? ""}
+                    onChange={handleReassign}
+                    disabled={reassigning}
+                    className="mt-1 w-full rounded-xl border px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-teal-200 disabled:opacity-50"
+                  >
+                    <option value="">Unassigned</option>
+                    {teamMembers.map((tm) => (
+                      <option key={tm.id} value={tm.id}>{tm.display_name || "Unknown"}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="mt-1 flex items-center gap-2">
+                    <Avatar name={task.assignee_name || "Unassigned"} size={20} />
+                    <span className="text-sm text-neutral-600">{task.assignee_name || "Unassigned"}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <label className="text-sm font-medium text-neutral-700">Priority</label>
+                <p className="text-sm text-neutral-600 mt-1 capitalize">{task.priority}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-neutral-700">Impact</label>
+                <p className="text-sm text-neutral-600 mt-1 capitalize">{task.impact}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-neutral-700">
+                  {task.due_date ? "Due Date" : "Estimate"}
+                </label>
+                <p className="text-sm text-neutral-600 mt-1">
+                  {task.due_date ? new Date(task.due_date).toLocaleDateString() : `${task.estimate_minutes} min`}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4 border-t">
+              {!isDone && isSubmitted && isFounder(role) && onApprove ? (
+                <>
+                  <button
+                    onClick={() => { onApprove(task); onClose(); }}
+                    className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
+                  >
+                    Review Submission
+                  </button>
+                  <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+                </>
+              ) : !isDone ? (
+                <>
+                  <button
+                    onClick={() => { onComplete(); onClose(); }}
+                    className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
+                  >
+                    {buttonText}
               </button>
               <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
             </>
@@ -178,6 +252,16 @@ export function TaskModal({
             <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
           )}
         </div>
+        {isFounder(role) && onSave && !isDone && (
+          <button
+            onClick={startEdit}
+            className="w-full text-center text-xs text-neutral-400 hover:text-teal-600 py-1 mt-1"
+          >
+            Edit task details
+          </button>
+        )}
+        </>
+      )}
       </div>
     </Modal>
   );
@@ -259,6 +343,10 @@ export function TaskCreateModal({
     if (!result) {
       setCreateError("Failed to create task. Check your connection and try again.");
       return;
+    }
+
+    if (assignedToId) {
+      await sendMessage(`You've been assigned a new task: "${title}"`, assignedToId, false, result.id);
     }
 
     setTitle("");
