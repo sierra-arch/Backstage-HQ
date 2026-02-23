@@ -175,6 +175,8 @@ export function ChatPanel({
                       ? "bg-yellow-50 border border-yellow-200"
                       : msg.content.startsWith("🎉")
                       ? "bg-violet-50 border border-violet-200"
+                      : msg.content.startsWith("You've been assigned")
+                      ? "bg-[#ECF7F3] border border-teal-100"
                       : "bg-neutral-50"
                   }`}
                 >
