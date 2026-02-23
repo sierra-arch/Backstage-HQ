@@ -12,6 +12,8 @@ export function ChatPanel({
   messages,
   onSendMessage,
   teamMembers = [],
+  onTaskClick,
+  onSendKudos,
 }: {
   userName: string;
   isOpen: boolean;
@@ -19,6 +21,8 @@ export function ChatPanel({
   messages: Message[];
   onSendMessage: (content: string, to?: string) => void;
   teamMembers?: { id: string; display_name: string | null }[];
+  onTaskClick?: (taskId: string) => void;
+  onSendKudos?: () => void;
 }) {
   const { profile } = useProfile();
   const currentUserId = profile?.id;
@@ -83,8 +87,17 @@ export function ChatPanel({
     >
       {/* Sidebar */}
       <div className="w-48 bg-neutral-50 border-r flex flex-col">
-        <div className="border-b px-3 py-3">
+        <div className="border-b px-3 py-3 flex items-center justify-between">
           <h3 className="font-semibold text-sm text-neutral-700">Messages</h3>
+          {onSendKudos && (
+            <button
+              onClick={onSendKudos}
+              title="Send Kudos"
+              className="text-sm hover:scale-110 transition-transform"
+            >
+              🏆
+            </button>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto">
           <div className="px-2 py-2">
@@ -133,7 +146,7 @@ export function ChatPanel({
               <div
                 key={msg.id}
                 className={`rounded-xl p-3 ${
-                  msg.is_kudos
+                  msg.is_kudos || msg.content.startsWith("🏆")
                     ? "bg-yellow-50 border border-yellow-200"
                     : msg.content.startsWith("🎉")
                     ? "bg-violet-50 border border-violet-200"
@@ -148,8 +161,13 @@ export function ChatPanel({
                   </span>
                 </div>
                 <p className="text-sm text-neutral-700">{msg.content}</p>
-                {msg.related_task_id && (
-                  <a href="#" className="text-xs text-teal-600 underline mt-1 block">View completed task →</a>
+                {msg.related_task_id && onTaskClick && (
+                  <button
+                    onClick={() => { onTaskClick(msg.related_task_id!); onClose(); }}
+                    className="text-xs text-teal-600 underline mt-1 block hover:text-teal-800"
+                  >
+                    View completed task →
+                  </button>
                 )}
               </div>
             ))

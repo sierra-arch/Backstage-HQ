@@ -70,6 +70,7 @@ export function TaskModal({
   onClose,
   onComplete,
   onReassign,
+  onApprove,
   role,
   teamMembers = [],
 }: {
@@ -78,6 +79,7 @@ export function TaskModal({
   onClose: () => void;
   onComplete: () => void;
   onReassign?: (taskId: string, memberId: string | null) => Promise<void>;
+  onApprove?: (task: DBTask) => void;
   role: Role;
   teamMembers?: { id: string; display_name: string | null }[];
 }) {
@@ -86,6 +88,7 @@ export function TaskModal({
   if (!task) return null;
 
   const isDone = task.status === "completed" || task.status === "archived";
+  const isSubmitted = task.status === "submitted";
   const buttonText = isFounder(role) ? "Mark Complete" : "Submit for Approval";
 
   async function handleReassign(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -151,17 +154,29 @@ export function TaskModal({
           </div>
         </div>
         <div className="flex gap-3 pt-4 border-t">
-          {!isDone && (
-            <button
-              onClick={() => { onComplete(); onClose(); }}
-              className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
-            >
-              {buttonText}
-            </button>
+          {!isDone && isSubmitted && isFounder(role) && onApprove ? (
+            <>
+              <button
+                onClick={() => { onApprove(task); onClose(); }}
+                className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
+              >
+                Review Submission
+              </button>
+              <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+            </>
+          ) : !isDone ? (
+            <>
+              <button
+                onClick={() => { onComplete(); onClose(); }}
+                className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
+              >
+                {buttonText}
+              </button>
+              <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+            </>
+          ) : (
+            <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
           )}
-          <button onClick={onClose} className={`px-4 py-2 border rounded-xl hover:bg-neutral-50 ${isDone ? "flex-1" : ""}`}>
-            Close
-          </button>
         </div>
       </div>
     </Modal>
@@ -572,6 +587,73 @@ export function KudosModal({
             {isArchive
               ? message.trim() ? "Archive & Send Thanks" : "Archive"
               : message.trim() ? "Reassign with Notes" : "Reassign"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Send Kudos Modal (standalone, no task required)
+   ────────────────────────────────────────────────────────────────── */
+export function SendKudosModal({
+  isOpen,
+  onClose,
+  teamMembers,
+  onSend,
+  defaultMemberId,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  teamMembers: { id: string; display_name: string | null }[];
+  onSend: (toUserId: string, message: string) => void;
+  defaultMemberId?: string;
+}) {
+  const [selectedId, setSelectedId] = useState(defaultMemberId ?? "");
+  const [message, setMessage] = useState("");
+
+  function handleSend() {
+    if (!selectedId || !message.trim()) return;
+    onSend(selectedId, message.trim());
+    setSelectedId("");
+    setMessage("");
+    onClose();
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Send Kudos" size="small">
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-neutral-700 block mb-1">Who deserves a shout-out?</label>
+          <select
+            value={selectedId}
+            onChange={(e) => setSelectedId(e.target.value)}
+            className="w-full rounded-xl border px-3 py-2.5 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+          >
+            <option value="">Select a teammate…</option>
+            {teamMembers.map((tm) => (
+              <option key={tm.id} value={tm.id}>{tm.display_name || "Unknown"}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-sm font-medium text-neutral-700 block mb-1">Your message</label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Huge shout-out for crushing it on…"
+            className="w-full rounded-xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
+          />
+        </div>
+        <div className="flex gap-3 pt-4 border-t">
+          <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
+          <button
+            onClick={handleSend}
+            disabled={!selectedId || !message.trim()}
+            className="flex-1 bg-yellow-500 text-white rounded-xl px-4 py-2 hover:bg-yellow-600 font-medium text-sm disabled:opacity-50"
+          >
+            Send Kudos 🏆
           </button>
         </div>
       </div>

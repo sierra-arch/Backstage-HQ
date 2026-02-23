@@ -416,13 +416,7 @@ export async function fetchTasks(filters?: {
 }): Promise<Task[]> {
   let query = supabase
     .from("tasks")
-    .select(
-      `
-      *,
-      company:companies(name, slug),
-      assignee:profiles!assigned_to(display_name)
-    `
-    )
+    .select("*")
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
@@ -449,11 +443,30 @@ export async function fetchTasks(filters?: {
     return [];
   }
 
-  return (data || []).map((task: any) => ({
+  if (!data || data.length === 0) return [];
+
+  // Enrich with company + assignee names via separate simple lookups
+  // (avoids needing FK constraints for PostgREST joins)
+  const companyIds = [...new Set(data.map((t: any) => t.company_id).filter(Boolean))];
+  const assigneeIds = [...new Set(data.map((t: any) => t.assigned_to).filter(Boolean))];
+
+  const [companiesResult, profilesResult] = await Promise.all([
+    companyIds.length > 0
+      ? supabase.from("companies").select("id, name, slug").in("id", companyIds)
+      : Promise.resolve({ data: [] as any[], error: null }),
+    assigneeIds.length > 0
+      ? supabase.from("profiles").select("id, display_name").in("id", assigneeIds)
+      : Promise.resolve({ data: [] as any[], error: null }),
+  ]);
+
+  const companyMap = new Map((companiesResult.data || []).map((c: any) => [c.id, c]));
+  const profileMap = new Map((profilesResult.data || []).map((p: any) => [p.id, p]));
+
+  return data.map((task: any) => ({
     ...task,
-    company_name: task.company?.name,
-    company_slug: task.company?.slug,
-    assignee_name: task.assignee?.display_name,
+    company_name: companyMap.get(task.company_id)?.name ?? null,
+    company_slug: companyMap.get(task.company_id)?.slug ?? null,
+    assignee_name: profileMap.get(task.assigned_to)?.display_name ?? null,
   }));
 }
 
@@ -513,6 +526,8 @@ export async function createTask(task: Partial<Task>): Promise<Task | null> {
   const { data, error } = await supabase
     .from("tasks")
     .insert({
+      sort_order: 0,
+      updated_at: new Date().toISOString(),
       ...task,
       created_by: user.id,
     })
@@ -533,7 +548,7 @@ export async function updateTask(
 ): Promise<Task | null> {
   const { data, error } = await supabase
     .from("tasks")
-    .update(updates)
+    .update({ updated_at: new Date().toISOString(), ...updates })
     .eq("id", taskId)
     .select()
     .single();

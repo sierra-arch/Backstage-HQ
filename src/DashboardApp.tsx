@@ -45,6 +45,7 @@ import {
   ProductModal,
   AddAccomplishmentModal,
   KudosModal,
+  SendKudosModal,
 } from "./TaskModals";
 
 /* ──────────────────────────────────────────────────────────────────
@@ -71,10 +72,31 @@ function NotificationPrefsCard() {
   const [assignment, setAssignment] = useState(() => get("notif-assignment", true));
   const [digest, setDigest] = useState(() => get("notif-digest", true));
   const [browser, setBrowser] = useState(() => get("notif-browser", false));
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   function toggle(key: string, val: boolean, set: (v: boolean) => void) {
     set(val);
     localStorage.setItem(key, String(val));
+  }
+
+  async function toggleBrowser(val: boolean) {
+    if (val) {
+      if (!("Notification" in window)) {
+        alert("Your browser does not support desktop notifications.");
+        return;
+      }
+      if (Notification.permission === "denied") {
+        setPermissionDenied(true);
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPermissionDenied(true);
+        return;
+      }
+      setPermissionDenied(false);
+    }
+    toggle("notif-browser", val, setBrowser);
   }
 
   return (
@@ -82,16 +104,28 @@ function NotificationPrefsCard() {
       <div className="space-y-3">
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={assignment} onChange={(e) => toggle("notif-assignment", e.target.checked, setAssignment)} className="w-4 h-4 accent-teal-600" />
-          <span className="text-sm">Email notifications for task assignments</span>
+          <div>
+            <span className="text-sm">In-app notifications for task assignments</span>
+          </div>
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={digest} onChange={(e) => toggle("notif-digest", e.target.checked, setDigest)} className="w-4 h-4 accent-teal-600" />
           <span className="text-sm">Daily digest of team activity</span>
         </label>
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input type="checkbox" checked={browser} onChange={(e) => toggle("notif-browser", e.target.checked, setBrowser)} className="w-4 h-4 accent-teal-600" />
-          <span className="text-sm">Browser notifications for new messages</span>
-        </label>
+        <div>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={browser} onChange={(e) => toggleBrowser(e.target.checked)} className="w-4 h-4 accent-teal-600" />
+            <span className="text-sm">Browser notifications for new messages</span>
+          </label>
+          {permissionDenied && (
+            <p className="text-xs text-red-500 mt-1 ml-7">
+              Permission denied. Enable notifications in your browser settings, then try again.
+            </p>
+          )}
+          {browser && !permissionDenied && (
+            <p className="text-xs text-teal-600 mt-1 ml-7">Active — you'll get a notification when a new message arrives.</p>
+          )}
+        </div>
       </div>
     </Card>
   );
@@ -217,6 +251,8 @@ export default function DashboardApp() {
   const [showKudosModal, setShowKudosModal] = useState(false);
   const [kudosTask, setKudosTask] = useState<DBTask | null>(null);
   const [showChat, setShowChat] = useState(false);
+  const [showSendKudos, setShowSendKudos] = useState(false);
+  const [kudosDefaultMemberId, setKudosDefaultMemberId] = useState<string | undefined>(undefined);
   const [showAddAccomplishment, setShowAddAccomplishment] = useState(false);
   const { accomplishments, refetch: refetchAccomplishments } = useAllAccomplishments();
   const [searchQuery, setSearchQuery] = useState("");
@@ -236,6 +272,26 @@ export default function DashboardApp() {
     session?.user?.email?.split("@")[0] ??
     "Sierra";
 
+
+  // Fire browser notification when a new DM arrives (if permission granted + pref enabled)
+  const prevMessageCount = React.useRef(messages.length);
+  React.useEffect(() => {
+    const browserNotifEnabled = localStorage.getItem("notif-browser") === "true";
+    if (!browserNotifEnabled || Notification.permission !== "granted") {
+      prevMessageCount.current = messages.length;
+      return;
+    }
+    const newMessages = messages.slice(0, messages.length - prevMessageCount.current);
+    newMessages.forEach((msg) => {
+      if (msg.to_user_id === profile?.id && !msg.is_read) {
+        new Notification(`New message from ${msg.from_name || "teammate"}`, {
+          body: msg.content,
+          icon: "/favicon.ico",
+        });
+      }
+    });
+    prevMessageCount.current = messages.length;
+  }, [messages, profile?.id]);
 
   const startOfWeek = new Date();
   startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7)); // Monday
@@ -425,7 +481,15 @@ export default function DashboardApp() {
           )}
 
           {page === "My Team" && isFounder(role) && (
-            <MyTeamPage tasks={tasks} teamMembers={teamMembers} />
+            <MyTeamPage
+              tasks={tasks}
+              teamMembers={teamMembers}
+              accomplishments={accomplishments}
+              onSendKudos={(memberId) => {
+                setKudosDefaultMemberId(memberId);
+                setShowSendKudos(true);
+              }}
+            />
           )}
 
           {page === "Settings" && (
@@ -453,6 +517,7 @@ export default function DashboardApp() {
         task={selectedTask} isOpen={showTaskModal}
         onClose={() => setShowTaskModal(false)}
         onComplete={() => selectedTask && (isFounder(role) ? handleComplete(selectedTask) : handleSubmitForApproval(selectedTask))}
+        onApprove={(task) => { setShowTaskModal(false); handleApprove(task); }}
         onReassign={async (taskId, memberId) => { await dbUpdateTask(taskId, { assigned_to: memberId }); refetch(); }}
         role={role}
         teamMembers={teamMembers}
@@ -498,6 +563,29 @@ export default function DashboardApp() {
           <ChatPanel
             userName={userName} isOpen={showChat} onClose={() => setShowChat(false)}
             messages={messages} onSendMessage={handleSendMessage} teamMembers={teamMembers}
+            onSendKudos={() => setShowSendKudos(true)}
+            onTaskClick={(taskId) => {
+              const task = tasks.find((t) => t.id === taskId);
+              if (task) { setSelectedTask(task); setShowTaskModal(true); }
+              setShowChat(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSendKudos && (
+          <SendKudosModal
+            isOpen={showSendKudos}
+            onClose={() => { setShowSendKudos(false); setKudosDefaultMemberId(undefined); }}
+            teamMembers={teamMembers}
+            defaultMemberId={kudosDefaultMemberId}
+            onSend={async (toUserId, message) => {
+              await sendMessage(`🏆 ${message}`, toUserId, true, undefined);
+              refetchMessages();
+              setShowSendKudos(false);
+              setKudosDefaultMemberId(undefined);
+            }}
           />
         )}
       </AnimatePresence>

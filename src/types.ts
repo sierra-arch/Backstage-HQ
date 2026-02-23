@@ -19,14 +19,20 @@ export type DBTask = {
   description: string | null;
   company_id: string | null;
   assigned_to: string | null;
+  created_by?: string | null;
   status: "focus" | "active" | "submitted" | "completed" | "archived";
   priority: "low" | "medium" | "high";
   impact: "small" | "medium" | "large";
   estimate_minutes: number;
   company_name?: string;
+  company_slug?: string;
   assignee_name?: string;
   due_date?: string | null;
+  completed_at?: string | null;
   photo_url?: string | null;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type Client = {

@@ -4,7 +4,7 @@ import { DBTask, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
 import { AccomplishmentDB } from "./useDatabase";
 import { Card, Chip, Avatar, CompanyChip, LevelRing } from "./ui";
 import { TaskList } from "./TasksPage";
-import { updateTask as dbUpdateTask, useCompanyGoals } from "./useDatabase";
+import { updateTask as dbUpdateTask, useCompanyGoals, upsertCompanyGoal } from "./useDatabase";
 
 /* ──────────────────────────────────────────────────────────────────
    Confetti
@@ -170,31 +170,101 @@ function NotesCard({ onSave }: { onSave: (text: string) => Promise<void> }) {
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Company Goals Card (live from DB)
+   Company Goals Card (live from DB, editable by founders)
    ────────────────────────────────────────────────────────────────── */
-function CompanyGoalsCard({ className }: { className?: string }) {
-  const { goals } = useCompanyGoals();
+function CompanyGoalsCard({ className, isFounder: founderView }: { className?: string; isFounder?: boolean }) {
+  const { goals, refetch } = useCompanyGoals();
+  const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editCurrent, setEditCurrent] = React.useState("");
+  const [adding, setAdding] = React.useState(false);
+  const [newLabel, setNewLabel] = React.useState("");
+  const [newTarget, setNewTarget] = React.useState("");
+  const [newUnit, setNewUnit] = React.useState("%");
+
+  async function saveEdit(id: string) {
+    await upsertCompanyGoal({ id, current_value: parseFloat(editCurrent) || 0 });
+    setEditingId(null);
+    refetch();
+  }
+
+  async function addGoal() {
+    if (!newLabel.trim() || !newTarget) return;
+    await upsertCompanyGoal({
+      label: newLabel.trim(),
+      target_value: parseFloat(newTarget) || 0,
+      current_value: 0,
+      unit: newUnit,
+    });
+    setNewLabel(""); setNewTarget(""); setNewUnit("%"); setAdding(false);
+    refetch();
+  }
+
   return (
     <Card title="Company Goals" subtitle="Targets & progress" className={className}>
-      <div className="space-y-3">
+      <div className="space-y-3 overflow-y-auto max-h-[260px]">
         {goals.length === 0 && (
           <div className="text-sm text-neutral-400 text-center py-4">No goals set yet.</div>
         )}
         {goals.map((g) => {
           const pct = g.target_value > 0 ? Math.min(100, Math.round((g.current_value / g.target_value) * 100)) : 0;
+          const isEditing = editingId === g.id;
           return (
-            <div key={g.id} className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white">
+            <div key={g.id} className="rounded-xl border p-3 hover:border-teal-200 transition-colors bg-white">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm font-medium">{g.label}</div>
-                <div className="text-xs text-neutral-500">{pct}{g.unit === "%" ? "%" : ` ${g.unit}`}</div>
+                <div className="flex items-center gap-2">
+                  <div className="text-xs text-neutral-500">{g.current_value}/{g.target_value}{g.unit === "%" ? "%" : ` ${g.unit}`}</div>
+                  {founderView && !isEditing && (
+                    <button onClick={() => { setEditingId(g.id); setEditCurrent(String(g.current_value)); }}
+                      className="text-xs text-teal-600 hover:text-teal-800">Edit</button>
+                  )}
+                </div>
               </div>
-              <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                <div className="h-full bg-teal-600" style={{ width: `${pct}%` }} />
-              </div>
+              {isEditing ? (
+                <div className="flex gap-2 mt-1">
+                  <input type="number" value={editCurrent} onChange={(e) => setEditCurrent(e.target.value)}
+                    className="flex-1 border rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-teal-200"
+                    placeholder="Current value" />
+                  <button onClick={() => saveEdit(g.id)} className="text-xs bg-teal-600 text-white px-2 py-1 rounded-lg hover:bg-teal-700">Save</button>
+                  <button onClick={() => setEditingId(null)} className="text-xs border px-2 py-1 rounded-lg hover:bg-neutral-50">✕</button>
+                </div>
+              ) : (
+                <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
+                  <div className="h-full bg-teal-600 transition-all" style={{ width: `${pct}%` }} />
+                </div>
+              )}
             </div>
           );
         })}
+        {founderView && adding && (
+          <div className="rounded-xl border p-3 bg-teal-50 space-y-2">
+            <input value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Goal label…"
+              className="w-full border rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-teal-200" />
+            <div className="flex gap-2">
+              <input type="number" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} placeholder="Target"
+                className="flex-1 border rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-teal-200" />
+              <select value={newUnit} onChange={(e) => setNewUnit(e.target.value)}
+                className="border rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-teal-200">
+                <option value="%">%</option>
+                <option value="clients">clients</option>
+                <option value="orders">orders</option>
+                <option value="tasks">tasks</option>
+                <option value="$">$</option>
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={addGoal} disabled={!newLabel.trim() || !newTarget}
+                className="flex-1 bg-teal-600 text-white rounded-lg px-2 py-1.5 text-xs hover:bg-teal-700 disabled:opacity-50">Add</button>
+              <button onClick={() => setAdding(false)} className="border rounded-lg px-2 py-1.5 text-xs hover:bg-white">Cancel</button>
+            </div>
+          </div>
+        )}
       </div>
+      {founderView && !adding && (
+        <button onClick={() => setAdding(true)} className="mt-3 w-full text-xs text-teal-600 hover:text-teal-800 border border-dashed border-teal-300 rounded-xl py-2 hover:bg-teal-50">
+          + Add Goal
+        </button>
+      )}
     </Card>
   );
 }
@@ -348,7 +418,7 @@ export function TodayFounder({
           </div>
         </div>
         <div className="col-span-12 md:col-span-4">
-          <CompanyGoalsCard className={equalCardH} />
+          <CompanyGoalsCard className={equalCardH} isFounder />
         </div>
         <div className="col-span-12 md:col-span-4">
           <AccomplishmentsCard accomplishments={accomplishments} onOpenAddAccomplishment={onOpenAddAccomplishment} />
