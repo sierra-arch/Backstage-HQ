@@ -173,7 +173,13 @@ export function ChatPanel({
                     <Avatar name={msg.from_name || "Unknown"} size={20} />
                     <span className="text-xs font-medium">{msg.from_name || "Unknown"}</span>
                     <span className="text-xs text-neutral-400 ml-auto">
-                      {new Date(msg.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {(() => {
+                        const d = new Date(msg.created_at);
+                        const isToday = d.toDateString() === new Date().toDateString();
+                        return isToday
+                          ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                          : d.toLocaleDateString([], { month: "short", day: "numeric" }) + " · " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                      })()}
                     </span>
                   </div>
                   <p className="text-sm text-neutral-700">{msg.content}</p>

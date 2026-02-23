@@ -436,6 +436,7 @@ export default function DashboardApp() {
       toUserId = recipient?.id;
     }
     await sendMessage(content, toUserId);
+    refetchMessages();
   }
 
   async function handleSubmitForApproval(task: DBTask) {
