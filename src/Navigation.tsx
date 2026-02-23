@@ -19,7 +19,7 @@ export function Sidebar({
   onMobileClose?: () => void;
 }) {
   const founderNav: FounderPage[] = ["Today", "Meetings", "Tasks", "Companies", "Playbook", "My Team"];
-  const teamNav: TeamPage[] = ["Today", "Tasks", "Companies", "Playbook", "Career Path"];
+  const teamNav: TeamPage[] = ["Today", "Meetings", "Tasks", "Companies", "Playbook", "Career Path"];
   const nav = isFounder(role) ? founderNav : teamNav;
 
   function handleSelect(item: Page) {

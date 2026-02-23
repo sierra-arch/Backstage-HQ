@@ -1,8 +1,7 @@
 // CareerPathPage.tsx - XP progress, milestones, and task history for team members
 import React from "react";
 import { DBTask, XP_BY_IMPACT, LEVEL_XP_THRESHOLD } from "./types";
-import { Card, LevelRing } from "./ui";
-
+import { LevelRing } from "./ui";
 
 export function CareerPathPage({
   level,
@@ -33,48 +32,57 @@ export function CareerPathPage({
     (t) => t.completed_at && new Date(t.completed_at) >= startOfMonth
   );
   const totalXPEarned = myCompleted.reduce((sum, t) => sum + XP_BY_IMPACT[t.impact], 0);
+  const pct = Math.min(100, Math.round((xp / LEVEL_XP_THRESHOLD) * 100));
 
   return (
-    <div className="space-y-4">
-      {/* Hero: level ring + title */}
-      <Card>
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} size={120} stroke={14} />
-          <div className="text-center sm:text-left">
-            <div className="text-3xl font-bold">Level {level}</div>
-            <div className="text-sm text-neutral-500 mt-1">
-              {xp} / {LEVEL_XP_THRESHOLD} XP — {LEVEL_XP_THRESHOLD - xp} XP to level {level + 1}
-            </div>
-            <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
-              <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Small = 5 XP</span>
-              <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Medium = 10 XP</span>
-              <span className="text-xs px-3 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-800">Large = 20 XP</span>
-            </div>
+    <div
+      className="rounded-2xl bg-[#ECF7F3] p-6 md:p-8 space-y-7"
+      style={{ border: "1.5px solid #99F6E4" }}
+    >
+      {/* ── Level hero ── */}
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} size={110} stroke={13} />
+        <div className="text-center sm:text-left flex-1">
+          <div className="text-3xl font-bold tracking-tight">Level {level}</div>
+          <div className="text-sm text-neutral-600 mt-1">
+            {xp} / {LEVEL_XP_THRESHOLD} XP &nbsp;·&nbsp; {LEVEL_XP_THRESHOLD - xp} XP to Level {level + 1}
+          </div>
+          {/* XP bar */}
+          <div className="mt-3 h-2.5 w-full max-w-xs mx-auto sm:mx-0 rounded-full bg-teal-200 overflow-hidden">
+            <div className="h-full bg-teal-600 transition-all rounded-full" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
+            <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Small = 5 XP</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Medium = 10 XP</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Large = 20 XP</span>
           </div>
         </div>
-      </Card>
+      </div>
 
-      {/* Stats row */}
+      {/* ── Stats ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "This Week", value: completedThisWeek.length, sub: "tasks completed" },
-          { label: "This Month", value: completedThisMonth.length, sub: "tasks completed" },
-          { label: "All Time", value: myCompleted.length, sub: "tasks completed" },
-          { label: "Total XP", value: totalXPEarned, sub: "XP earned overall" },
-        ].map((stat) => (
-          <div key={stat.label} className="rounded-2xl border bg-white p-4 text-center">
-            <div className="text-2xl font-bold text-teal-700">{stat.value}</div>
-            <div className="text-xs font-medium mt-0.5">{stat.label}</div>
-            <div className="text-[11px] text-neutral-400 mt-0.5">{stat.sub}</div>
+          { label: "This Week", value: completedThisWeek.length, sub: "completed" },
+          { label: "This Month", value: completedThisMonth.length, sub: "completed" },
+          { label: "All Time", value: myCompleted.length, sub: "completed" },
+          { label: "Total XP", value: totalXPEarned, sub: "earned" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-xl bg-white border border-teal-100 p-4 text-center">
+            <div className="text-2xl font-bold text-teal-700">{s.value}</div>
+            <div className="text-xs font-medium text-neutral-700 mt-0.5">{s.label}</div>
+            <div className="text-[11px] text-neutral-400">{s.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* Completed task history */}
-      <Card title={`Completed Tasks (${myCompleted.length})`}>
-        <div className="space-y-2 max-h-[480px] overflow-y-auto">
+      {/* ── Completed task history ── */}
+      <div>
+        <h3 className="text-sm font-semibold text-neutral-700 mb-3">
+          Completed Tasks <span className="font-normal text-neutral-400">({myCompleted.length})</span>
+        </h3>
+        <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
           {myCompleted.length === 0 && (
-            <div className="text-sm text-neutral-500 text-center py-8">
+            <div className="rounded-xl bg-white border border-teal-100 p-6 text-sm text-neutral-400 text-center">
               No completed tasks yet — finish your first one to earn XP!
             </div>
           )}
@@ -85,7 +93,7 @@ export function CareerPathPage({
               return db - da;
             })
             .map((t) => (
-              <div key={t.id} className="rounded-xl border p-3 flex items-center justify-between bg-white gap-3">
+              <div key={t.id} className="rounded-xl bg-white border border-teal-100 p-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{t.title}</div>
                   <div className="text-xs text-neutral-500 mt-0.5 flex items-center gap-2">
@@ -104,7 +112,7 @@ export function CareerPathPage({
               </div>
             ))}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

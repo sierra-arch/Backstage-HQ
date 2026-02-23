@@ -114,20 +114,18 @@ function SOPFormModal({
     const instructions = steps
       .filter((s) => s.trim())
       .map((text, i) => ({ step: i + 1, text }));
-    await saveSOP(
-      {
-        title,
-        short_description: shortDesc || null,
-        full_description: fullDesc || null,
-        role_context: roleContext || null,
-        instructions: instructions.length > 0 ? instructions : null,
-        tags: tags.length > 0 ? tags : null,
-        is_active: true,
-        task_count: existing?.task_count ?? 0,
-        company_id: existing?.company_id ?? null,
-      },
-      existing?.id,
-    );
+    await saveSOP({
+      id: existing?.id,
+      title,
+      short_description: shortDesc || null,
+      full_description: fullDesc || null,
+      role_context: roleContext || null,
+      instructions: instructions.length > 0 ? instructions : null,
+      tags: tags.length > 0 ? tags : null,
+      is_active: true,
+      task_count: existing?.task_count ?? 0,
+      company_id: existing?.company_id ?? null,
+    });
     setSaving(false);
     onSaved();
     onClose();

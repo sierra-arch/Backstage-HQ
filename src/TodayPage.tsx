@@ -524,11 +524,8 @@ export function TodayTeam({
         <div className="col-span-12 md:col-span-4">
           <WelcomeCard name={userName} doneThisWeek={completedThisWeek} level={level} levelXP={xp} levelMax={LEVEL_XP_THRESHOLD} className="h-full" />
         </div>
-        <div className="col-span-12 md:col-span-5">
+        <div className="col-span-12 md:col-span-8">
           <NotesCard onSave={onSaveNote} />
-        </div>
-        <div className="col-span-12 md:col-span-3">
-          <TodayCalendar />
         </div>
       </div>
 

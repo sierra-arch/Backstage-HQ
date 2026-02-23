@@ -100,6 +100,7 @@ export type FounderPage =
   | "Settings";
 export type TeamPage =
   | "Today"
+  | "Meetings"
   | "Tasks"
   | "Companies"
   | "Playbook"
