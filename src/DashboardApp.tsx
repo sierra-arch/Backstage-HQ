@@ -521,6 +521,10 @@ export default function DashboardApp() {
               role={role} userName={userName} userId={profile?.id ?? ""} teamMembers={teamMembers}
               onOpenCreateTask={() => setShowCreateModal(true)} onTaskClick={openTaskModal}
               onSubmit={!isFounder(role) ? handleSubmitForApproval : undefined}
+              onPin={async (task) => {
+                await dbUpdateTask(task.id, { status: task.status === "focus" ? "active" : "focus" });
+                refetch();
+              }}
             />
           )}
 

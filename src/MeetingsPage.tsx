@@ -119,6 +119,117 @@ function MeetingDetailModal({
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Mini Calendar
+   ────────────────────────────────────────────────────────────────── */
+function MiniCalendar({
+  meetings,
+  selectedDate,
+  onSelectDate,
+}: {
+  meetings: Meeting[];
+  selectedDate: string | null;
+  onSelectDate: (dateStr: string | null) => void;
+}) {
+  const [viewDate, setViewDate] = useState(new Date());
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+
+  const firstDow = new Date(year, month, 1).getDay(); // 0=Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Map "YYYY-MM-DD" → meetings on that day
+  const byDay: Record<string, Meeting[]> = {};
+  meetings.forEach((m) => {
+    const key = new Date(m.scheduled_at).toLocaleDateString("en-CA"); // "YYYY-MM-DD"
+    if (!byDay[key]) byDay[key] = [];
+    byDay[key].push(m);
+  });
+
+  const todayStr = new Date().toLocaleDateString("en-CA");
+  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  return (
+    <div>
+      {/* Month nav */}
+      <div className="flex items-center justify-between mb-3">
+        <button
+          onClick={() => setViewDate(new Date(year, month - 1, 1))}
+          className="text-neutral-400 hover:text-neutral-700 px-2 py-1 rounded-lg hover:bg-neutral-100 text-sm">
+          ‹
+        </button>
+        <span className="text-sm font-semibold text-neutral-700">
+          {viewDate.toLocaleDateString([], { month: "long", year: "numeric" })}
+        </span>
+        <button
+          onClick={() => setViewDate(new Date(year, month + 1, 1))}
+          className="text-neutral-400 hover:text-neutral-700 px-2 py-1 rounded-lg hover:bg-neutral-100 text-sm">
+          ›
+        </button>
+      </div>
+
+      {/* Day-of-week headers */}
+      <div className="grid grid-cols-7 mb-1">
+        {DAYS.map((d) => (
+          <div key={d} className="text-center text-[10px] font-semibold text-neutral-400 uppercase py-1">{d}</div>
+        ))}
+      </div>
+
+      {/* Date cells */}
+      <div className="grid grid-cols-7 gap-y-1">
+        {/* Leading blanks */}
+        {Array.from({ length: firstDow }).map((_, i) => <div key={`blank-${i}`} />)}
+
+        {Array.from({ length: daysInMonth }).map((_, i) => {
+          const day = i + 1;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const hasMeeting = !!byDay[dateStr];
+          const isToday = dateStr === todayStr;
+          const isSelected = dateStr === selectedDate;
+
+          return (
+            <button
+              key={dateStr}
+              onClick={() => onSelectDate(isSelected ? null : dateStr)}
+              className={`relative flex flex-col items-center justify-center rounded-xl py-1.5 text-sm transition-colors ${
+                isSelected
+                  ? "bg-teal-600 text-white font-semibold"
+                  : isToday
+                  ? "bg-[#ECF7F3] text-teal-800 font-semibold"
+                  : "hover:bg-neutral-100 text-neutral-700"
+              }`}
+            >
+              {day}
+              {hasMeeting && (
+                <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${
+                  isSelected ? "bg-white" : "bg-teal-500"
+                }`} />
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Google Calendar link helper
+   ────────────────────────────────────────────────────────────────── */
+function googleCalendarUrl(meeting: Meeting) {
+  const start = new Date(meeting.scheduled_at);
+  const end = new Date(start.getTime() + 60 * 60 * 1000); // default 1 hour
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: meeting.title,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    details: meeting.notes || "",
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Meetings Page
    ────────────────────────────────────────────────────────────────── */
 export function MeetingsPage({ role }: { role: Role }) {
@@ -126,10 +237,16 @@ export function MeetingsPage({ role }: { role: Role }) {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const now = new Date();
   const upcoming = meetings.filter((m) => new Date(m.scheduled_at) >= now);
   const past = meetings.filter((m) => new Date(m.scheduled_at) < now);
+
+  // When a date is selected on the calendar, show all meetings on that day
+  const displayedUpcoming = selectedDate
+    ? upcoming.filter((m) => new Date(m.scheduled_at).toLocaleDateString("en-CA") === selectedDate)
+    : upcoming;
 
   async function handleDelete(id: string) {
     await deleteMeeting(id);
@@ -146,35 +263,59 @@ export function MeetingsPage({ role }: { role: Role }) {
 
   return (
     <div className="space-y-6">
-      <Card title="Upcoming Meetings" subtitle="Scheduled sessions">
-        {isFounder(role) && (
-          <button onClick={() => setShowCreate(true)}
-            className="mb-4 rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-2 hover:bg-teal-50 text-sm font-medium">
-            + Schedule Meeting
-          </button>
-        )}
-        {loading ? (
-          <div className="text-sm text-neutral-500 text-center py-6">Loading meetings...</div>
-        ) : upcoming.length === 0 ? (
-          <div className="text-sm text-neutral-500 text-center py-6">No upcoming meetings scheduled.</div>
-        ) : (
-          <div className="space-y-2">
-            {upcoming.map((m) => (
-              <div key={m.id}
-                onClick={() => setSelectedMeeting(m)}
-                className="rounded-xl border p-3 bg-white flex items-center justify-between cursor-pointer hover:border-teal-300 transition-colors">
-                <div>
-                  <div className="text-sm font-medium">{m.title}</div>
-                  <div className="text-xs text-neutral-500">{formatMeetingTime(m.scheduled_at)}</div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        {/* Calendar */}
+        <Card title="Calendar">
+          <MiniCalendar meetings={meetings} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+        </Card>
+
+        {/* Upcoming list */}
+        <Card
+          title={selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }) : "Upcoming Meetings"}
+          subtitle={selectedDate ? undefined : "Scheduled sessions"}
+        >
+          {isFounder(role) && (
+            <button onClick={() => setShowCreate(true)}
+              className="mb-4 rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-2 hover:bg-teal-50 text-sm font-medium">
+              + Schedule Meeting
+            </button>
+          )}
+          {loading ? (
+            <div className="text-sm text-neutral-500 text-center py-6">Loading...</div>
+          ) : displayedUpcoming.length === 0 ? (
+            <div className="text-sm text-neutral-500 text-center py-6">
+              {selectedDate ? "No meetings on this day." : "No upcoming meetings scheduled."}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {displayedUpcoming.map((m) => (
+                <div key={m.id}
+                  onClick={() => setSelectedMeeting(m)}
+                  className="rounded-xl border p-3 bg-white flex items-start justify-between gap-3 cursor-pointer hover:border-teal-300 transition-colors">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{m.title}</div>
+                    <div className="text-xs text-neutral-500">{formatMeetingTime(m.scheduled_at)}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <a
+                      href={googleCalendarUrl(m)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-[11px] rounded-xl border border-teal-300 bg-teal-50 text-teal-800 px-2 py-1 hover:bg-teal-100 font-medium"
+                    >
+                      + Google Cal
+                    </a>
+                    <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">
+                      Agenda
+                    </button>
+                  </div>
                 </div>
-                <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">
-                  Open agenda
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      </div>
 
       {past.length > 0 && (
         <Card title="Past Meetings">

@@ -115,6 +115,7 @@ export function TasksPage({
   onOpenCreateTask,
   onTaskClick,
   onSubmit,
+  onPin,
 }: {
   filteredTasks: DBTask[];
   taskFilters: { company: string; impact: string; priority: string; status: string; assignee: string };
@@ -126,6 +127,7 @@ export function TasksPage({
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
+  onPin?: (task: DBTask) => void;
 }) {
   const [showArchived, setShowArchived] = React.useState(false);
   const [sortBy, setSortBy] = React.useState<"default" | "due_date" | "impact" | "status">("default");
@@ -242,7 +244,7 @@ export function TasksPage({
           <div className="flex-1 min-w-0">
             {statusPinned ? (
               /* Archived/completed view — single column */
-              <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
+              <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} onPin={onPin} />
             ) : (
               /* Two-column split */
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -254,6 +256,7 @@ export function TasksPage({
                     )}
                     onTaskClick={onTaskClick}
                     onSubmit={onSubmit}
+                    onPin={onPin}
                   />
                 </div>
                 <div>
@@ -268,6 +271,7 @@ export function TasksPage({
                     )}
                     onTaskClick={onTaskClick}
                     onSubmit={onSubmit}
+                    onPin={onPin}
                   />
                 </div>
               </div>
