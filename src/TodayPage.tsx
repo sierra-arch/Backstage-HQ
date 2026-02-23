@@ -331,6 +331,7 @@ export function TodayFounder({
   onCompanyClick,
   onSaveNote,
   refetch,
+  onPinTask,
 }: {
   userName: string;
   completedThisWeek: number;
@@ -347,6 +348,7 @@ export function TodayFounder({
   onCompanyClick: (name: string) => void;
   onSaveNote: (text: string) => Promise<void>;
   refetch: () => void;
+  onPinTask?: (task: DBTask) => void;
 }) {
   const equalCardH = "h-[360px]";
 
@@ -375,7 +377,7 @@ export function TodayFounder({
               </button>
             </header>
             <div className="relative h-[300px] overflow-y-auto pr-1">
-              <TaskList tasks={focusTasks} onTaskClick={onTaskClick} />
+              <TaskList tasks={focusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-[#ECF7F3] to-transparent" />
             </div>
           </section>

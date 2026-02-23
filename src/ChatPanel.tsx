@@ -6,7 +6,7 @@ import { useProfile, markMessagesFromUserAsRead } from "./useDatabase";
 import { Avatar } from "./ui";
 
 export function ChatPanel({
-  userName,
+  userName: _userName,
   isOpen,
   onClose,
   messages,
@@ -31,8 +31,9 @@ export function ChatPanel({
   const [activeChannel, setActiveChannel] = useState<"team" | string>("team");
 
   const teammates = teamMembers
+    .filter((tm) => tm.id !== currentUserId)
     .map((tm) => tm.display_name)
-    .filter((name): name is string => name !== null && name !== userName);
+    .filter((name): name is string => name !== null);
 
   const hasUnreadDM = (person: string) => {
     const otherUser = teamMembers.find((tm) => tm.display_name === person);

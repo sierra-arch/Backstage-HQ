@@ -489,6 +489,10 @@ export default function DashboardApp() {
               onTaskClick={openTaskModal} onApprove={handleApprove}
               onOpenAddAccomplishment={() => setShowAddAccomplishment(true)}
               onCompanyClick={handleCompanyClick} onSaveNote={handleSaveNote} refetch={refetch}
+              onPinTask={async (task) => {
+                await dbUpdateTask(task.id, { status: task.status === "focus" ? "active" : "focus" });
+                refetch();
+              }}
             />
           )}
 
