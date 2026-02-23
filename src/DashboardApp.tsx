@@ -475,6 +475,7 @@ export default function DashboardApp() {
         <main className="flex-1 p-4 md:p-6 lg:p-8 pt-0 space-y-6">
           <TopHeader
             onSearch={setSearchQuery}
+            searchValue={searchQuery}
             onOpenChat={() => setShowChat(true)}
             onOpenMobileMenu={() => setMobileMenuOpen(true)}
             unreadCount={unreadCount}

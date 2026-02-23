@@ -109,18 +109,19 @@ function useGreeting(name: string) {
 
 export function TopHeader({
   onSearch,
+  searchValue,
   onOpenChat,
   onOpenMobileMenu,
   unreadCount,
   userName,
 }: {
   onSearch: (q: string) => void;
+  searchValue: string;
   onOpenChat: () => void;
   onOpenMobileMenu?: () => void;
   unreadCount: number;
   userName: string;
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
   const greeting = useGreeting(userName);
 
   return (
@@ -140,13 +141,22 @@ export function TopHeader({
         <div className="text-[14px] font-medium text-neutral-700 pl-1 hidden md:block">{greeting}</div>
 
         <div className="flex items-center gap-2 ml-auto">
-          <div className="flex items-center w-[160px] md:w-[280px]">
+          <div className="relative flex items-center w-[160px] md:w-[280px]">
             <input
+              type="text"
               placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); onSearch(e.target.value); }}
-              className="w-full rounded-full border px-2.5 py-0.5 text-[12px] outline-none focus:ring-2 focus:ring-teal-200"
+              value={searchValue}
+              onChange={(e) => onSearch(e.target.value)}
+              className="w-full rounded-full border px-3 py-1.5 text-[12px] outline-none focus:ring-2 focus:ring-teal-200 pr-7"
             />
+            {searchValue && (
+              <button
+                onClick={() => onSearch("")}
+                className="absolute right-2.5 text-neutral-400 hover:text-neutral-600 leading-none text-xs"
+              >
+                ✕
+              </button>
+            )}
           </div>
           <button
             onClick={onOpenChat}

@@ -270,16 +270,21 @@ export function MeetingsPage({ role }: { role: Role }) {
         </Card>
 
         {/* Upcoming list */}
-        <Card
-          title={selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }) : "Upcoming Meetings"}
-          subtitle={selectedDate ? undefined : "Scheduled sessions"}
-        >
-          {isFounder(role) && (
-            <button onClick={() => setShowCreate(true)}
-              className="mb-4 rounded-full border-2 border-teal-600 bg-white text-teal-600 px-4 py-2 hover:bg-teal-50 text-sm font-medium">
-              + Schedule Meeting
-            </button>
-          )}
+        <Card>
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div>
+              <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">
+                {selectedDate ? new Date(selectedDate + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }) : "Upcoming Meetings"}
+              </h2>
+              {!selectedDate && <p className="text-xs text-neutral-500">Scheduled sessions</p>}
+            </div>
+            {isFounder(role) && (
+              <button onClick={() => setShowCreate(true)}
+                className="flex-shrink-0 rounded-full border border-teal-400 bg-teal-50 text-teal-700 px-3 py-1 hover:bg-teal-100 text-xs font-medium">
+                + Schedule
+              </button>
+            )}
+          </div>
           {loading ? (
             <div className="text-sm text-neutral-500 text-center py-6">Loading...</div>
           ) : displayedUpcoming.length === 0 ? (
