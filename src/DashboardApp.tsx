@@ -624,6 +624,7 @@ export default function DashboardApp() {
           <ChatPanel
             userName={userName} isOpen={showChat} onClose={() => setShowChat(false)}
             messages={messages} onSendMessage={handleSendMessage} teamMembers={teamMembers}
+            onMarkRead={refetchMessages}
             onTaskClick={(taskId) => {
               const task = tasks.find((t) => t.id === taskId);
               if (task) { setSelectedTask(task); setShowTaskModal(true); }

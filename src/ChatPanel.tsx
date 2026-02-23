@@ -13,6 +13,7 @@ export function ChatPanel({
   onSendMessage,
   teamMembers = [],
   onTaskClick,
+  onMarkRead,
 }: {
   userName: string;
   isOpen: boolean;
@@ -21,6 +22,7 @@ export function ChatPanel({
   onSendMessage: (content: string, to?: string) => void;
   teamMembers?: { id: string; display_name: string | null }[];
   onTaskClick?: (taskId: string) => void;
+  onMarkRead?: () => void;
 }) {
   const { profile } = useProfile();
   const currentUserId = profile?.id;
@@ -48,7 +50,7 @@ export function ChatPanel({
       if (firstUnread) {
         setActiveChannel(firstUnread);
         const otherUser = teamMembers.find((tm) => tm.display_name === firstUnread);
-        if (otherUser) markMessagesFromUserAsRead(otherUser.id);
+        if (otherUser) markMessagesFromUserAsRead(otherUser.id).then(() => onMarkRead?.());
       }
     }
     // Reset to team chat when panel closes
@@ -80,7 +82,7 @@ export function ChatPanel({
     setActiveChannel(channel);
     if (channel !== "team") {
       const otherUser = teamMembers.find((tm) => tm.display_name === channel);
-      if (otherUser) markMessagesFromUserAsRead(otherUser.id);
+      if (otherUser) markMessagesFromUserAsRead(otherUser.id).then(() => onMarkRead?.());
     }
   }
 
