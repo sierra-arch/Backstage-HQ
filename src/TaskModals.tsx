@@ -634,12 +634,12 @@ export function KudosModal({
         <div className="flex rounded-xl border overflow-hidden">
           <button
             onClick={() => { setTab("archive"); setMessage(""); }}
-            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${isArchive ? "bg-teal-600 text-white" : "bg-white text-neutral-600 hover:bg-neutral-50"}`}>
+            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${isArchive ? "bg-yellow-400 text-yellow-900" : "bg-white text-neutral-600 hover:bg-neutral-50"}`}>
             Archive ✓
           </button>
           <button
             onClick={() => { setTab("return"); setMessage(""); }}
-            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l ${!isArchive ? "bg-amber-500 text-white" : "bg-white text-neutral-600 hover:bg-neutral-50"}`}>
+            className={`flex-1 px-4 py-2 text-sm font-medium transition-colors border-l ${!isArchive ? "bg-teal-600 text-white" : "bg-white text-neutral-600 hover:bg-neutral-50"}`}>
             Return with Notes
           </button>
         </div>
@@ -671,7 +671,7 @@ export function KudosModal({
           </button>
           <button
             onClick={handleSend}
-            className={`flex-1 text-white rounded-xl px-4 py-2 font-medium text-sm ${isArchive ? "bg-teal-600 hover:bg-teal-700" : "bg-amber-500 hover:bg-amber-600"}`}>
+            className={`flex-1 rounded-xl px-4 py-2 font-medium text-sm ${isArchive ? "bg-yellow-400 hover:bg-yellow-500 text-yellow-900" : "bg-teal-600 hover:bg-teal-700 text-white"}`}>
             {isArchive
               ? message.trim() ? "Archive & Send Thanks" : "Archive"
               : message.trim() ? "Reassign with Notes" : "Reassign"}
