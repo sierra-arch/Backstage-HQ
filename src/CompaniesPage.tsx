@@ -134,21 +134,6 @@ export function CompaniesPage({
                     </span>
                   </div>
 
-                  {/* Chips (safe placeholders if you later add these links per company) */}
-                  <div className="flex gap-2">
-                    <span
-                      className={`text-xs px-3 py-1 rounded-full border ${
-                        chipColors[companyName] || "bg-neutral-50 text-neutral-900 border-neutral-200"
-                      }`}
-                    >
-                      Overview
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    {/* Keep icon row for visual parity; real links live in the drawer */}
-                    <span><SocialIcon platform="Website" /></span>
-                  </div>
                 </div>
               </div>
 
