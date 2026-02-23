@@ -236,10 +236,37 @@ export function TasksPage({
           )}
         </div>
 
-        <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
-
-        {!statusPinned && !isFounder(role) && (
-          <p className="text-xs text-neutral-400 mt-1">Showing your tasks and unassigned tasks.</p>
+        {statusPinned ? (
+          /* Archived/completed view — single column */
+          <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
+        ) : (
+          /* Two-column split */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">My Tasks</p>
+              <TaskList
+                tasks={displayedTasks.filter((t) =>
+                  t.assigned_to === userId || t.assignee_name === userName
+                )}
+                onTaskClick={onTaskClick}
+                onSubmit={onSubmit}
+              />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-2">
+                {isFounder(role) ? "All Open Tasks" : "Unassigned"}
+              </p>
+              <TaskList
+                tasks={displayedTasks.filter((t) =>
+                  isFounder(role)
+                    ? t.assigned_to !== userId && t.assignee_name !== userName
+                    : !t.assigned_to && !t.assignee_name
+                )}
+                onTaskClick={onTaskClick}
+                onSubmit={onSubmit}
+              />
+            </div>
+          </div>
         )}
 
         {!statusPinned && archivedTasks.length > 0 && (
