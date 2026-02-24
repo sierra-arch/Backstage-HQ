@@ -1,7 +1,6 @@
 // CareerPathPage.tsx - XP progress, milestones, and task history for team members
 import React from "react";
 import { DBTask, XP_BY_IMPACT, LEVEL_XP_THRESHOLD } from "./types";
-import { LevelRing } from "./ui";
 
 export function CareerPathPage({
   level,
@@ -37,22 +36,19 @@ export function CareerPathPage({
   return (
     <div className="rounded-2xl bg-[#ECF7F3] p-6 md:p-8 space-y-7">
       {/* ── Level hero ── */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
-        <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} size={110} stroke={13} />
-        <div className="text-center sm:text-left flex-1">
-          <div className="text-3xl font-bold tracking-tight">Level {level}</div>
-          <div className="text-sm text-neutral-600 mt-1">
-            {xp} / {LEVEL_XP_THRESHOLD} XP &nbsp;·&nbsp; {LEVEL_XP_THRESHOLD - xp} XP to Level {level + 1}
-          </div>
-          {/* XP bar */}
-          <div className="mt-3 h-2.5 w-full max-w-xs mx-auto sm:mx-0 rounded-full bg-teal-200 overflow-hidden">
-            <div className="h-full bg-teal-600 transition-all rounded-full" style={{ width: `${pct}%` }} />
-          </div>
-          <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
-            <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Small = 5 XP</span>
-            <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Medium = 10 XP</span>
-            <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Large = 20 XP</span>
-          </div>
+      <div>
+        <div className="text-3xl font-bold tracking-tight">Level {level}</div>
+        <div className="text-sm text-neutral-600 mt-1">
+          {xp} / {LEVEL_XP_THRESHOLD} XP &nbsp;·&nbsp; {LEVEL_XP_THRESHOLD - xp} XP to Level {level + 1}
+        </div>
+        {/* XP bar */}
+        <div className="mt-3 h-2.5 w-full max-w-xs rounded-full bg-teal-100 overflow-hidden">
+          <div className="h-full bg-teal-600 transition-all rounded-full" style={{ width: `${pct}%` }} />
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Small = 5 XP</span>
+          <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Medium = 10 XP</span>
+          <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Large = 20 XP</span>
         </div>
       </div>
 

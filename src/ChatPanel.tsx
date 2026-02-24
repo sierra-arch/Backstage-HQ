@@ -79,6 +79,12 @@ export function ChatPanel({
   });
 
 
+  // Lock page scroll while panel is open so only the chat scrolls
+  useEffect(() => {
+    if (isOpen) document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
   // Scroll the messages container to the bottom after paint
   useEffect(() => {
     if (!isOpen) return;
