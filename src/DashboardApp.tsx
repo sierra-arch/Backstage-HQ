@@ -292,6 +292,7 @@ export default function DashboardApp() {
   const [selectedTask, setSelectedTask] = useState<DBTask | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createDefaultCompany, setCreateDefaultCompany] = useState<string | undefined>(undefined);
   const [showKudosModal, setShowKudosModal] = useState(false);
   const [kudosTask, setKudosTask] = useState<DBTask | null>(null);
   const [showChat, setShowChat] = useState(false);
@@ -537,6 +538,7 @@ export default function DashboardApp() {
               clients={allClients} products={allProducts}
               onCompanyClick={handleCompanyClick}
               onClientClick={setSelectedClient} onProductClick={setSelectedProduct}
+              onTaskClick={openTaskModal}
             />
           )}
 
@@ -592,8 +594,10 @@ export default function DashboardApp() {
       />
 
       <TaskCreateModal
-        isOpen={showCreateModal} onClose={() => setShowCreateModal(false)}
+        isOpen={showCreateModal}
+        onClose={() => { setShowCreateModal(false); setCreateDefaultCompany(undefined); }}
         onCreated={refetch} role={role} userName={userName} teamMembers={teamMembers}
+        defaultCompany={createDefaultCompany}
       />
 
       <CompanyDrawer
@@ -603,6 +607,7 @@ export default function DashboardApp() {
         clients={allClients.filter((c: any) => c.company_id === selectedCompanyData?.id)}
         products={allProducts.filter((p: any) => p.company_id === selectedCompanyData?.id)}
         onRefetch={() => { refetchClients(); refetchProducts(); }}
+        onAddTask={(companyName) => { setCreateDefaultCompany(companyName); setShowCreateModal(true); }}
       />
 
       <ClientModal client={selectedClient} isOpen={!!selectedClient} onClose={() => setSelectedClient(null)} />

@@ -277,6 +277,7 @@ export function TaskCreateModal({
   role,
   userName,
   teamMembers = [],
+  defaultCompany,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -284,10 +285,11 @@ export function TaskCreateModal({
   role: Role;
   userName: string;
   teamMembers?: { id: string; display_name: string | null }[];
+  defaultCompany?: string;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [company, setCompany] = useState("Prose Florals");
+  const [company, setCompany] = useState(defaultCompany || "Prose Florals");
   const [assignee, setAssignee] = useState(isFounder(role) ? "" : userName);
   const [level, setLevel] = useState<"small" | "medium" | "large">("medium");
   const [deadline, setDeadline] = useState("");

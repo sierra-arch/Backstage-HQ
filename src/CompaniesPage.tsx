@@ -29,6 +29,7 @@ export function CompaniesPage({
   onCompanyClick,
   onClientClick,
   onProductClick,
+  onTaskClick,
 }: {
   companies: string[];
   tasks: DBTask[];
@@ -37,35 +38,8 @@ export function CompaniesPage({
   onCompanyClick: (companyName: string) => void;
   onClientClick: (client: Client) => void;
   onProductClick: (product: Product) => void;
+  onTaskClick?: (task: DBTask) => void;
 }) {
-  const SocialIcon = ({ platform }: { platform: string }) => {
-    const letters: Record<string, string> = {
-      Instagram: "IG",
-      Facebook: "FB",
-      Twitter: "TW",
-      Website: "W",
-      TikTok: "TT",
-      Etsy: "ET",
-      LinkedIn: "LI",
-      Pinterest: "PI",
-    };
-    return (
-      <div className="w-8 h-8 rounded-full border-2 border-teal-700 flex items-center justify-center text-teal-700 hover:bg-teal-50 cursor-pointer transition-colors">
-        <span className="text-[9px] font-bold">
-          {letters[platform] || platform.slice(0, 2).toUpperCase()}
-        </span>
-      </div>
-    );
-  };
-
-  // NOTE: We don't assume company metadata columns here.
-  // The drawer is the “details” place; this page is a fast overview.
-  const chipColors: Record<string, string> = {
-    "Prose Florals": "bg-lime-50 text-lime-900 border-lime-200",
-    Backstage: "bg-teal-100 text-teal-900 border-teal-300",
-    "Mairé": "bg-emerald-50 text-emerald-900 border-emerald-200",
-  };
-
   return (
     <div className="space-y-6">
       {companies.map((companyName) => {
@@ -82,12 +56,15 @@ export function CompaniesPage({
         const mCount = openTasks.filter((t) => t.impact === "medium").length;
         const lCount = openTasks.filter((t) => t.impact === "large").length;
 
-        // Top priority task (focus first, then active, by recency)
-        const priorityTask = openTasks.find((t) => t.status === "focus") ||
-          openTasks.find((t) => t.impact === "large") ||
-          openTasks[0];
+        // Tasks sorted: focus first, then large → medium → small
+        const impactOrder = { large: 0, medium: 1, small: 2 };
+        const sortedTasks = [...openTasks].sort((a, b) => {
+          if (a.status === "focus" && b.status !== "focus") return -1;
+          if (b.status === "focus" && a.status !== "focus") return 1;
+          return impactOrder[a.impact] - impactOrder[b.impact];
+        }).slice(0, 6);
 
-        // Real data tiles
+        // Client / product tiles
         const companyClients = clients
           .filter((c) => c.company === companyName || c.company_name === companyName)
           .slice(0, 4);
@@ -149,63 +126,94 @@ export function CompaniesPage({
                 </div>
               </div>
 
-              {/* Priority task preview */}
-              {priorityTask && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-neutral-50 border border-neutral-100">
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                    priorityTask.status === "focus" ? "bg-teal-500" : "bg-neutral-400"
-                  }`} />
-                  <span className="text-xs text-neutral-600 truncate flex-1">{priorityTask.title}</span>
-                  {priorityTask.assignee_name && (
-                    <span className="text-[10px] text-neutral-400 flex-shrink-0">{priorityTask.assignee_name}</span>
-                  )}
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 capitalize ${
-                    priorityTask.impact === "large" ? "bg-rose-50 text-rose-700 border border-rose-200" :
-                    priorityTask.impact === "medium" ? "bg-amber-50 text-amber-700 border border-amber-200" :
-                    "bg-sky-50 text-sky-700 border border-sky-200"
-                  }`}>{priorityTask.impact}</span>
-                </div>
-              )}
-
-              {/* Client / product tiles */}
-              <div className={`grid gap-2 ${isMaire ? "grid-cols-6" : "grid-cols-4"}`}>
-                {items.map((item: any) => (
-                  <div
-                    key={item.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      isMaire ? onProductClick(item as Product) : onClientClick(item as Client);
-                    }}
-                    className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
-                      isMaire ? "aspect-[3/4]" : "aspect-[4/3]"
-                    }`}
-                    style={{
-                      backgroundImage: item.photo_url
-                        ? `url(${item.photo_url})`
-                        : `linear-gradient(135deg, #CDEDE6 0%, #B8E0D9 100%)`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  >
-                    {!item.photo_url && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <svg viewBox="0 0 200 150" className="w-3/4 h-3/4 opacity-30">
-                          <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E" />
-                          <circle cx="160" cy="40" r="15" fill="#0F766E" />
-                        </svg>
+              {/* Two-column body: clients/products left, tasks right */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Left: client / product tiles */}
+                <div>
+                  <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
+                    {isMaire ? "Products" : "Clients"}
+                  </div>
+                  <div className={`grid gap-2 ${isMaire ? "grid-cols-3" : "grid-cols-2"}`}>
+                    {items.map((item: any) => (
+                      <div
+                        key={item.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          isMaire ? onProductClick(item as Product) : onClientClick(item as Client);
+                        }}
+                        className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
+                          isMaire ? "aspect-[3/4]" : "aspect-[4/3]"
+                        }`}
+                        style={{
+                          backgroundImage: item.photo_url
+                            ? `url(${item.photo_url})`
+                            : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      >
+                        {!item.photo_url && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <svg viewBox="0 0 200 150" className="w-3/4 h-3/4 opacity-20">
+                              <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E" />
+                              <circle cx="160" cy="40" r="15" fill="#0F766E" />
+                            </svg>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                          <p className="text-white text-xs font-medium truncate">{item.name}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {items.length === 0 && (
+                      <div className="col-span-2 text-xs text-neutral-400 py-4">
+                        No {isMaire ? "products" : "clients"} yet.
                       </div>
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <div className="absolute bottom-0 left-0 right-0 p-2">
-                      <p className="text-white text-xs font-medium truncate">{item.name}</p>
-                    </div>
                   </div>
-                ))}
-                {items.length === 0 && (
-                  <div className="col-span-4 text-xs text-neutral-500">
-                    No {isMaire ? "products" : "clients"} yet.
+                </div>
+
+                {/* Right: open tasks */}
+                <div>
+                  <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
+                    Open Tasks
                   </div>
-                )}
+                  <div className="space-y-1.5">
+                    {sortedTasks.map((t) => (
+                      <div
+                        key={t.id}
+                        onClick={(e) => { e.stopPropagation(); onTaskClick?.(t); }}
+                        className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-colors ${
+                          onTaskClick ? "cursor-pointer hover:border-teal-200 hover:bg-teal-50/40" : "cursor-default"
+                        } bg-white`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                          t.status === "focus" ? "bg-teal-500" : "bg-neutral-300"
+                        }`} />
+                        <span className="text-xs text-neutral-700 truncate flex-1">{t.title}</span>
+                        {t.assignee_name && (
+                          <span className="text-[10px] text-neutral-400 flex-shrink-0 truncate max-w-[60px]">
+                            {t.assignee_name.split(" ")[0]}
+                          </span>
+                        )}
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 capitalize ${
+                          t.impact === "large" ? "bg-rose-50 text-rose-700 border border-rose-200" :
+                          t.impact === "medium" ? "bg-amber-50 text-amber-700 border border-amber-200" :
+                          "bg-sky-50 text-sky-700 border border-sky-200"
+                        }`}>{t.impact}</span>
+                      </div>
+                    ))}
+                    {openTasks.length === 0 && (
+                      <div className="text-xs text-neutral-400 py-4">All clear!</div>
+                    )}
+                    {openTasks.length > 6 && (
+                      <div className="text-[10px] text-neutral-400 text-right pt-1">
+                        +{openTasks.length - 6} more
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </Card>
