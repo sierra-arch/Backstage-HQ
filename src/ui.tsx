@@ -24,7 +24,7 @@ export function LevelRing({
 
   const ringSvg = (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#E5E7EB" fill="none" />
+      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#CCFBF1" fill="none" />
       <circle
         cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke}
         stroke="#0F766E" fill="none" strokeLinecap="round"
