@@ -80,10 +80,7 @@ export function CompaniesPage({
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center flex-shrink-0">
-                    <svg viewBox="0 0 200 150" className="w-7 h-7 opacity-60">
-                      <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E" />
-                      <circle cx="160" cy="40" r="15" fill="#0F766E" />
-                    </svg>
+                    <span className="text-xl font-bold text-teal-700">{companyName.charAt(0)}</span>
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold">{companyName}</h3>
@@ -139,14 +136,6 @@ export function CompaniesPage({
                           backgroundPosition: "center",
                         }}
                       >
-                        {!item.photo_url && (
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <svg viewBox="0 0 200 150" className="w-3/4 h-3/4 opacity-20">
-                              <path d="M0,150 L50,80 L100,100 L150,40 L200,150 Z" fill="#0F766E" />
-                              <circle cx="160" cy="40" r="15" fill="#0F766E" />
-                            </svg>
-                          </div>
-                        )}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
                         <div className="absolute bottom-0 left-0 right-0 p-2">
                           <p className="text-white text-xs font-medium truncate">{item.name}</p>
