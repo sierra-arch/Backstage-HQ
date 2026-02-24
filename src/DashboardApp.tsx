@@ -110,7 +110,7 @@ function NotificationPrefsCard() {
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
           <input type="checkbox" checked={digest} onChange={(e) => toggle("notif-digest", e.target.checked, setDigest)} className="w-4 h-4 accent-teal-600" />
-          <span className="text-sm">Daily digest of team activity</span>
+          <span className="text-sm">Weekly digest of team activity</span>
         </label>
         <div>
           <label className="flex items-center gap-3 cursor-pointer">
@@ -505,9 +505,10 @@ export default function DashboardApp() {
             <TodayTeam
               userName={userName} completedThisWeek={completedThisWeek} level={level} xp={xp}
               focusTasks={focusTasks} submittedTasks={submittedTasks} filteredTasks={filteredTasks}
-              accomplishments={accomplishments}
+              allTasks={tasks} accomplishments={accomplishments}
               onOpenCreateTask={() => setShowCreateModal(true)}
               onTaskClick={openTaskModal}
+              onCompanyClick={handleCompanyClick}
               onOpenAddAccomplishment={() => setShowAddAccomplishment(true)}
               onSaveNote={handleSaveNote}
               onPinTask={async (task) => {
@@ -636,7 +637,7 @@ export default function DashboardApp() {
           <ChatPanel
             userName={userName} isOpen={showChat} onClose={() => setShowChat(false)}
             messages={messages} onSendMessage={handleSendMessage} teamMembers={teamMembers}
-            onMarkRead={refetchMessages}
+            onMarkRead={refetchMessages} currentUserId={profile?.id}
             onTaskClick={(taskId) => {
               const task = tasks.find((t) => t.id === taskId);
               if (task) { setSelectedTask(task); setShowTaskModal(true); }

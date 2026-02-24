@@ -492,9 +492,11 @@ export function TodayTeam({
   focusTasks,
   submittedTasks,
   filteredTasks,
+  allTasks,
   accomplishments,
   onOpenCreateTask,
   onTaskClick,
+  onCompanyClick,
   onOpenAddAccomplishment,
   onSaveNote,
   onPinTask,
@@ -506,9 +508,11 @@ export function TodayTeam({
   focusTasks: DBTask[];
   submittedTasks: DBTask[];
   filteredTasks: DBTask[];
+  allTasks: DBTask[];
   accomplishments: AccomplishmentDB[];
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
+  onCompanyClick: (company: string) => void;
   onOpenAddAccomplishment: () => void;
   onSaveNote: (text: string) => Promise<void>;
   onPinTask?: (task: DBTask) => void;
@@ -596,7 +600,7 @@ export function TodayTeam({
           </Card>
         </div>
         <div className="col-span-12 md:col-span-4">
-          <CompanyGoalsCard className={equalCardH} />
+          <CompanySnapshot allTasks={allTasks.filter((t) => t.status !== "completed" && t.status !== "archived")} onCompanyClick={onCompanyClick} />
         </div>
         <div className="col-span-12 md:col-span-4">
           <AccomplishmentsCard accomplishments={accomplishments} onOpenAddAccomplishment={onOpenAddAccomplishment} />

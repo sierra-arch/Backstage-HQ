@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Message } from "./types";
-import { useProfile, markMessagesFromUserAsRead } from "./useDatabase";
+import { markMessagesFromUserAsRead } from "./useDatabase";
 import { Avatar } from "./ui";
 
 export function ChatPanel({
@@ -14,6 +14,7 @@ export function ChatPanel({
   teamMembers = [],
   onTaskClick,
   onMarkRead,
+  currentUserId,
 }: {
   userName: string;
   isOpen: boolean;
@@ -23,9 +24,8 @@ export function ChatPanel({
   teamMembers?: { id: string; display_name: string | null }[];
   onTaskClick?: (taskId: string) => void;
   onMarkRead?: () => void;
+  currentUserId?: string;
 }) {
-  const { profile } = useProfile();
-  const currentUserId = profile?.id;
 
   const [newMessage, setNewMessage] = useState("");
   const [activeChannel, setActiveChannel] = useState<"team" | string>("team");

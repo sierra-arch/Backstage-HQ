@@ -35,10 +35,7 @@ export function CareerPathPage({
   const pct = Math.min(100, Math.round((xp / LEVEL_XP_THRESHOLD) * 100));
 
   return (
-    <div
-      className="rounded-2xl bg-[#ECF7F3] p-6 md:p-8 space-y-7"
-      style={{ border: "1.5px solid #99F6E4" }}
-    >
+    <div className="rounded-2xl bg-[#ECF7F3] p-6 md:p-8 space-y-7">
       {/* ── Level hero ── */}
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
         <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} size={110} stroke={13} />
