@@ -12,6 +12,7 @@ import {
   useMessages,
   updateTask as dbUpdateTask,
   completeTask as dbCompleteTask,
+  createTask as dbCreateTask,
   getCompanyByName,
   sendMessage,
   updateProfileGoogleDocId,
@@ -131,8 +132,8 @@ function NotificationPrefsCard() {
   );
 }
 
-function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl }: {
-  userName: string; userEmail: string; userId: string; googleDocId?: string | null; avatarUrl?: string | null;
+function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onPhotoUploaded }: {
+  userName: string; userEmail: string; userId: string; googleDocId?: string | null; avatarUrl?: string | null; onPhotoUploaded?: () => void;
 }) {
   const [displayName, setDisplayName] = useState(userName);
   const [saving, setSaving] = useState(false);
@@ -153,6 +154,7 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl }: {
       const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(uploadData.path);
       await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
       setPhotoPreview(publicUrl);
+      onPhotoUploaded?.();
     }
     setUploadingPhoto(false);
   }
@@ -271,6 +273,16 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl }: {
   );
 }
 
+function calcNextDueDate(recurring: string): string {
+  const d = new Date();
+  if (recurring === "daily") d.setDate(d.getDate() + 1);
+  else if (recurring === "weekly") d.setDate(d.getDate() + 7);
+  else if (recurring === "biweekly") d.setDate(d.getDate() + 14);
+  else if (recurring === "monthly") d.setMonth(d.getMonth() + 1);
+  else if (recurring === "quarterly") d.setMonth(d.getMonth() + 3);
+  return d.toISOString().slice(0, 10);
+}
+
 // Stable reference — defined outside component so useTasks doesn't re-subscribe every render
 const ALL_STATUSES = ["focus", "active", "submitted", "completed", "archived"] as const;
 
@@ -370,6 +382,22 @@ export default function DashboardApp() {
         await refetchProfile();
       }
       await sendMessage(`🎉 ${userName} completed: ${task.title}`, undefined, true, task.id);
+      const recurring = task.metadata?.recurring;
+      if (recurring && recurring !== "none") {
+        await dbCreateTask({
+          title: task.title,
+          description: task.description,
+          company_id: task.company_id,
+          assigned_to: task.assigned_to,
+          status: "active",
+          priority: task.priority,
+          impact: task.impact,
+          estimate_minutes: task.estimate_minutes,
+          due_date: calcNextDueDate(recurring),
+          photo_url: task.photo_url,
+          metadata: { recurring },
+        });
+      }
       setCelebrate(true);
       setTimeout(() => setCelebrate(false), 1500);
       refetch();
@@ -562,6 +590,7 @@ export default function DashboardApp() {
               userId={profile?.id ?? ""}
               googleDocId={profile?.google_doc_id}
               avatarUrl={profile?.avatar_url}
+              onPhotoUploaded={refetchProfile}
             />
           )}
 

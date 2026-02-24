@@ -21,7 +21,7 @@ export function ChatPanel({
   onClose: () => void;
   messages: Message[];
   onSendMessage: (content: string, to?: string) => void;
-  teamMembers?: { id: string; display_name: string | null }[];
+  teamMembers?: { id: string; display_name: string | null; avatar_url?: string | null }[];
   onTaskClick?: (taskId: string) => void;
   onMarkRead?: () => void;
   currentUserId?: string;
@@ -136,7 +136,7 @@ export function ChatPanel({
                       activeChannel === person ? "bg-teal-100 text-teal-900 font-medium" : "hover:bg-neutral-100"
                     }`}
                   >
-                    <Avatar name={person} size={16} />
+                    <Avatar name={person} size={16} photoUrl={teamMembers.find((tm) => tm.display_name === person)?.avatar_url ?? undefined} />
                     <span className="flex-1 truncate">{person}</span>
                     {hasUnreadDM(person) && (
                       <span className="w-2 h-2 rounded-full bg-orange-500 flex-shrink-0" />
@@ -152,7 +152,7 @@ export function ChatPanel({
         <div className="flex-1 flex flex-col">
           <div className="border-b px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              {activeChannel !== "team" && <Avatar name={activeChannel} size={24} />}
+              {activeChannel !== "team" && <Avatar name={activeChannel} size={24} photoUrl={teamMembers.find((tm) => tm.display_name === activeChannel)?.avatar_url ?? undefined} />}
               <h3 className="font-semibold">
                 {activeChannel === "team" ? "# Team Chat" : activeChannel}
               </h3>
@@ -181,7 +181,7 @@ export function ChatPanel({
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <Avatar name={msg.from_name || "Unknown"} size={20} />
+                    <Avatar name={msg.from_name || "Unknown"} size={20} photoUrl={teamMembers.find((tm) => tm.id === msg.from_user_id)?.avatar_url ?? undefined} />
                     <span className="text-xs font-medium">{msg.from_name || "Unknown"}</span>
                     <span className="text-xs text-neutral-400 ml-auto">
                       {(() => {

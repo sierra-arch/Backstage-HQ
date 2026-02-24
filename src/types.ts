@@ -33,6 +33,7 @@ export type DBTask = {
   sort_order?: number;
   created_at?: string;
   updated_at?: string;
+  metadata?: { recurring?: string; [k: string]: any } | null;
 };
 
 export type Client = {

@@ -338,6 +338,7 @@ export function TaskCreateModal({
       estimate_minutes: estimate,
       due_date: deadline || null,
       photo_url: photoUrl,
+      metadata: recurring !== "none" ? { recurring } : null,
     });
 
     setCreating(false);

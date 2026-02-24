@@ -54,6 +54,7 @@ export function CompanyDrawer({
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientScope, setNewClientScope] = useState("");
   const [newClientDeadline, setNewClientDeadline] = useState("");
+  const [newClientLinks, setNewClientLinks] = useState<{ name: string; url: string }[]>([]);
   const [clientPhotoFile, setClientPhotoFile] = useState<File | null>(null);
   const [clientSaving, setClientSaving] = useState(false);
 
@@ -80,6 +81,7 @@ export function CompanyDrawer({
     if (!company?.id || !newClientName.trim()) return;
     setClientSaving(true);
     const photo_url = clientPhotoFile ? await uploadPhoto(clientPhotoFile) : null;
+    const filteredLinks = newClientLinks.filter((l) => l.name.trim() && l.url.trim());
     await saveClient({
       company_id: company.id,
       name: newClientName.trim(),
@@ -87,10 +89,11 @@ export function CompanyDrawer({
       contact_phone: newClientPhone.trim() || null,
       scope: newClientScope.trim() || null,
       deadline: newClientDeadline || null,
+      quick_links: filteredLinks.length > 0 ? filteredLinks : null,
       ...(photo_url ? { photo_url } : {}),
     } as any);
     setNewClientName(""); setNewClientEmail(""); setNewClientPhone("");
-    setNewClientScope(""); setNewClientDeadline(""); setClientPhotoFile(null);
+    setNewClientScope(""); setNewClientDeadline(""); setNewClientLinks([]); setClientPhotoFile(null);
     setClientSaving(false);
     setShowAddClient(false);
     onRefetch?.();
@@ -203,6 +206,17 @@ export function CompanyDrawer({
                               </span>
                             )}
                           </div>
+                          {c.quick_links && c.quick_links.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {c.quick_links.map((link: { name: string; url: string }, i: number) => (
+                                <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-[10px] px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-700 hover:bg-teal-100">
+                                  {link.name} →
+                                </a>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -295,6 +309,27 @@ export function CompanyDrawer({
                         <label className="text-xs font-medium text-neutral-600">Project / due date</label>
                         <input type="date" value={newClientDeadline} onChange={(e) => setNewClientDeadline(e.target.value)}
                           className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-neutral-600">Quick Links</label>
+                        <div className="mt-1 space-y-2">
+                          {newClientLinks.map((link, i) => (
+                            <div key={i} className="flex gap-2 items-center">
+                              <input value={link.name} onChange={(e) => setNewClientLinks((ls) => ls.map((l, j) => j === i ? { ...l, name: e.target.value } : l))}
+                                placeholder="Label (e.g. Notion)"
+                                className="w-28 rounded-lg border px-2 py-1.5 text-xs focus:ring-2 focus:ring-teal-200 outline-none" />
+                              <input value={link.url} onChange={(e) => setNewClientLinks((ls) => ls.map((l, j) => j === i ? { ...l, url: e.target.value } : l))}
+                                placeholder="https://..."
+                                className="flex-1 rounded-lg border px-2 py-1.5 text-xs focus:ring-2 focus:ring-teal-200 outline-none" />
+                              <button onClick={() => setNewClientLinks((ls) => ls.filter((_, j) => j !== i))}
+                                className="text-neutral-400 hover:text-red-500 text-sm leading-none">✕</button>
+                            </div>
+                          ))}
+                          {newClientLinks.length < 4 && (
+                            <button onClick={() => setNewClientLinks((ls) => [...ls, { name: "", url: "" }])}
+                              className="text-xs text-teal-600 hover:text-teal-800">+ Add link</button>
+                          )}
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs font-medium text-neutral-600">Photo</label>
