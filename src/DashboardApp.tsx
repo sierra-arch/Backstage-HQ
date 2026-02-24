@@ -143,9 +143,11 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
   const [docId, setDocId] = useState(googleDocId ?? null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(avatarUrl ?? null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoStatus, setPhotoStatus] = useState<"idle" | "success" | "error">("idle");
 
   async function handlePhotoUpload(file: File) {
     setUploadingPhoto(true);
+    setPhotoStatus("idle");
     const ext = file.name.split(".").pop();
     const path = `${userId}.${ext}`;
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -153,9 +155,18 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
       .upload(path, file, { contentType: file.type, upsert: true });
     if (!uploadError && uploadData) {
       const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(uploadData.path);
-      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
-      setPhotoPreview(publicUrl);
-      onPhotoUploaded?.();
+      const { error: profileError } = await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", userId);
+      if (!profileError) {
+        setPhotoPreview(publicUrl);
+        onPhotoUploaded?.();
+        setPhotoStatus("success");
+      } else {
+        console.error("Profile update failed:", profileError);
+        setPhotoStatus("error");
+      }
+    } else {
+      console.error("Photo upload failed:", uploadError);
+      setPhotoStatus("error");
     }
     setUploadingPhoto(false);
   }
@@ -213,7 +224,9 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
             </div>
             <div>
               <p className="font-medium text-sm">{displayName}</p>
-              <p className="text-xs text-neutral-400">{uploadingPhoto ? "Uploading photo…" : "Click pencil to change photo"}</p>
+              <p className={`text-xs ${photoStatus === "error" ? "text-red-500" : photoStatus === "success" ? "text-teal-600" : "text-neutral-400"}`}>
+                {uploadingPhoto ? "Uploading…" : photoStatus === "success" ? "Photo saved!" : photoStatus === "error" ? "Upload failed — check Supabase avatars bucket exists and is public" : "Click pencil to change photo"}
+              </p>
             </div>
           </div>
 
