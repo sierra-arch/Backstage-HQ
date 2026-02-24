@@ -66,6 +66,7 @@ export interface Task {
 export interface Client {
   id: string;
   company_id: string | null;
+  company_name?: string | null;
   name: string;
   photo_url: string | null;
   description: string | null;
@@ -83,6 +84,7 @@ export interface Client {
 export interface Product {
   id: string;
   company_id: string | null;
+  company_name?: string | null;
   name: string;
   photo_url: string | null;
   description: string | null;
@@ -615,7 +617,18 @@ export async function fetchClients(companyId?: string): Promise<Client[]> {
     return [];
   }
 
-  return data || [];
+  if (!data || data.length === 0) return [];
+
+  const companyIds = [...new Set(data.map((c: any) => c.company_id).filter(Boolean))];
+  if (companyIds.length === 0) return data;
+
+  const { data: companies } = await supabase.from("companies").select("id, name").in("id", companyIds);
+  const companyMap = new Map((companies || []).map((c: any) => [c.id, c.name]));
+
+  return data.map((client: any) => ({
+    ...client,
+    company_name: companyMap.get(client.company_id) ?? null,
+  }));
 }
 
 export async function saveClient(
@@ -736,7 +749,6 @@ export async function fetchProducts(companyId?: string): Promise<Product[]> {
   let query = supabase
     .from("products")
     .select("*")
-    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   if (companyId) {
@@ -750,7 +762,18 @@ export async function fetchProducts(companyId?: string): Promise<Product[]> {
     return [];
   }
 
-  return data || [];
+  if (!data || data.length === 0) return [];
+
+  const companyIds = [...new Set(data.map((p: any) => p.company_id).filter(Boolean))];
+  if (companyIds.length === 0) return data;
+
+  const { data: companies } = await supabase.from("companies").select("id, name").in("id", companyIds);
+  const companyMap = new Map((companies || []).map((c: any) => [c.id, c.name]));
+
+  return data.map((product: any) => ({
+    ...product,
+    company_name: companyMap.get(product.company_id) ?? null,
+  }));
 }
 
 export async function saveProduct(
@@ -887,7 +910,6 @@ export async function fetchSOPs(companyId?: string): Promise<SOP[]> {
   let query = supabase
     .from("sops")
     .select("*")
-    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   if (companyId) {
@@ -1277,18 +1299,31 @@ export async function getUnreadMessageCount(): Promise<number> {
   } = await supabase.auth.getUser();
   if (!user) return 0;
 
-  const { count, error } = await supabase
+  // Count unread DMs addressed to this user
+  const { count: dmCount, error: dmError } = await supabase
     .from("messages")
     .select("*", { count: "exact", head: true })
     .eq("to_user_id", user.id)
     .eq("is_read", false);
 
-  if (error) {
-    console.error("Error getting unread count:", error);
-    return 0;
+  if (dmError) {
+    console.error("Error getting unread DM count:", dmError);
   }
 
-  return count || 0;
+  // Count team messages from others newer than last time chat was opened
+  const lastOpened = localStorage.getItem("teamChatLastOpened");
+  let teamCount = 0;
+  if (lastOpened) {
+    const { count, error: teamError } = await supabase
+      .from("messages")
+      .select("*", { count: "exact", head: true })
+      .is("to_user_id", null)
+      .neq("from_user_id", user.id)
+      .gt("created_at", lastOpened);
+    if (!teamError) teamCount = count || 0;
+  }
+
+  return (dmCount || 0) + teamCount;
 }
 
 // =====================================================

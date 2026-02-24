@@ -537,7 +537,11 @@ export default function DashboardApp() {
           <TopHeader
             onSearch={setSearchQuery}
             searchValue={searchQuery}
-            onOpenChat={() => setShowChat(true)}
+            onOpenChat={() => {
+              localStorage.setItem("teamChatLastOpened", new Date().toISOString());
+              setShowChat(true);
+              refetchMessages();
+            }}
             onOpenMobileMenu={() => setMobileMenuOpen(true)}
             unreadCount={unreadCount}
             userName={userName}
