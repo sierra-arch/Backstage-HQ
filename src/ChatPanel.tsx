@@ -79,11 +79,15 @@ export function ChatPanel({
   });
 
 
-  // Scroll the messages container to the bottom (not the page)
+  // Scroll the messages container to the bottom after paint
   useEffect(() => {
-    const el = messagesContainerRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [filteredMessages.length, activeChannel]);
+    if (!isOpen) return;
+    const frame = requestAnimationFrame(() => {
+      const el = messagesContainerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [filteredMessages.length, activeChannel, isOpen]);
 
   function switchChannel(channel: string) {
     setActiveChannel(channel);

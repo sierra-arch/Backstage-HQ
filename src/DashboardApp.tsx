@@ -273,6 +273,20 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
   );
 }
 
+function sortByUrgency(a: DBTask, b: DBTask): number {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const IMPACT_ORDER: Record<string, number> = { large: 0, medium: 1, small: 2 };
+  const aOverdue = !!a.due_date && a.due_date < todayStr;
+  const bOverdue = !!b.due_date && b.due_date < todayStr;
+  if (aOverdue && bOverdue) return a.due_date!.localeCompare(b.due_date!);
+  if (aOverdue) return -1;
+  if (bOverdue) return 1;
+  if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
+  if (a.due_date) return -1;
+  if (b.due_date) return 1;
+  return (IMPACT_ORDER[a.impact] ?? 1) - (IMPACT_ORDER[b.impact] ?? 1);
+}
+
 function calcNextDueDate(recurring: string): string {
   const d = new Date();
   if (recurring === "daily") d.setDate(d.getDate() + 1);
@@ -369,12 +383,30 @@ export default function DashboardApp() {
     return matchesSearch && matchesCompany && matchesImpact && matchesPriority && matchesStatus && matchesAssignee;
   });
 
-  const focusTasks = filteredTasks.filter((t) => t.status === "focus");
-  const activeTasks = filteredTasks.filter((t) => t.status === "active");
   const submittedTasks = filteredTasks.filter((t) => t.status === "submitted");
-  const allActiveTasks = [...focusTasks, ...activeTasks];
+
+  // Smart Today's Focus: pinned tasks first, then fill to 3 with most urgent active tasks
+  const FOCUS_LIMIT = 3;
+  const founderFocusTasks = [
+    ...tasks.filter((t) => t.status === "focus"),
+    ...tasks.filter((t) => t.status === "active").sort(sortByUrgency),
+  ].slice(0, FOCUS_LIMIT);
+
+  const isMyTask = (t: DBTask) =>
+    t.assigned_to === profile?.id || t.assignee_name === userName;
+  const teamFocusTasks = [
+    ...tasks.filter((t) => t.status === "focus" && isMyTask(t)),
+    ...tasks.filter((t) => t.status === "active" && isMyTask(t)).sort(sortByUrgency),
+  ].slice(0, FOCUS_LIMIT);
+
+  const focusTasks = isFounder(role) ? founderFocusTasks : teamFocusTasks;
+  const allActiveTasks = tasks.filter((t) => t.status === "active" || t.status === "focus");
 
   async function handleComplete(task: DBTask) {
+    // If task is unassigned, attribute it to whoever is completing it
+    if (!task.assigned_to && profile?.id) {
+      await dbUpdateTask(task.id, { assigned_to: profile.id });
+    }
     const success = await dbCompleteTask(task.id);
     if (success) {
       if (profile?.id) {

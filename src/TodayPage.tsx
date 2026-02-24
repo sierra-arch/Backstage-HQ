@@ -519,7 +519,6 @@ export function TodayTeam({
 }) {
   const myTasks = filteredTasks.filter((t) => t.assignee_name === userName && t.status !== "completed" && t.status !== "archived");
   const equalCardH = "h-[360px]";
-  const myFocusTasks = focusTasks.filter((t) => t.assignee_name === userName);
   const mySubmittedTasks = submittedTasks.filter((t) => t.assignee_name === userName);
 
   return (
@@ -547,7 +546,7 @@ export function TodayTeam({
               </button>
             </header>
             <div className="flex-1 overflow-y-auto pr-1">
-              <TaskList tasks={myFocusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
+              <TaskList tasks={focusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
             </div>
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent z-10" />
           </section>
