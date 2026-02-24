@@ -241,7 +241,7 @@ export function PlaybookPage({ role }: { role: Role }) {
 
   return (
     <div className="space-y-4">
-      <Card title="Playbook" subtitle="SOPs and guides for your team">
+      <Card title="Playbooks" subtitle="SOPs and guides for your team">
         <div className="flex items-center gap-3 mb-4">
           <input
             placeholder="Search by title, description, or tag..."

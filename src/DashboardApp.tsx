@@ -275,7 +275,8 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
 
 function sortByUrgency(a: DBTask, b: DBTask): number {
   const todayStr = new Date().toISOString().slice(0, 10);
-  const IMPACT_ORDER: Record<string, number> = { large: 0, medium: 1, small: 2 };
+  // No-due-date tasks: small → medium → large (quick wins first)
+  const NO_DUE_ORDER: Record<string, number> = { small: 0, medium: 1, large: 2 };
   const aOverdue = !!a.due_date && a.due_date < todayStr;
   const bOverdue = !!b.due_date && b.due_date < todayStr;
   if (aOverdue && bOverdue) return a.due_date!.localeCompare(b.due_date!);
@@ -284,7 +285,7 @@ function sortByUrgency(a: DBTask, b: DBTask): number {
   if (a.due_date && b.due_date) return a.due_date.localeCompare(b.due_date);
   if (a.due_date) return -1;
   if (b.due_date) return 1;
-  return (IMPACT_ORDER[a.impact] ?? 1) - (IMPACT_ORDER[b.impact] ?? 1);
+  return (NO_DUE_ORDER[a.impact] ?? 1) - (NO_DUE_ORDER[b.impact] ?? 1);
 }
 
 function calcNextDueDate(recurring: string): string {
@@ -385,19 +386,24 @@ export default function DashboardApp() {
 
   const submittedTasks = filteredTasks.filter((t) => t.status === "submitted");
 
-  // Smart Today's Focus: pinned tasks first, then fill to 3 with most urgent active tasks
-  const FOCUS_LIMIT = 3;
-  const founderFocusTasks = [
-    ...tasks.filter((t) => t.status === "focus"),
-    ...tasks.filter((t) => t.status === "active").sort(sortByUrgency),
-  ].slice(0, FOCUS_LIMIT);
-
+  // Smart Today's Focus
   const isMyTask = (t: DBTask) =>
     t.assigned_to === profile?.id || t.assignee_name === userName;
-  const teamFocusTasks = [
+
+  // Founder: only their own tasks, only if truly urgent (overdue or due within 7 days)
+  const in7Days = new Date(); in7Days.setDate(in7Days.getDate() + 7);
+  const in7DaysStr = in7Days.toISOString().slice(0, 10);
+  const isUrgentForFounder = (t: DBTask) =>
+    !!t.due_date && t.due_date <= in7DaysStr;
+  const founderFocusTasks = [
     ...tasks.filter((t) => t.status === "focus" && isMyTask(t)),
-    ...tasks.filter((t) => t.status === "active" && isMyTask(t)).sort(sortByUrgency),
-  ].slice(0, FOCUS_LIMIT);
+    ...tasks.filter((t) => t.status === "active" && isMyTask(t) && isUrgentForFounder(t)).sort(sortByUrgency),
+  ];
+
+  // Team: only own tasks, pinned first, fill to at least 2 with urgency-sorted active
+  const teamPinned = tasks.filter((t) => t.status === "focus" && isMyTask(t));
+  const teamActive = tasks.filter((t) => t.status === "active" && isMyTask(t)).sort(sortByUrgency);
+  const teamFocusTasks = [...teamPinned, ...teamActive].slice(0, Math.max(2, teamPinned.length));
 
   const focusTasks = isFounder(role) ? founderFocusTasks : teamFocusTasks;
   const allActiveTasks = tasks.filter((t) => t.status === "active" || t.status === "focus");

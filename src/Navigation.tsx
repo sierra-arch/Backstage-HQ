@@ -40,6 +40,7 @@ export function Sidebar({
       <nav className="space-y-1 text-[15px]">
         {nav.map((item) => {
           const isActive = active === item;
+          const label = item === "Playbook" ? "Playbooks" : item;
           return (
             <button
               key={item}
@@ -48,7 +49,7 @@ export function Sidebar({
                 isActive ? "bg-teal-50 text-teal-900 font-medium" : ""
               }`}
             >
-              <span>{item}</span>
+              <span>{label}</span>
             </button>
           );
         })}
