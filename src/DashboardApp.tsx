@@ -10,6 +10,7 @@ import {
   useClients,
   useProducts,
   useMessages,
+  useCompanies,
   updateTask as dbUpdateTask,
   completeTask as dbCompleteTask,
   createTask as dbCreateTask,
@@ -312,6 +313,7 @@ export default function DashboardApp() {
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
   const { clients: allClients, refetch: refetchClients } = useClients();
   const { products: allProducts, refetch: refetchProducts } = useProducts();
+  const { companies: dbCompanies } = useCompanies();
 
   const [celebrate, setCelebrate] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -607,6 +609,7 @@ export default function DashboardApp() {
             <CompaniesPageDB
               companies={[...COMPANIES]} tasks={tasks}
               clients={allClients} products={allProducts}
+              companiesData={dbCompanies}
               onCompanyClick={handleCompanyClick}
               onClientClick={setSelectedClient} onProductClick={setSelectedProduct}
               onTaskClick={openTaskModal}

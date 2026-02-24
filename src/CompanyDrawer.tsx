@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CompanyChip } from "./ui";
 import { Client, CompanyData, DBTask, Product, Role, TASK_WEIGHT, isFounder } from "./types";
-import { saveClient, saveProduct } from "./useDatabase";
+import { saveClient, saveProduct, updateCompanySoftwareLinks } from "./useDatabase";
 import { supabase } from "./supabase";
 
 function calcProgress(companyName: string, tasks: DBTask[]) {
@@ -44,6 +44,44 @@ export function CompanyDrawer({
   const founder = isFounder(role);
   const companyName = company?.name || "";
   const progress = useMemo(() => (companyName ? calcProgress(companyName, tasks) : 0), [companyName, tasks]);
+
+  // Software tools state (local copy for optimistic UI)
+  const [localTools, setLocalTools] = useState<{ name: string; url: string }[]>(
+    (company?.software_links as any) || []
+  );
+  const [showAddTool, setShowAddTool] = useState(false);
+  const [newToolName, setNewToolName] = useState("");
+  const [newToolUrl, setNewToolUrl] = useState("");
+  const [toolSaving, setToolSaving] = useState(false);
+
+  // Sync tools when company changes
+  React.useEffect(() => {
+    setLocalTools((company?.software_links as any) || []);
+    setShowAddTool(false);
+    setNewToolName("");
+    setNewToolUrl("");
+  }, [company?.id]);
+
+  async function handleSaveTool() {
+    if (!company?.id || !newToolName.trim() || !newToolUrl.trim()) return;
+    setToolSaving(true);
+    const updated = [...localTools, { name: newToolName.trim(), url: newToolUrl.trim() }];
+    const ok = await updateCompanySoftwareLinks(company.id, updated);
+    if (ok) {
+      setLocalTools(updated);
+      setNewToolName("");
+      setNewToolUrl("");
+      setShowAddTool(false);
+    }
+    setToolSaving(false);
+  }
+
+  async function handleRemoveTool(idx: number) {
+    if (!company?.id) return;
+    const updated = localTools.filter((_, i) => i !== idx);
+    const ok = await updateCompanySoftwareLinks(company.id, updated);
+    if (ok) setLocalTools(updated);
+  }
 
   const [showAddClient, setShowAddClient] = useState(false);
   const [showAddProduct, setShowAddProduct] = useState(false);
@@ -171,6 +209,78 @@ export function CompanyDrawer({
                     transition={{ duration: 0.35, ease: "easeOut" }}
                   />
                 </div>
+              </div>
+
+              {/* Tools & Software */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="text-sm font-medium">Tools & Software</div>
+                  {founder && !showAddTool && (
+                    <button
+                      onClick={() => setShowAddTool(true)}
+                      className="text-xs text-teal-600 hover:text-teal-800 font-medium"
+                    >
+                      + Add Tool
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {localTools.map((tool, i) => (
+                    <div key={i} className="group flex items-center gap-1 pl-3 pr-2 py-1.5 rounded-xl border bg-white">
+                      <a
+                        href={tool.url} target="_blank" rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-neutral-700 hover:text-teal-700 font-medium"
+                      >
+                        {tool.name} →
+                      </a>
+                      {founder && (
+                        <button
+                          onClick={() => handleRemoveTool(i)}
+                          className="text-neutral-300 hover:text-red-400 text-sm leading-none ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {localTools.length === 0 && !showAddTool && (
+                    <div className="text-xs text-neutral-400">No tools added yet.</div>
+                  )}
+                </div>
+                {showAddTool && (
+                  <div className="mt-3 p-3 rounded-xl border bg-neutral-50 space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={newToolName}
+                        onChange={(e) => setNewToolName(e.target.value)}
+                        placeholder="Tool name (e.g. Notion)"
+                        className="rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                      />
+                      <input
+                        value={newToolUrl}
+                        onChange={(e) => setNewToolUrl(e.target.value)}
+                        placeholder="URL"
+                        className="rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveTool}
+                        disabled={toolSaving || !newToolName.trim() || !newToolUrl.trim()}
+                        className="text-xs bg-teal-600 text-white rounded-lg px-3 py-1.5 hover:bg-teal-700 disabled:opacity-50 font-medium"
+                      >
+                        {toolSaving ? "Saving…" : "Add Tool"}
+                      </button>
+                      <button
+                        onClick={() => { setShowAddTool(false); setNewToolName(""); setNewToolUrl(""); }}
+                        className="text-xs text-neutral-500 hover:text-neutral-700 px-2"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Clients */}

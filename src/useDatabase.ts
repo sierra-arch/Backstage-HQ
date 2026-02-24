@@ -35,6 +35,7 @@ export interface Company {
     border: string;
   } | null;
   is_active: boolean;
+  software_links: { name: string; url: string }[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -405,6 +406,21 @@ export async function getCompanyByName(name: string): Promise<Company | null> {
   }
 
   return data;
+}
+
+export async function updateCompanySoftwareLinks(
+  companyId: string,
+  links: { name: string; url: string }[]
+): Promise<boolean> {
+  const { error } = await supabase
+    .from("companies")
+    .update({ software_links: links })
+    .eq("id", companyId);
+  if (error) {
+    console.error("Error updating software links:", error);
+    return false;
+  }
+  return true;
 }
 
 // =====================================================

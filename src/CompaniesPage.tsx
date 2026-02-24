@@ -3,7 +3,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Card } from "./ui";
 import { CompanyChip, remainingBreakdown } from "./ui";
-import { Client, Product, DBTask, Page, TASK_WEIGHT } from "./types";
+import { Client, Product, DBTask, TASK_WEIGHT } from "./types";
 
 function calculateCompanyProgress(companyName: string, tasks: DBTask[]) {
   const relevant = tasks.filter(
@@ -21,20 +21,23 @@ function calculateCompanyProgress(companyName: string, tasks: DBTask[]) {
   return total > 0 ? Math.round((completed / total) * 100) : 0;
 }
 
+type CompanyRow = { id: string; name: string; software_links?: { name: string; url: string }[] | null };
+
 export function CompaniesPage({
   companies,
   tasks,
   clients,
   products,
+  companiesData = [],
   onCompanyClick,
   onClientClick,
   onProductClick,
-  onTaskClick,
 }: {
   companies: string[];
   tasks: DBTask[];
   clients: Client[];
   products: Product[];
+  companiesData?: CompanyRow[];
   onCompanyClick: (companyName: string) => void;
   onClientClick: (client: Client) => void;
   onProductClick: (product: Product) => void;
@@ -51,30 +54,21 @@ export function CompaniesPage({
         const progress = calculateCompanyProgress(companyName, tasks);
         const remaining = remainingBreakdown(companyName, tasks);
 
-        // Impact breakdown for open tasks
-        const sCount = openTasks.filter((t) => t.impact === "small").length;
-        const mCount = openTasks.filter((t) => t.impact === "medium").length;
-        const lCount = openTasks.filter((t) => t.impact === "large").length;
-
-        // Tasks sorted: focus first, then large → medium → small
-        const impactOrder = { large: 0, medium: 1, small: 2 };
-        const sortedTasks = [...openTasks].sort((a, b) => {
-          if (a.status === "focus" && b.status !== "focus") return -1;
-          if (b.status === "focus" && a.status !== "focus") return 1;
-          return impactOrder[a.impact] - impactOrder[b.impact];
-        }).slice(0, 6);
-
         // Client / product tiles
         const companyClients = clients
-          .filter((c) => c.company === companyName || c.company_name === companyName)
+          .filter((c) => c.company_name === companyName)
           .slice(0, 4);
 
         const companyProducts = products
-          .filter((p) => p.company === companyName || p.company_name === companyName)
+          .filter((p) => p.company_name === companyName)
           .slice(0, 6);
 
         const isMaire = companyName === "Mairé";
         const items: any[] = isMaire ? companyProducts : companyClients;
+
+        // Software tools from DB
+        const companyRow = companiesData.find((c) => c.name === companyName);
+        const tools: { name: string; url: string }[] = companyRow?.software_links ?? [];
 
         return (
           <Card
@@ -95,14 +89,7 @@ export function CompaniesPage({
                     <h3 className="text-xl font-semibold">{companyName}</h3>
                     <div className="mt-1 flex items-center gap-2 flex-wrap">
                       <CompanyChip name={companyName} />
-                      <span className="text-xs text-neutral-500">{openTasks.length} open</span>
-                      {remaining.total > 0 && (
-                        <div className="flex items-center gap-1">
-                          {sCount > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">{sCount}S</span>}
-                          {mCount > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">{mCount}M</span>}
-                          {lCount > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">{lCount}L</span>}
-                        </div>
-                      )}
+                      <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
                     </div>
                   </div>
                 </div>
@@ -126,7 +113,7 @@ export function CompaniesPage({
                 </div>
               </div>
 
-              {/* Two-column body: clients/products left, tasks right */}
+              {/* Two-column body: clients/products left, tools right */}
               <div className="grid grid-cols-2 gap-4">
                 {/* Left: client / product tiles */}
                 <div>
@@ -174,45 +161,31 @@ export function CompaniesPage({
                   </div>
                 </div>
 
-                {/* Right: open tasks */}
+                {/* Right: software tools */}
                 <div>
                   <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
-                    Open Tasks
+                    Tools & Software
                   </div>
-                  <div className="space-y-1.5">
-                    {sortedTasks.map((t) => (
-                      <div
-                        key={t.id}
-                        onClick={(e) => { e.stopPropagation(); onTaskClick?.(t); }}
-                        className={`flex items-center gap-2 px-2.5 py-2 rounded-xl border transition-colors ${
-                          onTaskClick ? "cursor-pointer hover:border-teal-200 hover:bg-teal-50/40" : "cursor-default"
-                        } bg-white`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                          t.status === "focus" ? "bg-teal-500" : "bg-neutral-300"
-                        }`} />
-                        <span className="text-xs text-neutral-700 truncate flex-1">{t.title}</span>
-                        {t.assignee_name && (
-                          <span className="text-[10px] text-neutral-400 flex-shrink-0 truncate max-w-[60px]">
-                            {t.assignee_name.split(" ")[0]}
-                          </span>
-                        )}
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 capitalize ${
-                          t.impact === "large" ? "bg-rose-50 text-rose-700 border border-rose-200" :
-                          t.impact === "medium" ? "bg-amber-50 text-amber-700 border border-amber-200" :
-                          "bg-sky-50 text-sky-700 border border-sky-200"
-                        }`}>{t.impact}</span>
-                      </div>
-                    ))}
-                    {openTasks.length === 0 && (
-                      <div className="text-xs text-neutral-400 py-4">All clear!</div>
-                    )}
-                    {openTasks.length > 6 && (
-                      <div className="text-[10px] text-neutral-400 text-right pt-1">
-                        +{openTasks.length - 6} more
-                      </div>
-                    )}
-                  </div>
+                  {tools.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {tools.map((tool, i) => (
+                        <a
+                          key={i}
+                          href={tool.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs px-3 py-1.5 rounded-xl border bg-white hover:bg-teal-50 hover:border-teal-200 text-neutral-700 font-medium transition-colors"
+                        >
+                          {tool.name} →
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-neutral-400 py-1">
+                      Click to add tools in the drawer.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
