@@ -64,6 +64,7 @@ export function Card({
   className = "",
   variant = "default",
   onClick,
+  action,
 }: {
   title?: string;
   subtitle?: string;
@@ -71,6 +72,7 @@ export function Card({
   className?: string;
   variant?: "default" | "compact";
   onClick?: () => void;
+  action?: React.ReactNode;
 }) {
   return (
     <section
@@ -81,18 +83,21 @@ export function Card({
         onClick ? "cursor-pointer hover:border-teal-300 transition-colors" : ""
       }`}
     >
-      {(title || subtitle) && (
-        <header className="mb-2 md:mb-3">
-          {title && (
-            <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">
-              {title}
-            </h2>
-          )}
-          {subtitle && (
-            <p className="text-xs md:text-[13px] text-neutral-500">
-              {subtitle}
-            </p>
-          )}
+      {(title || subtitle || action) && (
+        <header className="mb-2 md:mb-3 flex items-start justify-between gap-3">
+          <div>
+            {title && (
+              <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">
+                {title}
+              </h2>
+            )}
+            {subtitle && (
+              <p className="text-xs md:text-[13px] text-neutral-500">
+                {subtitle}
+              </p>
+            )}
+          </div>
+          {action && <div className="flex-shrink-0">{action}</div>}
         </header>
       )}
       {children}

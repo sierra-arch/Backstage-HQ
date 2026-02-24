@@ -551,13 +551,17 @@ export function TodayTeam({
 
         <div className="col-span-12 md:col-span-6">
           <div className={`relative ${equalCardH} flex flex-col`}>
-            <Card title="Full Task List" subtitle="Everything on your plate" className="h-full flex flex-col">
-              <div className="mb-3 flex-shrink-0">
+            <Card
+              title="Full Task List"
+              subtitle="Everything on your plate"
+              className="h-full flex flex-col"
+              action={
                 <button onClick={onOpenCreateTask}
                   className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium">
                   + Add Task
                 </button>
-              </div>
+              }
+            >
               <div className="flex-1 overflow-y-auto pr-1">
                 <TaskList tasks={myTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
               </div>

@@ -32,9 +32,10 @@ export function Sidebar({
     <aside className="w-72 h-full bg-white/95 backdrop-blur-sm flex flex-col p-4">
       <button
         onClick={() => handleSelect("Today" as Page)}
-        className="text-[22px] font-semibold leading-none mb-6 tracking-tight text-left hover:text-teal-700 transition-colors"
+        className="mb-6 text-left hover:text-teal-700 transition-colors"
       >
-        Backstage HQ
+        <div className="text-[20px] font-semibold leading-tight tracking-tight">Prose | Backstage</div>
+        <div className="text-[12px] font-normal text-neutral-400 leading-tight mt-0.5">Dashboard</div>
       </button>
       <nav className="space-y-1 text-[15px]">
         {nav.map((item) => {
@@ -231,7 +232,7 @@ export function TopHeader({
           </div>
           <button
             onClick={onOpenChat}
-            className="relative rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm hover:bg-teal-100 transition-colors font-medium text-teal-900 shrink-0"
+            className="relative rounded-xl border bg-teal-50 px-3 py-2 text-sm hover:bg-teal-100 transition-colors font-medium text-teal-900 shrink-0" style={{ borderColor: "#0F766E" }}
           >
             Inbox
             {unreadCount > 0 && (
