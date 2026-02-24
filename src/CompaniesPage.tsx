@@ -2,7 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Card } from "./ui";
-import { CompanyChip, remainingBreakdown } from "./ui";
+import { remainingBreakdown } from "./ui";
 import { Client, Product, DBTask, TASK_WEIGHT } from "./types";
 
 function calculateCompanyProgress(companyName: string, tasks: DBTask[]) {
@@ -78,17 +78,9 @@ export function CompaniesPage({
             <div className="space-y-4">
               {/* Header row */}
               <div className="flex items-start justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xl font-bold text-teal-700">{companyName.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold">{companyName}</h3>
-                    <div className="mt-1 flex items-center gap-2 flex-wrap">
-                      <CompanyChip name={companyName} />
-                      <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="text-xl font-semibold">{companyName}</h3>
+                  <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
                 </div>
 
                 {/* Progress */}

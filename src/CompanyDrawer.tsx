@@ -43,6 +43,7 @@ export function CompanyDrawer({
 }) {
   const founder = isFounder(role);
   const companyName = company?.name || "";
+  const isMaire = companyName === "Mairé";
   const progress = useMemo(() => (companyName ? calcProgress(companyName, tasks) : 0), [companyName, tasks]);
 
   // Software tools state (local copy for optimistic UI)
@@ -287,7 +288,7 @@ export function CompanyDrawer({
               <Card title="Clients" subtitle="Projects & accounts" className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-xs text-neutral-500">{clients.length} total</div>
-                  {founder && (
+                  {!isMaire && (
                     <button
                       onClick={() => setShowAddClient(true)}
                       className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
@@ -339,7 +340,7 @@ export function CompanyDrawer({
               <Card title="Products" subtitle="Offers & SKUs" className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-xs text-neutral-500">{products.length} total</div>
-                  {founder && (
+                  {isMaire && (
                     <button
                       onClick={() => setShowAddProduct(true)}
                       className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
