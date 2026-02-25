@@ -132,7 +132,6 @@ export function CompanyDrawer({
       scope: newClientScope.trim() || null,
       deadline: newClientDeadline || null,
       quick_links: filteredLinks.length > 0 ? filteredLinks : null,
-      client_status: "active" as const,
       ...(photo_url ? { photo_url } : {}),
     } as any);
     setClientSaving(false);
