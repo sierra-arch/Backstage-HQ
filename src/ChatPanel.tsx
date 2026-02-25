@@ -113,7 +113,7 @@ export function ChatPanel({
         initial={{ x: 400 }}
         animate={{ x: 0 }}
         exit={{ x: 400 }}
-        className="fixed right-0 top-0 bottom-0 w-[480px] bg-white border-l shadow-2xl z-40 flex"
+        className="fixed right-0 top-0 bottom-0 w-[480px] max-w-full bg-white border-l shadow-2xl z-40 flex"
       >
         {/* Sidebar */}
         <div className="w-48 bg-neutral-50 border-r flex flex-col">

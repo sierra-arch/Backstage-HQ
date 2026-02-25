@@ -225,10 +225,12 @@ export function TasksPage({
 
       {/* Filters — outside the box, on the right */}
       <div className="w-40 flex-shrink-0 space-y-2 pt-1">
-        <button onClick={onOpenCreateTask}
-          className="w-full rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1.5 hover:bg-teal-50 text-xs font-medium">
-          + New Task
-        </button>
+        {isFounder(role) && (
+          <button onClick={onOpenCreateTask}
+            className="w-full rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1.5 hover:bg-teal-50 text-xs font-medium">
+            + New Task
+          </button>
+        )}
 
         <select value={taskFilters.company}
           onChange={(e) => setTaskFilters({ ...taskFilters, company: e.target.value })}

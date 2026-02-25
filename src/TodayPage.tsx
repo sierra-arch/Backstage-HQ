@@ -535,15 +535,9 @@ export function TodayTeam({
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
           <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
-            <header className="mb-3 flex-shrink-0 flex items-center justify-between">
-              <div>
-                <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
-                <p className="text-xs text-neutral-600">Your top priorities</p>
-              </div>
-              <button onClick={onOpenCreateTask}
-                className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1 hover:bg-teal-50 text-xs font-medium">
-                NEW
-              </button>
+            <header className="mb-3 flex-shrink-0">
+              <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
+              <p className="text-xs text-neutral-600">Your top priorities</p>
             </header>
             <div className="flex-1 overflow-y-auto pr-1">
               <TaskList tasks={focusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
@@ -558,12 +552,6 @@ export function TodayTeam({
               title="Full Task List"
               subtitle="Everything on your plate"
               className="h-full flex flex-col"
-              action={
-                <button onClick={onOpenCreateTask}
-                  className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium">
-                  + Add Task
-                </button>
-              }
             >
               <div className="flex-1 overflow-y-auto pr-1">
                 <TaskList tasks={myTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
