@@ -63,7 +63,7 @@ export function CompaniesPage({
           .filter((p) => p.company_name === companyName)
           .slice(0, 6);
 
-        const isMaire = companyName === "Mairé";
+        const isMaire = companyName === "Mairë";
         const items: any[] = isMaire ? companyProducts : companyClients;
 
         // Software tools from DB
@@ -79,7 +79,7 @@ export function CompaniesPage({
               {/* Header row */}
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-3xl font-bold text-teal-900 tracking-tight">{companyName}</h3>
+                  <h3 className="text-xl font-bold text-teal-900 tracking-tight">{companyName}</h3>
                   <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
                 </div>
 

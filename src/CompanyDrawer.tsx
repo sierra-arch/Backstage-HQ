@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CompanyChip } from "./ui";
 import { Client, CompanyData, DBTask, Product, Role, TASK_WEIGHT, isFounder } from "./types";
-import { saveClient, saveProduct, updateCompanySoftwareLinks } from "./useDatabase";
+import { saveClient, saveProduct, updateCompanySoftwareLinks, lastSaveClientError } from "./useDatabase";
 import { supabase } from "./supabase";
 
 function calcProgress(companyName: string, tasks: DBTask[]) {
@@ -43,7 +43,7 @@ export function CompanyDrawer({
 }) {
   const founder = isFounder(role);
   const companyName = company?.name || "";
-  const isMaire = companyName === "Mairé";
+  const isMaire = companyName === "Mairë";
   const progress = useMemo(() => (companyName ? calcProgress(companyName, tasks) : 0), [companyName, tasks]);
 
   // Software tools state (local copy for optimistic UI)
@@ -96,6 +96,7 @@ export function CompanyDrawer({
   const [newClientLinks, setNewClientLinks] = useState<{ name: string; url: string }[]>([]);
   const [clientPhotoFile, setClientPhotoFile] = useState<File | null>(null);
   const [clientSaving, setClientSaving] = useState(false);
+  const [clientError, setClientError] = useState<string | null>(null);
 
   // Product form state
   const [newProductName, setNewProductName] = useState("");
@@ -104,6 +105,7 @@ export function CompanyDrawer({
   const [newProductEtsy, setNewProductEtsy] = useState("");
   const [productPhotoFile, setProductPhotoFile] = useState<File | null>(null);
   const [productSaving, setProductSaving] = useState(false);
+  const [productError, setProductError] = useState<string | null>(null);
 
   async function uploadPhoto(file: File): Promise<string | null> {
     const ext = file.name.split(".").pop();
@@ -119,9 +121,10 @@ export function CompanyDrawer({
   async function handleSaveClient() {
     if (!company?.id || !newClientName.trim()) return;
     setClientSaving(true);
+    setClientError(null);
     const photo_url = clientPhotoFile ? await uploadPhoto(clientPhotoFile) : null;
     const filteredLinks = newClientLinks.filter((l) => l.name.trim() && l.url.trim());
-    await saveClient({
+    const result = await saveClient({
       company_id: company.id,
       name: newClientName.trim(),
       contact_email: newClientEmail.trim() || null,
@@ -129,11 +132,16 @@ export function CompanyDrawer({
       scope: newClientScope.trim() || null,
       deadline: newClientDeadline || null,
       quick_links: filteredLinks.length > 0 ? filteredLinks : null,
+      client_status: "active" as const,
       ...(photo_url ? { photo_url } : {}),
     } as any);
+    setClientSaving(false);
+    if (!result) {
+      setClientError(lastSaveClientError || "Failed to save — unknown error.");
+      return;
+    }
     setNewClientName(""); setNewClientEmail(""); setNewClientPhone("");
     setNewClientScope(""); setNewClientDeadline(""); setNewClientLinks([]); setClientPhotoFile(null);
-    setClientSaving(false);
     setShowAddClient(false);
     onRefetch?.();
   }
@@ -141,18 +149,24 @@ export function CompanyDrawer({
   async function handleSaveProduct() {
     if (!company?.id || !newProductName.trim()) return;
     setProductSaving(true);
+    setProductError(null);
     const photo_url = productPhotoFile ? await uploadPhoto(productPhotoFile) : null;
-    await saveProduct({
+    const result = await saveProduct({
       company_id: company.id,
       name: newProductName.trim(),
       description: newProductDesc.trim() || null,
       sku: newProductSku.trim() || null,
-      etsy_link: newProductEtsy.trim() || null,
+      etsy_url: newProductEtsy.trim() || null,
+      is_active: true,
       ...(photo_url ? { photo_url } : {}),
     } as any);
+    setProductSaving(false);
+    if (!result) {
+      setProductError("Failed to save — check Supabase RLS policies on the products table.");
+      return;
+    }
     setNewProductName(""); setNewProductDesc(""); setNewProductSku("");
     setNewProductEtsy(""); setProductPhotoFile(null);
-    setProductSaving(false);
     setShowAddProduct(false);
     onRefetch?.();
   }
@@ -362,8 +376,8 @@ export function CompanyDrawer({
                           {p.description && <div className="text-xs text-neutral-500 mt-0.5 line-clamp-2">{p.description}</div>}
                           <div className="flex flex-wrap gap-2 mt-1">
                             {p.sku && <span className="text-[10px] text-neutral-400">SKU: {p.sku}</span>}
-                            {p.etsy_link && (
-                              <a href={p.etsy_link} target="_blank" rel="noopener noreferrer"
+                            {p.etsy_url && (
+                              <a href={p.etsy_url} target="_blank" rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
                                 className="text-[10px] text-teal-600 hover:underline">Etsy →</a>
                             )}
@@ -450,8 +464,13 @@ export function CompanyDrawer({
                             onChange={(e) => setClientPhotoFile(e.target.files?.[0] || null)} />
                         </label>
                       </div>
+                      {clientError && (
+                        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                          {clientError}
+                        </div>
+                      )}
                       <div className="flex gap-2 pt-2 border-t">
-                        <button onClick={() => { setShowAddClient(false); setClientPhotoFile(null); }}
+                        <button onClick={() => { setShowAddClient(false); setClientPhotoFile(null); setClientError(null); }}
                           className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
                         <button onClick={handleSaveClient} disabled={!newClientName.trim() || clientSaving}
                           className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50">
@@ -511,8 +530,13 @@ export function CompanyDrawer({
                             onChange={(e) => setProductPhotoFile(e.target.files?.[0] || null)} />
                         </label>
                       </div>
+                      {productError && (
+                        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                          {productError}
+                        </div>
+                      )}
                       <div className="flex gap-2 pt-2 border-t">
-                        <button onClick={() => { setShowAddProduct(false); setProductPhotoFile(null); }}
+                        <button onClick={() => { setShowAddProduct(false); setProductPhotoFile(null); setProductError(null); }}
                           className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
                         <button onClick={handleSaveProduct} disabled={!newProductName.trim() || productSaving}
                           className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50">

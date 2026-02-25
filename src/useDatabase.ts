@@ -647,10 +647,13 @@ export async function fetchClients(companyId?: string): Promise<Client[]> {
   }));
 }
 
+export let lastSaveClientError: string | null = null;
+
 export async function saveClient(
   client: Partial<Client>,
   requiresApproval: boolean = false
 ): Promise<Client | PendingApproval | null> {
+  lastSaveClientError = null;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -675,6 +678,7 @@ export async function saveClient(
 
       if (error) {
         console.error("Error updating client:", error);
+        lastSaveClientError = error.message;
         return null;
       }
       return data;
@@ -687,6 +691,7 @@ export async function saveClient(
 
       if (error) {
         console.error("Error creating client:", error);
+        lastSaveClientError = error.message;
         return null;
       }
       return data;

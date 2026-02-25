@@ -6,7 +6,7 @@ export type Role = "Founder" | "Team";
 export const fromDbToUi: Record<AppRole, Role> = { founder: "Founder", team: "Team" };
 export const isFounder = (r: Role) => r === "Founder";
 
-export const COMPANIES = ["Prose Florals", "Backstage", "Mairé"] as const;
+export const COMPANIES = ["Prose Florals", "Backstage", "Mairë"] as const;
 export type CompanyName = (typeof COMPANIES)[number];
 
 export const XP_BY_IMPACT = { small: 5, medium: 10, large: 20 } as const;

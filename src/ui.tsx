@@ -172,7 +172,7 @@ export function CompanyChip({
       border: "border-teal-300",
       logo: "🎯",
     },
-    "Mairé": {
+    "Mairë": {
       bg: "bg-emerald-50",
       text: "text-emerald-900/80",
       border: "border-emerald-200",
