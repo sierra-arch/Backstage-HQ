@@ -686,6 +686,7 @@ export default function DashboardApp() {
         onClose={() => { setShowCreateModal(false); setCreateDefaultCompany(undefined); }}
         onCreated={refetch} role={role} userName={userName} teamMembers={teamMembers}
         defaultCompany={createDefaultCompany}
+        clients={allClients}
       />
 
       <CompanyDrawer

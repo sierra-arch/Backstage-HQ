@@ -30,6 +30,7 @@ export type DBTask = {
   due_date?: string | null;
   completed_at?: string | null;
   photo_url?: string | null;
+  client_id?: string | null;
   sort_order?: number;
   created_at?: string;
   updated_at?: string;

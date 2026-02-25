@@ -57,6 +57,7 @@ export interface Task {
   tags: string[] | null;
   metadata: any;
   photo_url: string | null;
+  client_id: string | null;
   created_at: string;
   updated_at: string;
   company_name?: string;

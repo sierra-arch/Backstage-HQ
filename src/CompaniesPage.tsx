@@ -5,6 +5,26 @@ import { Card } from "./ui";
 import { remainingBreakdown } from "./ui";
 import { Client, Product, DBTask, TASK_WEIGHT } from "./types";
 
+function calculateClientProgress(clientId: string, tasks: DBTask[]) {
+  const relevant = tasks.filter(
+    (t) => t.client_id === clientId && t.status !== "archived"
+  );
+  if (relevant.length === 0) return null;
+  let total = 0;
+  let completed = 0;
+  relevant.forEach((t) => {
+    total += TASK_WEIGHT[t.impact];
+    if (t.status === "completed") completed += TASK_WEIGHT[t.impact];
+  });
+  return total > 0 ? Math.round((completed / total) * 100) : 0;
+}
+
+function progressColor(pct: number) {
+  if (pct >= 70) return "bg-teal-500";
+  if (pct >= 40) return "bg-amber-400";
+  return "bg-red-400";
+}
+
 function calculateCompanyProgress(companyName: string, tasks: DBTask[]) {
   const relevant = tasks.filter(
     (t) => t.company_name === companyName && t.status !== "archived"
@@ -110,30 +130,79 @@ export function CompaniesPage({
                     {isMaire ? "Products" : "Clients"}
                   </div>
                   <div className={`grid gap-2 ${isMaire ? "grid-cols-3" : "grid-cols-2"}`}>
-                    {items.map((item: any) => (
-                      <div
-                        key={item.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          isMaire ? onProductClick(item as Product) : onClientClick(item as Client);
-                        }}
-                        className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
-                          isMaire ? "aspect-[3/4]" : "aspect-[4/3]"
-                        }`}
-                        style={{
-                          backgroundImage: item.photo_url
-                            ? `url(${item.photo_url})`
-                            : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                        }}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-2">
-                          <p className="text-white text-xs font-medium truncate">{item.name}</p>
+                    {items.map((item: any) => {
+                      if (isMaire) {
+                        // Products: keep original photo tile style
+                        return (
+                          <div
+                            key={item.id}
+                            onClick={(e) => { e.stopPropagation(); onProductClick(item as Product); }}
+                            className="relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
+                            style={{
+                              backgroundImage: item.photo_url
+                                ? `url(${item.photo_url})`
+                                : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-2">
+                              <p className="text-white text-xs font-medium truncate">{item.name}</p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      // Clients: card with photo + progress bar
+                      const client = item as Client;
+                      const clientProgress = calculateClientProgress(client.id, tasks);
+                      const openCount = tasks.filter(
+                        (t) => t.client_id === client.id && t.status !== "completed" && t.status !== "archived"
+                      ).length;
+                      return (
+                        <div
+                          key={client.id}
+                          onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
+                          className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                        >
+                          {/* Photo */}
+                          <div
+                            className="h-20 w-full"
+                            style={{
+                              backgroundImage: client.photo_url
+                                ? `url(${client.photo_url})`
+                                : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
+                              backgroundSize: "cover",
+                              backgroundPosition: "center",
+                            }}
+                          />
+                          {/* Info */}
+                          <div className="px-2.5 pt-2 pb-2.5 space-y-1.5">
+                            <p className="text-xs font-semibold text-neutral-800 truncate">{client.name}</p>
+                            {clientProgress !== null ? (
+                              <>
+                                <div className="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
+                                  <motion.div
+                                    className={`h-full rounded-full ${progressColor(clientProgress)}`}
+                                    initial={false}
+                                    animate={{ width: `${clientProgress}%` }}
+                                    transition={{ duration: 0.4, ease: "easeOut" }}
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[10px] text-neutral-400">
+                                    {openCount > 0 ? `${openCount} open` : "All done"}
+                                  </span>
+                                  <span className="text-[10px] font-medium text-neutral-500">{clientProgress}%</span>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="text-[10px] text-neutral-400">No tasks yet</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {items.length === 0 && (
                       <div className="col-span-2 text-xs text-neutral-400 py-4">
                         No {isMaire ? "products" : "clients"} yet.

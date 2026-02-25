@@ -278,6 +278,7 @@ export function TaskCreateModal({
   userName,
   teamMembers = [],
   defaultCompany,
+  clients = [],
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -286,6 +287,7 @@ export function TaskCreateModal({
   userName: string;
   teamMembers?: { id: string; display_name: string | null }[];
   defaultCompany?: string;
+  clients?: Client[];
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -293,6 +295,7 @@ export function TaskCreateModal({
   const [assignee, setAssignee] = useState(isFounder(role) ? "" : userName);
   const [level, setLevel] = useState<"small" | "medium" | "large">("medium");
   const [deadline, setDeadline] = useState("");
+  const [clientId, setClientId] = useState<string>("");
   const [recurring, setRecurring] = useState<
     "none" | "daily" | "weekly" | "biweekly" | "monthly" | "quarterly"
   >("none");
@@ -300,6 +303,9 @@ export function TaskCreateModal({
 
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+
+  // Clients for the selected company
+  const companyClients = clients.filter((c) => c.company_name === company);
 
   async function handleCreate() {
     setCreating(true);
@@ -338,6 +344,7 @@ export function TaskCreateModal({
       estimate_minutes: estimate,
       due_date: deadline || null,
       photo_url: photoUrl,
+      client_id: clientId || null,
       metadata: recurring !== "none" ? { recurring } : null,
     });
 
@@ -355,6 +362,7 @@ export function TaskCreateModal({
     setTitle("");
     setDescription("");
     setDeadline("");
+    setClientId("");
     setRecurring("none");
     setPhotoFile(null);
     onCreated();
@@ -386,10 +394,17 @@ export function TaskCreateModal({
 
         {/* Inline metadata chips */}
         <div className="flex flex-wrap gap-2">
-          <select value={company} onChange={(e) => setCompany(e.target.value)}
+          <select value={company} onChange={(e) => { setCompany(e.target.value); setClientId(""); }}
             className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
             {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
+          {companyClients.length > 0 && (
+            <select value={clientId} onChange={(e) => setClientId(e.target.value)}
+              className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
+              <option value="">No client</option>
+              {companyClients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          )}
           {isFounder(role) && (
             <select value={assignee} onChange={(e) => setAssignee(e.target.value)}
               className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
