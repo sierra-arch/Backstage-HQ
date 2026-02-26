@@ -662,7 +662,6 @@ export function SubmitNotesModal({
   const [notes, setNotes] = useState("");
 
   function handleConfirm() {
-    if (!notes.trim()) return;
     onConfirm(notes.trim());
     setNotes("");
   }
@@ -682,7 +681,7 @@ export function SubmitNotesModal({
         </div>
         <div>
           <label className="text-sm font-medium text-neutral-700 block mb-1">
-            Completion Notes <span className="text-red-500">*</span>
+            Completion Notes
           </label>
           <textarea
             value={notes}
@@ -691,7 +690,7 @@ export function SubmitNotesModal({
             className="w-full rounded-xl border px-3 py-2 text-sm min-h-[120px] focus:ring-2 focus:ring-teal-200 outline-none resize-none"
             autoFocus
           />
-          <p className="text-xs text-neutral-400 mt-1">Required — these notes will be visible to the founder during review.</p>
+          <p className="text-xs text-neutral-400 mt-1">Optional — these notes will be visible to the founder during review.</p>
         </div>
         <div className="flex gap-3 pt-4 border-t">
           <button onClick={handleClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">
@@ -699,8 +698,7 @@ export function SubmitNotesModal({
           </button>
           <button
             onClick={handleConfirm}
-            disabled={!notes.trim()}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
+            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm"
           >
             Submit for Review
           </button>
