@@ -2,8 +2,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Message } from "./types";
-import { markMessagesFromUserAsRead, markAllDMsAsRead } from "./useDatabase";
+import { markMessagesFromUserAsRead, markAllDMsAsRead, useMeetings, rsvpMeeting } from "./useDatabase";
 import { Avatar } from "./ui";
+
+function parseMeetingMessage(content: string): { displayText: string; meetingId: string } | null {
+  const match = content.match(/\[mid:([^\]]+)\]/);
+  if (!match) return null;
+  return { displayText: content.replace(/\[mid:[^\]]+\]/, "").trim(), meetingId: match[1] };
+}
 
 export function ChatPanel({
   userName: _userName,
@@ -30,6 +36,18 @@ export function ChatPanel({
   const [newMessage, setNewMessage] = useState("");
   const [activeChannel, setActiveChannel] = useState<"team" | string>("team");
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const { meetings, refetch: refetchMeetings } = useMeetings();
+  const meetingsById = React.useMemo(
+    () => Object.fromEntries(meetings.map((m) => [m.id, m])),
+    [meetings]
+  );
+
+  async function handleRsvp(meetingId: string) {
+    if (!currentUserId) return;
+    const userName = _userName;
+    await rsvpMeeting(meetingId, currentUserId, userName);
+    refetchMeetings();
+  }
 
   const teammates = teamMembers
     .filter((tm) => tm.id !== currentUserId && tm.display_name !== _userName)
@@ -179,43 +197,76 @@ export function ChatPanel({
                 {activeChannel === "team" ? "No team messages yet." : `No messages with ${activeChannel} yet.`}
               </div>
             ) : (
-              filteredMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`rounded-xl p-3 ${
-                    msg.is_kudos || msg.content.startsWith("🏆")
-                      ? "bg-yellow-50 border border-yellow-200"
-                      : msg.content.startsWith("🎉")
-                      ? "bg-violet-50 border border-violet-200"
-                      : msg.content.startsWith("You've been assigned")
-                      ? "bg-[#ECF7F3] border border-teal-100"
-                      : "bg-neutral-50"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Avatar name={msg.from_name || "Unknown"} size={20} photoUrl={teamMembers.find((tm) => tm.id === msg.from_user_id)?.avatar_url ?? undefined} />
-                    <span className="text-xs font-medium">{msg.from_name || "Unknown"}</span>
-                    <span className="text-xs text-neutral-400 ml-auto">
-                      {(() => {
-                        const d = new Date(msg.created_at);
-                        const isToday = d.toDateString() === new Date().toDateString();
-                        return isToday
-                          ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                          : d.toLocaleDateString([], { month: "short", day: "numeric" }) + " · " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                      })()}
-                    </span>
+              filteredMessages.map((msg) => {
+                const parsed = parseMeetingMessage(msg.content);
+                const meeting = parsed ? meetingsById[parsed.meetingId] : null;
+                const isGoing = meeting && currentUserId
+                  ? meeting.attendees?.some((a) => a.id === currentUserId) ?? false
+                  : false;
+
+                return (
+                  <div key={msg.id}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Avatar name={msg.from_name || "Unknown"} size={20} photoUrl={teamMembers.find((tm) => tm.id === msg.from_user_id)?.avatar_url ?? undefined} />
+                      <span className="text-xs font-medium">{msg.from_name || "Unknown"}</span>
+                      <span className="text-xs text-neutral-400 ml-auto">
+                        {(() => {
+                          const d = new Date(msg.created_at);
+                          const isToday = d.toDateString() === new Date().toDateString();
+                          return isToday
+                            ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                            : d.toLocaleDateString([], { month: "short", day: "numeric" }) + " · " + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                        })()}
+                      </span>
+                    </div>
+                    {parsed ? (
+                      <div className="rounded-xl border-2 border-teal-200 bg-[#ECF7F3] p-3">
+                        <div className="text-[10px] font-semibold text-teal-600 uppercase tracking-wide mb-1">📅 Meeting</div>
+                        <div className="font-medium text-sm text-neutral-800">{parsed.displayText}</div>
+                        {meeting && meeting.attendees?.length > 0 && (
+                          <div className="mt-1.5 text-xs text-neutral-500">
+                            {meeting.attendees.map((a) => a.name).join(", ")} going
+                          </div>
+                        )}
+                        {currentUserId && (
+                          <button
+                            onClick={() => handleRsvp(parsed.meetingId)}
+                            className={`mt-2 text-xs rounded-full px-3 py-1 border font-medium transition-colors ${
+                              isGoing
+                                ? "bg-teal-600 text-white border-teal-600"
+                                : "bg-white text-teal-700 border-teal-300 hover:bg-teal-50"
+                            }`}
+                          >
+                            {isGoing ? "✓ Going" : "Going?"}
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        className={`rounded-xl p-3 ${
+                          msg.is_kudos || msg.content.startsWith("🏆")
+                            ? "bg-yellow-50 border border-yellow-200"
+                            : msg.content.startsWith("🎉")
+                            ? "bg-violet-50 border border-violet-200"
+                            : msg.content.startsWith("You've been assigned")
+                            ? "bg-[#ECF7F3] border border-teal-100"
+                            : "bg-neutral-50"
+                        }`}
+                      >
+                        <p className="text-sm text-neutral-700">{msg.content}</p>
+                        {msg.related_task_id && onTaskClick && (
+                          <button
+                            onClick={() => { onTaskClick(msg.related_task_id!); onClose(); }}
+                            className="text-xs text-teal-600 underline mt-1 block hover:text-teal-800"
+                          >
+                            View task →
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-neutral-700">{msg.content}</p>
-                  {msg.related_task_id && onTaskClick && (
-                    <button
-                      onClick={() => { onTaskClick(msg.related_task_id!); onClose(); }}
-                      className="text-xs text-teal-600 underline mt-1 block hover:text-teal-800"
-                    >
-                      View task →
-                    </button>
-                  )}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

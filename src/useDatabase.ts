@@ -1378,6 +1378,7 @@ export interface Meeting {
   company_id: string | null;
   notes: string | null;
   created_by: string | null;
+  attendees: { id: string; name: string }[];
   created_at: string;
   updated_at: string;
 }
@@ -1413,6 +1414,26 @@ export async function deleteMeeting(id: string): Promise<boolean> {
   const { error } = await supabase.from("meetings").delete().eq("id", id);
   if (error) { console.error("Error deleting meeting:", error); return false; }
   return true;
+}
+
+export async function rsvpMeeting(
+  meetingId: string,
+  userId: string,
+  displayName: string
+): Promise<{ id: string; name: string }[]> {
+  const { data: meeting } = await supabase
+    .from("meetings")
+    .select("attendees")
+    .eq("id", meetingId)
+    .single();
+  if (!meeting) return [];
+  const current: { id: string; name: string }[] = meeting.attendees ?? [];
+  const alreadyGoing = current.some((a) => a.id === userId);
+  const next = alreadyGoing
+    ? current.filter((a) => a.id !== userId)
+    : [...current, { id: userId, name: displayName }];
+  await supabase.from("meetings").update({ attendees: next }).eq("id", meetingId);
+  return next;
 }
 
 export function useMeetings() {

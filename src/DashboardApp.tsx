@@ -634,7 +634,7 @@ export default function DashboardApp() {
             />
           )}
 
-          {page === "Meetings" && <MeetingsPage role={role} />}
+          {page === "Meetings" && <MeetingsPage role={role} userId={profile?.id ?? ""} userName={userName} />}
 
           {page === "Tasks" && (
             <TasksPage

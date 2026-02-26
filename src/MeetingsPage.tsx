@@ -1,7 +1,7 @@
 // MeetingsPage.tsx - Meetings with real Supabase data
 import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { useMeetings, createMeeting, updateMeeting, deleteMeeting, Meeting } from "./useDatabase";
+import { useMeetings, createMeeting, updateMeeting, deleteMeeting, rsvpMeeting, sendMessage, Meeting } from "./useDatabase";
 import { Card } from "./ui";
 import { COMPANIES, Role, isFounder } from "./types";
 import { Modal } from "./TaskModals";
@@ -14,7 +14,7 @@ function MeetingFormModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (newMeeting?: Meeting | null) => void;
   existing?: Meeting;
 }) {
   const [title, setTitle] = useState(existing?.title ?? "");
@@ -56,12 +56,15 @@ function MeetingFormModal({
     const isoString = new Date(`${scheduledDate}T${scheduledTime}:00`).toISOString();
     if (existing) {
       await updateMeeting(existing.id, { title, scheduled_at: isoString, notes: notes || null });
+      setSaving(false);
+      onSaved(null);
+      onClose();
     } else {
-      await createMeeting({ title, scheduled_at: isoString, notes: notes || null, company_id: null, created_by: null });
+      const newMeeting = await createMeeting({ title, scheduled_at: isoString, notes: notes || null, company_id: null, created_by: null, attendees: [] });
+      setSaving(false);
+      onSaved(newMeeting);
+      onClose();
     }
-    setSaving(false);
-    onSaved();
-    onClose();
   }
 
   return (
@@ -109,7 +112,7 @@ function MeetingFormModal({
    Meeting Detail Modal
    ────────────────────────────────────────────────────────────────── */
 function MeetingDetailModal({
-  meeting, isOpen, onClose, onEdit, onDelete, role,
+  meeting, isOpen, onClose, onEdit, onDelete, role, userId, userName, onRsvp,
 }: {
   meeting: Meeting | null;
   isOpen: boolean;
@@ -117,9 +120,13 @@ function MeetingDetailModal({
   onEdit: () => void;
   onDelete: () => void;
   role: Role;
+  userId: string;
+  userName: string;
+  onRsvp: (meetingId: string) => Promise<void>;
 }) {
   if (!meeting) return null;
   const dt = new Date(meeting.scheduled_at);
+  const isGoing = meeting.attendees?.some((a) => a.id === userId) ?? false;
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={meeting.title} size="medium">
       <div className="space-y-4">
@@ -129,6 +136,26 @@ function MeetingDetailModal({
           </div>
           <div className="text-sm text-teal-700">
             {dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </div>
+        </div>
+        {/* Attendees */}
+        <div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onRsvp(meeting.id)}
+              className={`text-xs rounded-full px-4 py-1.5 border font-medium transition-colors ${
+                isGoing
+                  ? "bg-teal-600 text-white border-teal-600"
+                  : "bg-white text-teal-700 border-teal-300 hover:bg-teal-50"
+              }`}
+            >
+              {isGoing ? "✓ Going" : "Going?"}
+            </button>
+            {meeting.attendees?.length > 0 && (
+              <span className="text-xs text-neutral-500">
+                {meeting.attendees.map((a) => a.name).join(", ")}
+              </span>
+            )}
           </div>
         </div>
         {meeting.notes ? (
@@ -268,7 +295,7 @@ function googleCalendarUrl(meeting: Meeting) {
 /* ──────────────────────────────────────────────────────────────────
    Meetings Page
    ────────────────────────────────────────────────────────────────── */
-export function MeetingsPage({ role }: { role: Role }) {
+export function MeetingsPage({ role, userId, userName }: { role: Role; userId: string; userName: string }) {
   const { meetings, loading, refetch } = useMeetings();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
@@ -277,7 +304,6 @@ export function MeetingsPage({ role }: { role: Role }) {
 
   const now = new Date();
   const upcoming = meetings.filter((m) => new Date(m.scheduled_at) >= now);
-  const past = meetings.filter((m) => new Date(m.scheduled_at) < now);
 
   // When a date is selected, show all meetings that day (past or future)
   // When no date selected, show only upcoming
@@ -289,6 +315,26 @@ export function MeetingsPage({ role }: { role: Role }) {
     await deleteMeeting(id);
     setSelectedMeeting(null);
     refetch();
+  }
+
+  async function handleCreated(newMeeting: Meeting | null | undefined) {
+    refetch();
+    if (!newMeeting) return;
+    const d = new Date(newMeeting.scheduled_at);
+    const dateLabel = d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+    const timeLabel = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    await sendMessage(`📅 ${newMeeting.title} · ${dateLabel} · ${timeLabel}[mid:${newMeeting.id}]`);
+  }
+
+  async function handleRsvp(meetingId: string) {
+    if (!userId) return;
+    await rsvpMeeting(meetingId, userId, userName);
+    refetch();
+    // Keep detail modal in sync
+    if (selectedMeeting?.id === meetingId) {
+      const updated = meetings.find((m) => m.id === meetingId);
+      if (updated) setSelectedMeeting({ ...updated });
+    }
   }
 
   function formatMeetingTime(iso: string) {
@@ -332,28 +378,43 @@ export function MeetingsPage({ role }: { role: Role }) {
             <div className="space-y-2">
               {displayedUpcoming.map((m) => {
                 const isPast = new Date(m.scheduled_at) < now;
+                const isGoing = m.attendees?.some((a) => a.id === userId) ?? false;
                 return (
                 <div key={m.id}
                   onClick={() => setSelectedMeeting(m)}
-                  className={`rounded-xl border p-3 flex items-start justify-between gap-3 cursor-pointer hover:border-teal-300 transition-colors ${isPast ? "bg-neutral-50 opacity-70" : "bg-white"}`}>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{m.title}</div>
-                    <div className="text-xs text-neutral-500">{formatMeetingTime(m.scheduled_at)}</div>
+                  className={`rounded-xl border p-3 cursor-pointer hover:border-teal-300 transition-colors ${isPast ? "bg-neutral-50 opacity-70" : "bg-white"}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{m.title}</div>
+                      <div className="text-xs text-neutral-500">{formatMeetingTime(m.scheduled_at)}</div>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <a
+                        href={googleCalendarUrl(m)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-[11px] rounded-xl border border-teal-300 bg-teal-50 text-teal-800 px-2 py-1 hover:bg-teal-100 font-medium"
+                      >
+                        + Google Cal
+                      </a>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRsvp(m.id); }}
+                        className={`text-[11px] rounded-xl border px-2 py-1 font-medium transition-colors ${
+                          isGoing
+                            ? "bg-teal-600 text-white border-teal-600"
+                            : "border-neutral-300 hover:border-teal-300 text-neutral-600"
+                        }`}
+                      >
+                        {isGoing ? "✓ Going" : "Going?"}
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <a
-                      href={googleCalendarUrl(m)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-[11px] rounded-xl border border-teal-300 bg-teal-50 text-teal-800 px-2 py-1 hover:bg-teal-100 font-medium"
-                    >
-                      + Google Cal
-                    </a>
-                    <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">
-                      Agenda
-                    </button>
-                  </div>
+                  {m.attendees?.length > 0 && (
+                    <div className="mt-1.5 text-xs text-neutral-400">
+                      {m.attendees.map((a) => a.name).join(", ")} going
+                    </div>
+                  )}
                 </div>
                 );
               })}
@@ -364,6 +425,7 @@ export function MeetingsPage({ role }: { role: Role }) {
 
       <MeetingDetailModal
         meeting={selectedMeeting} isOpen={!!selectedMeeting} role={role}
+        userId={userId} userName={userName} onRsvp={handleRsvp}
         onClose={() => setSelectedMeeting(null)}
         onEdit={() => { setEditingMeeting(selectedMeeting); setSelectedMeeting(null); }}
         onDelete={() => selectedMeeting && handleDelete(selectedMeeting.id)}
@@ -371,10 +433,10 @@ export function MeetingsPage({ role }: { role: Role }) {
 
       <AnimatePresence>
         {showCreate && (
-          <MeetingFormModal isOpen={showCreate} onClose={() => setShowCreate(false)} onSaved={refetch} />
+          <MeetingFormModal isOpen={showCreate} onClose={() => setShowCreate(false)} onSaved={handleCreated} />
         )}
         {editingMeeting && (
-          <MeetingFormModal isOpen={!!editingMeeting} onClose={() => setEditingMeeting(null)} onSaved={refetch} existing={editingMeeting} />
+          <MeetingFormModal isOpen={!!editingMeeting} onClose={() => setEditingMeeting(null)} onSaved={handleCreated} existing={editingMeeting} />
         )}
       </AnimatePresence>
     </div>
