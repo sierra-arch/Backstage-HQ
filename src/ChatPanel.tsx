@@ -116,7 +116,7 @@ export function ChatPanel({
         className="fixed right-0 top-0 bottom-0 w-[480px] max-w-full bg-white border-l shadow-2xl z-40 flex"
       >
         {/* Sidebar */}
-        <div className="w-48 bg-neutral-50 border-r flex flex-col">
+        <div className="w-28 md:w-48 bg-neutral-50 border-r flex flex-col">
           <div className="border-b px-3 py-3">
             <h3 className="font-semibold text-sm text-neutral-700">Messages</h3>
           </div>

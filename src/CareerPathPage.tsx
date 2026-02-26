@@ -45,10 +45,10 @@ export function CareerPathPage({
         <div className="mt-3 h-2.5 w-full max-w-xs rounded-full bg-teal-100 overflow-hidden">
           <div className="h-full bg-teal-600 transition-all rounded-full" style={{ width: `${pct}%` }} />
         </div>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Small = 5 XP</span>
-          <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Medium = 10 XP</span>
-          <span className="text-xs px-3 py-1 rounded-full bg-white border border-teal-200 text-teal-800">Large = 20 XP</span>
+        <div className="mt-3 flex gap-1.5">
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Small = 5 XP</span>
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Medium = 10 XP</span>
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Large = 20 XP</span>
         </div>
       </div>
 

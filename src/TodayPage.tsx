@@ -523,17 +523,13 @@ export function TodayTeam({
 
   return (
     <>
-      <div className="grid grid-cols-12 gap-4 items-stretch">
-        <div className="col-span-12 md:col-span-4">
+      <div className="grid grid-cols-12 gap-4">
+        {/* Welcome — order-1 always */}
+        <div className="col-span-12 md:col-span-4 order-1">
           <WelcomeCard name={userName} doneThisWeek={completedThisWeek} level={level} levelXP={xp} levelMax={LEVEL_XP_THRESHOLD} className="h-full" />
         </div>
-        <div className="col-span-12 md:col-span-8">
-          <NotesCard onSave={onSaveNote} />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 md:col-span-6">
+        {/* Today's Focus — order-2 on mobile, order-3 on desktop */}
+        <div className="col-span-12 md:col-span-6 order-2 md:order-3">
           <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
             <header className="mb-3 flex-shrink-0">
               <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
@@ -545,8 +541,12 @@ export function TodayTeam({
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent z-10" />
           </section>
         </div>
-
-        <div className="col-span-12 md:col-span-6">
+        {/* Notes — order-3 on mobile, order-2 on desktop */}
+        <div className="col-span-12 md:col-span-8 order-3 md:order-2">
+          <NotesCard onSave={onSaveNote} />
+        </div>
+        {/* Full Task List — order-4 always */}
+        <div className="col-span-12 md:col-span-6 order-4">
           <div className={`relative ${equalCardH} flex flex-col`}>
             <Card
               title="Full Task List"

@@ -174,7 +174,72 @@ export function TasksPage({
   });
 
   return (
-    <div className="flex gap-4 items-start">
+    <div className="flex flex-col md:flex-row gap-4 items-start">
+      {/* Filters — top on mobile, right column on desktop */}
+      <div className="w-full md:w-40 md:flex-shrink-0 md:order-last md:space-y-2 md:pt-1 flex flex-row flex-wrap gap-2 md:flex-col md:flex-nowrap">
+        {isFounder(role) && (
+          <button onClick={onOpenCreateTask}
+            className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1.5 hover:bg-teal-50 text-xs font-medium md:w-full">
+            + New Task
+          </button>
+        )}
+
+        <select value={taskFilters.company}
+          onChange={(e) => setTaskFilters({ ...taskFilters, company: e.target.value })}
+          className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white md:w-full ${taskFilters.company !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+          <option value="all">Company</option>
+          {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+
+        <select value={taskFilters.status}
+          onChange={(e) => setTaskFilters({ ...taskFilters, status: e.target.value })}
+          className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white md:w-full ${taskFilters.status !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+          <option value="all">Status</option>
+          <option value="focus">Focus</option>
+          <option value="active">Active</option>
+          <option value="submitted">Submitted</option>
+          <option value="completed">Completed</option>
+          <option value="archived">Archived</option>
+        </select>
+
+        <select value={taskFilters.impact}
+          onChange={(e) => setTaskFilters({ ...taskFilters, impact: e.target.value })}
+          className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white md:w-full ${taskFilters.impact !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+          <option value="all">Level</option>
+          <option value="small">Small</option>
+          <option value="medium">Medium</option>
+          <option value="large">Large</option>
+        </select>
+
+        {isFounder(role) && (
+          <select value={taskFilters.assignee}
+            onChange={(e) => setTaskFilters({ ...taskFilters, assignee: e.target.value })}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white md:w-full ${taskFilters.assignee !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
+            <option value="all">Assignee</option>
+            {teamMembers.map((tm) => (
+              <option key={tm.id} value={tm.display_name || ""}>{tm.display_name || "Unknown"}</option>
+            ))}
+            <option value="">Unassigned</option>
+          </select>
+        )}
+
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
+          className={`rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white md:w-full ${sortBy !== "default" ? "border-teal-400 text-teal-700" : ""}`}>
+          <option value="default">Sort</option>
+          <option value="due_date">Due Date</option>
+          <option value="impact">Impact</option>
+          <option value="status">Status</option>
+        </select>
+
+        {(isFiltered || sortBy !== "default") && (
+          <button
+            onClick={() => { setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" }); setSortBy("default"); }}
+            className="text-xs text-neutral-400 hover:text-neutral-600 md:w-full">
+            ✕ Clear
+          </button>
+        )}
+      </div>
+
       {/* Task box */}
       <div className="flex-1 min-w-0">
         <Card title="All Tasks">
@@ -223,70 +288,6 @@ export function TasksPage({
         </Card>
       </div>
 
-      {/* Filters — outside the box, on the right */}
-      <div className="w-40 flex-shrink-0 space-y-2 pt-1">
-        {isFounder(role) && (
-          <button onClick={onOpenCreateTask}
-            className="w-full rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1.5 hover:bg-teal-50 text-xs font-medium">
-            + New Task
-          </button>
-        )}
-
-        <select value={taskFilters.company}
-          onChange={(e) => setTaskFilters({ ...taskFilters, company: e.target.value })}
-          className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.company !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-          <option value="all">Company</option>
-          {COMPANIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-
-        <select value={taskFilters.status}
-          onChange={(e) => setTaskFilters({ ...taskFilters, status: e.target.value })}
-          className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.status !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-          <option value="all">Status</option>
-          <option value="focus">Focus</option>
-          <option value="active">Active</option>
-          <option value="submitted">Submitted</option>
-          <option value="completed">Completed</option>
-          <option value="archived">Archived</option>
-        </select>
-
-        <select value={taskFilters.impact}
-          onChange={(e) => setTaskFilters({ ...taskFilters, impact: e.target.value })}
-          className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.impact !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-          <option value="all">Level</option>
-          <option value="small">Small</option>
-          <option value="medium">Medium</option>
-          <option value="large">Large</option>
-        </select>
-
-        {isFounder(role) && (
-          <select value={taskFilters.assignee}
-            onChange={(e) => setTaskFilters({ ...taskFilters, assignee: e.target.value })}
-            className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${taskFilters.assignee !== "all" ? "border-teal-400 text-teal-700" : ""}`}>
-            <option value="all">Assignee</option>
-            {teamMembers.map((tm) => (
-              <option key={tm.id} value={tm.display_name || ""}>{tm.display_name || "Unknown"}</option>
-            ))}
-            <option value="">Unassigned</option>
-          </select>
-        )}
-
-        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
-          className={`w-full rounded-full border px-3 py-1.5 text-xs font-medium outline-none bg-white ${sortBy !== "default" ? "border-teal-400 text-teal-700" : ""}`}>
-          <option value="default">Sort</option>
-          <option value="due_date">Due Date</option>
-          <option value="impact">Impact</option>
-          <option value="status">Status</option>
-        </select>
-
-        {(isFiltered || sortBy !== "default") && (
-          <button
-            onClick={() => { setTaskFilters({ company: "all", impact: "all", priority: "all", status: "all", assignee: "all" }); setSortBy("default"); }}
-            className="w-full text-xs text-neutral-400 hover:text-neutral-600">
-            ✕ Clear filters
-          </button>
-        )}
-      </div>
     </div>
   );
 }
