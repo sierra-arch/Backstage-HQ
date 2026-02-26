@@ -362,6 +362,17 @@ export default function DashboardApp() {
     "Sierra";
 
 
+  // Refetch profile whenever completed/archived task count changes — this is when XP is awarded.
+  // Supabase realtime on profiles requires REPLICA IDENTITY FULL for filtered updates, which may
+  // not be set, so we piggyback on the tasks subscription (which is reliably real-time) instead.
+  const completedArchivedCount = React.useMemo(
+    () => tasks.filter(t => t.status === "completed" || t.status === "archived").length,
+    [tasks]
+  );
+  React.useEffect(() => {
+    refetchProfile();
+  }, [completedArchivedCount]);
+
   // Fire browser notification when a new DM arrives (if permission granted + pref enabled)
   const prevMessageCount = React.useRef(messages.length);
   React.useEffect(() => {

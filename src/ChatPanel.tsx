@@ -211,7 +211,7 @@ export function ChatPanel({
                       onClick={() => { onTaskClick(msg.related_task_id!); onClose(); }}
                       className="text-xs text-teal-600 underline mt-1 block hover:text-teal-800"
                     >
-                      View completed task →
+                      View task →
                     </button>
                   )}
                 </div>
