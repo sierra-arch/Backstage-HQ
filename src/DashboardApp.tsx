@@ -48,6 +48,7 @@ import {
   AddAccomplishmentModal,
   KudosModal,
   SendKudosModal,
+  SubmitNotesModal,
 } from "./TaskModals";
 
 /* ──────────────────────────────────────────────────────────────────
@@ -337,6 +338,7 @@ export default function DashboardApp() {
   const [createDefaultCompany, setCreateDefaultCompany] = useState<string | undefined>(undefined);
   const [showKudosModal, setShowKudosModal] = useState(false);
   const [kudosTask, setKudosTask] = useState<DBTask | null>(null);
+  const [pendingSubmitTask, setPendingSubmitTask] = useState<DBTask | null>(null);
   const [showChat, setShowChat] = useState(false);
   const [showSendKudos, setShowSendKudos] = useState(false);
   const [kudosDefaultMemberId, setKudosDefaultMemberId] = useState<string | undefined>(undefined);
@@ -521,8 +523,18 @@ export default function DashboardApp() {
     refetchMessages();
   }
 
-  async function handleSubmitForApproval(task: DBTask) {
-    await dbUpdateTask(task.id, { status: "submitted" });
+  function handleSubmitForApproval(task: DBTask) {
+    setShowTaskModal(false);
+    setPendingSubmitTask(task);
+  }
+
+  async function handleConfirmSubmit(notes: string) {
+    if (!pendingSubmitTask) return;
+    await dbUpdateTask(pendingSubmitTask.id, {
+      status: "submitted",
+      metadata: { ...pendingSubmitTask.metadata, submission_notes: notes },
+    });
+    setPendingSubmitTask(null);
     refetch();
   }
 
@@ -716,6 +728,17 @@ export default function DashboardApp() {
           <KudosModal
             isOpen={showKudosModal} onClose={() => setShowKudosModal(false)}
             task={kudosTask} onSend={handleSendKudos}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!!pendingSubmitTask && (
+          <SubmitNotesModal
+            isOpen={!!pendingSubmitTask}
+            onClose={() => setPendingSubmitTask(null)}
+            task={pendingSubmitTask}
+            onConfirm={handleConfirmSubmit}
           />
         )}
       </AnimatePresence>

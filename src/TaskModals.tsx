@@ -233,6 +233,12 @@ export function TaskModal({
                 {task.metadata.link}
               </a>
             )}
+            {task.metadata?.submission_notes && (
+              <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 space-y-1">
+                <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Completion Notes</p>
+                <p className="text-sm text-teal-900 whitespace-pre-wrap">{task.metadata.submission_notes}</p>
+              </div>
+            )}
             <div className="flex gap-3 pt-4 border-t">
               {!isDone && isSubmitted && isFounder(role) && onApprove ? (
                 <>
@@ -633,6 +639,71 @@ export function AddAccomplishmentModal({
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Submit Notes Modal (team member fills in what they did before submitting)
+   ────────────────────────────────────────────────────────────────── */
+export function SubmitNotesModal({
+  isOpen,
+  onClose,
+  task,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  task: DBTask | null;
+  onConfirm: (notes: string) => void;
+}) {
+  const [notes, setNotes] = useState("");
+
+  function handleConfirm() {
+    if (!notes.trim()) return;
+    onConfirm(notes.trim());
+    setNotes("");
+  }
+
+  function handleClose() {
+    setNotes("");
+    onClose();
+  }
+
+  if (!task) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={handleClose} title="Submit for Review" size="medium">
+      <div className="space-y-4">
+        <div className="bg-neutral-50 rounded-xl px-4 py-3 border text-sm text-neutral-700 font-medium">
+          {task.title}
+        </div>
+        <div>
+          <label className="text-sm font-medium text-neutral-700 block mb-1">
+            Completion Notes <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Describe what you did, any decisions made, or anything the founder should know..."
+            className="w-full rounded-xl border px-3 py-2 text-sm min-h-[120px] focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+            autoFocus
+          />
+          <p className="text-xs text-neutral-400 mt-1">Required — these notes will be visible to the founder during review.</p>
+        </div>
+        <div className="flex gap-3 pt-4 border-t">
+          <button onClick={handleClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">
+            Cancel
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={!notes.trim()}
+            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
+          >
+            Submit for Review
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Kudos Modal (Task Review: Archive with Thanks OR Return with Notes)
    ────────────────────────────────────────────────────────────────── */
 export function KudosModal({
@@ -665,6 +736,13 @@ export function KudosModal({
         <div className="bg-neutral-50 rounded-xl px-4 py-3 border text-sm text-neutral-600">
           Submitted by <span className="font-medium text-neutral-900">@{task.assignee_name}</span>
         </div>
+
+        {task.metadata?.submission_notes && (
+          <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 space-y-1">
+            <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Team member's notes</p>
+            <p className="text-sm text-teal-900 whitespace-pre-wrap">{task.metadata.submission_notes}</p>
+          </div>
+        )}
 
         {/* Tab toggle */}
         <div className="flex rounded-xl border overflow-hidden">
