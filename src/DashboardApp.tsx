@@ -24,7 +24,7 @@ import {
 import { connectGoogle, getTokenSilently, createGoogleDoc, appendToDoc } from "./useGoogleDocs";
 import {
   fromDbToUi, isFounder,
-  COMPANIES, XP_BY_IMPACT,
+  COMPANIES, XP_BY_IMPACT, LEVEL_XP_THRESHOLD,
   Role, AppRole, Page, Client, Product, DBTask,
 } from "./types";
 
@@ -354,26 +354,23 @@ export default function DashboardApp() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const role: Role = profile?.role ? fromDbToUi[profile.role as AppRole] : "Founder";
-  const level = profile?.level || 1;
-  const xp = profile?.xp || 0;
   const userName =
     session?.user?.user_metadata?.full_name ??
     session?.user?.email?.split("@")[0] ??
     "Sierra";
 
-
-  // Refetch profile whenever completed/archived task count changes — this is when XP is awarded.
-  // Supabase realtime on profiles requires REPLICA IDENTITY FULL for filtered updates, which may
-  // not be set, so we piggyback on the tasks subscription (which is reliably real-time) instead.
-  const completedArchivedCount = React.useMemo(
-    () => tasks.filter(t => t.status === "completed" || t.status === "archived").length,
-    [tasks]
+  // Compute level/XP directly from completed tasks — the tasks subscription is reliably
+  // realtime and this doesn't depend on xp/level columns existing in the profiles table.
+  const myCompletedTasks = React.useMemo(
+    () => tasks.filter(t =>
+      t.status === "completed" &&
+      (t.assigned_to === profile?.id || t.assignee_name === userName)
+    ),
+    [tasks, profile?.id, userName]
   );
-  React.useEffect(() => {
-    // Small delay so any concurrent XP writes finish before we read the profile
-    const timer = setTimeout(() => refetchProfile(), 800);
-    return () => clearTimeout(timer);
-  }, [completedArchivedCount]);
+  const totalXP = myCompletedTasks.reduce((sum, t) => sum + (XP_BY_IMPACT[t.impact] ?? 0), 0);
+  const level = Math.floor(totalXP / LEVEL_XP_THRESHOLD) + 1;
+  const xp = totalXP % LEVEL_XP_THRESHOLD;
 
   // Fire browser notification when a new DM arrives (if permission granted + pref enabled)
   const prevMessageCount = React.useRef(messages.length);
