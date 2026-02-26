@@ -8,12 +8,11 @@ import { Card, CompanyChip, Avatar } from "./ui";
    Task Row & List (shared, used by TodayPage too)
    ────────────────────────────────────────────────────────────────── */
 export function TaskRow({
-  task, onClick, onSubmit, onPin,
+  task, onClick, onSubmit,
 }: {
   task: DBTask;
   onClick: () => void;
   onSubmit?: (task: DBTask) => void;
-  onPin?: (task: DBTask) => void;
 }) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const isOverdue = !!task.due_date && task.due_date < todayStr
@@ -55,19 +54,6 @@ export function TaskRow({
         </div>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
-        {onPin && (task.status === "active" || task.status === "focus") && (
-          <button
-            title={task.status === "focus" ? "Unpin from Focus" : "Pin to Today's Focus"}
-            onClick={(e) => { e.stopPropagation(); onPin(task); }}
-            className={`text-base leading-none transition-colors ${
-              task.status === "focus"
-                ? "text-teal-600 hover:text-neutral-400"
-                : "text-neutral-300 hover:text-teal-500"
-            }`}
-          >
-            {task.status === "focus" ? "★" : "☆"}
-          </button>
-        )}
         {onSubmit && (task.status === "active" || task.status === "focus") && (
           <button
             onClick={(e) => { e.stopPropagation(); onSubmit(task); }}
@@ -82,12 +68,11 @@ export function TaskRow({
 }
 
 export function TaskList({
-  tasks, onTaskClick, onSubmit, onPin,
+  tasks, onTaskClick, onSubmit,
 }: {
   tasks: DBTask[];
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
-  onPin?: (task: DBTask) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -95,7 +80,7 @@ export function TaskList({
         <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
       )}
       {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} onPin={onPin} />
+        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} />
       ))}
     </div>
   );
@@ -115,7 +100,6 @@ export function TasksPage({
   onOpenCreateTask,
   onTaskClick,
   onSubmit,
-  onPin,
 }: {
   filteredTasks: DBTask[];
   taskFilters: { company: string; impact: string; priority: string; status: string; assignee: string };
@@ -127,7 +111,6 @@ export function TasksPage({
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
-  onPin?: (task: DBTask) => void;
 }) {
   const [showArchived, setShowArchived] = React.useState(false);
   const [sortBy, setSortBy] = React.useState<"default" | "due_date" | "impact" | "status">("default");
@@ -247,7 +230,7 @@ export function TasksPage({
       <div className="flex-1 min-w-0">
         <Card title="All Tasks">
           {statusPinned ? (
-            <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} onPin={onPin} />
+            <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-2xl p-4 bg-[#ECF7F3]">
@@ -258,8 +241,7 @@ export function TasksPage({
                   )}
                   onTaskClick={onTaskClick}
                   onSubmit={onSubmit}
-                  onPin={onPin}
-                />
+                                 />
               </div>
               <div>
                 <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
@@ -273,8 +255,7 @@ export function TasksPage({
                   )}
                   onTaskClick={onTaskClick}
                   onSubmit={onSubmit}
-                  onPin={onPin}
-                />
+                                 />
               </div>
             </div>
           )}

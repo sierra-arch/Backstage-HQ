@@ -602,10 +602,6 @@ export default function DashboardApp() {
               onTaskClick={openTaskModal} onApprove={handleApprove}
               onOpenAddAccomplishment={() => setShowAddAccomplishment(true)}
               onCompanyClick={handleCompanyClick} onSaveNote={handleSaveNote} refetch={refetch}
-              onPinTask={async (task) => {
-                await dbUpdateTask(task.id, { status: task.status === "focus" ? "active" : "focus" });
-                refetch();
-              }}
             />
           )}
 
@@ -619,10 +615,7 @@ export default function DashboardApp() {
               onCompanyClick={handleCompanyClick}
               onOpenAddAccomplishment={() => setShowAddAccomplishment(true)}
               onSaveNote={handleSaveNote}
-              onPinTask={async (task) => {
-                await dbUpdateTask(task.id, { status: task.status === "focus" ? "active" : "focus" });
-                refetch();
-              }}
+              refetch={refetch}
             />
           )}
 
@@ -634,10 +627,6 @@ export default function DashboardApp() {
               role={role} userName={userName} userId={profile?.id ?? ""} teamMembers={teamMembers}
               onOpenCreateTask={() => setShowCreateModal(true)} onTaskClick={openTaskModal}
               onSubmit={!isFounder(role) ? handleSubmitForApproval : undefined}
-              onPin={async (task) => {
-                await dbUpdateTask(task.id, { status: task.status === "focus" ? "active" : "focus" });
-                refetch();
-              }}
             />
           )}
 

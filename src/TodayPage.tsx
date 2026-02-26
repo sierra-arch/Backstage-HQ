@@ -3,8 +3,52 @@ import React from "react";
 import { DBTask, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
 import { AccomplishmentDB, useMeetings } from "./useDatabase";
 import { Card, Chip, Avatar, CompanyChip, LevelRing } from "./ui";
-import { TaskList } from "./TasksPage";
+import { TaskRow } from "./TasksPage";
 import { updateTask as dbUpdateTask, useCompanyGoals, upsertCompanyGoal, deleteCompanyGoal } from "./useDatabase";
+import {
+  DndContext, DragEndEvent, DragStartEvent, DragOverlay,
+  PointerSensor, useSensor, useSensors, closestCorners,
+} from "@dnd-kit/core";
+import {
+  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+/* ──────────────────────────────────────────────────────────────────
+   SortableTaskItem — TaskRow with a drag handle for DnD
+   ────────────────────────────────────────────────────────────────── */
+function SortableTaskItem({
+  task, containerId, onTaskClick, onSubmit,
+}: {
+  task: DBTask;
+  containerId: string;
+  onTaskClick: (task: DBTask) => void;
+  onSubmit?: (task: DBTask) => void;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: task.id, data: { containerId } });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}
+      className="flex items-center gap-1"
+    >
+      <div
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-neutral-300 hover:text-neutral-500 flex-shrink-0 touch-none select-none px-0.5 text-base leading-none"
+        title="Drag to reorder"
+      >
+        ⠿
+      </div>
+      <div className="flex-1 min-w-0">
+        <TaskRow task={task} onClick={() => onTaskClick(task)} onSubmit={onSubmit} />
+      </div>
+    </div>
+  );
+}
 
 /* ──────────────────────────────────────────────────────────────────
    Confetti
@@ -371,7 +415,6 @@ export function TodayFounder({
   onCompanyClick,
   onSaveNote,
   refetch,
-  onPinTask,
 }: {
   userName: string;
   completedThisWeek: number;
@@ -388,9 +431,29 @@ export function TodayFounder({
   onCompanyClick: (name: string) => void;
   onSaveNote: (text: string) => Promise<void>;
   refetch: () => void;
-  onPinTask?: (task: DBTask) => void;
 }) {
   const equalCardH = "h-[360px]";
+
+  // DnD state for sortable focus list
+  const [focusList, setFocusList] = React.useState(focusTasks);
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  React.useEffect(() => { setFocusList(focusTasks); }, [focusTasks]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  async function handleDragEnd({ active, over }: DragEndEvent) {
+    setDraggingId(null);
+    if (!over || active.id === over.id) return;
+    const oldIndex = focusList.findIndex(t => t.id === active.id);
+    const newIndex = focusList.findIndex(t => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newList = arrayMove(focusList, oldIndex, newIndex);
+    setFocusList(newList);
+    await Promise.all(newList.map((t, i) => dbUpdateTask(t.id, { sort_order: i })));
+    refetch();
+  }
+
+  const draggingTask = draggingId ? focusList.find(t => t.id === draggingId) : null;
 
   return (
     <>
@@ -409,7 +472,7 @@ export function TodayFounder({
             <header className="mb-3 flex-shrink-0 flex items-center justify-between">
               <div>
                 <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
-                <p className="text-xs text-neutral-600">Smartly chosen by due date, priority & quick wins</p>
+                <p className="text-xs text-neutral-600">Drag to reorder</p>
               </div>
               <button onClick={onOpenCreateTask}
                 className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1 hover:bg-teal-50 text-xs font-medium">
@@ -417,7 +480,21 @@ export function TodayFounder({
               </button>
             </header>
             <div className="flex-1 overflow-y-auto pr-1">
-              <TaskList tasks={focusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
+              <DndContext sensors={sensors} collisionDetection={closestCorners}
+                onDragStart={({ active }) => setDraggingId(active.id as string)}
+                onDragEnd={handleDragEnd}>
+                <SortableContext items={focusList.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                  <div className="space-y-2">
+                    {focusList.length === 0 && <div className="text-sm text-neutral-500 text-center py-8">No focus tasks yet</div>}
+                    {focusList.map(t => (
+                      <SortableTaskItem key={t.id} task={t} containerId="focus" onTaskClick={onTaskClick} />
+                    ))}
+                  </div>
+                </SortableContext>
+                <DragOverlay>
+                  {draggingTask && <TaskRow task={draggingTask} onClick={() => {}} />}
+                </DragOverlay>
+              </DndContext>
             </div>
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent z-10" />
           </section>
@@ -539,7 +616,7 @@ export function TodayTeam({
   onCompanyClick,
   onOpenAddAccomplishment,
   onSaveNote,
-  onPinTask,
+  refetch,
 }: {
   userName: string;
   completedThisWeek: number;
@@ -555,14 +632,73 @@ export function TodayTeam({
   onCompanyClick: (company: string) => void;
   onOpenAddAccomplishment: () => void;
   onSaveNote: (text: string) => Promise<void>;
-  onPinTask?: (task: DBTask) => void;
+  refetch?: () => void;
 }) {
-  const myTasks = filteredTasks.filter((t) => t.assignee_name === userName && t.status !== "completed" && t.status !== "archived" && t.status !== "submitted");
+  const computedMyTasks = filteredTasks.filter(
+    (t) => t.assignee_name === userName && t.status !== "completed" && t.status !== "archived" && t.status !== "submitted"
+  );
   const equalCardH = "h-[360px]";
   const mySubmittedTasks = submittedTasks.filter((t) => t.assignee_name === userName);
 
+  // DnD state
+  const [focusList, setFocusList] = React.useState(focusTasks);
+  const [activeList, setActiveList] = React.useState(computedMyTasks);
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  React.useEffect(() => { setFocusList(focusTasks); }, [focusTasks]);
+  React.useEffect(() => { setActiveList(computedMyTasks); }, [filteredTasks, userName]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  async function handleDragEnd({ active, over }: DragEndEvent) {
+    setDraggingId(null);
+    if (!over) return;
+    const taskId = active.id as string;
+    const overId = over.id as string;
+    const sourceContainer = (active.data.current as any)?.containerId as string;
+    const destContainer =
+      (over.data.current as any)?.containerId ??
+      (overId === "focus" || overId === "active" ? overId : null);
+
+    if (!sourceContainer || !destContainer) return;
+
+    if (sourceContainer === destContainer && sourceContainer === "focus") {
+      // Reorder within focus
+      const oldIdx = focusList.findIndex(t => t.id === taskId);
+      const newIdx = focusList.findIndex(t => t.id === overId);
+      if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return;
+      const newList = arrayMove(focusList, oldIdx, newIdx);
+      setFocusList(newList);
+      await Promise.all(newList.map((t, i) => dbUpdateTask(t.id, { sort_order: i })));
+      refetch?.();
+    } else if (sourceContainer !== destContainer) {
+      if (destContainer === "focus") {
+        const task = activeList.find(t => t.id === taskId);
+        if (!task) return;
+        setActiveList(prev => prev.filter(t => t.id !== taskId));
+        setFocusList(prev => [...prev, { ...task, status: "focus" }]);
+        await dbUpdateTask(taskId, { status: "focus" });
+        refetch?.();
+      } else {
+        const task = focusList.find(t => t.id === taskId);
+        if (!task) return;
+        setFocusList(prev => prev.filter(t => t.id !== taskId));
+        setActiveList(prev => [...prev, { ...task, status: "active" }]);
+        await dbUpdateTask(taskId, { status: "active" });
+        refetch?.();
+      }
+    }
+  }
+
+  const draggingTask = draggingId ? [...focusList, ...activeList].find(t => t.id === draggingId) : null;
+
   return (
     <>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={({ active }) => setDraggingId(active.id as string)}
+      onDragEnd={handleDragEnd}
+    >
       <div className="grid grid-cols-12 gap-4">
         {/* Welcome — order-1 always */}
         <div className="col-span-12 md:col-span-4 order-1">
@@ -573,11 +709,22 @@ export function TodayTeam({
           <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
             <header className="mb-3 flex-shrink-0">
               <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
-              <p className="text-xs text-neutral-600">Your top priorities</p>
+              <p className="text-xs text-neutral-600">Drag tasks here to prioritize</p>
             </header>
-            <div className="flex-1 overflow-y-auto pr-1">
-              <TaskList tasks={focusTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
-            </div>
+            <SortableContext items={focusList.map(t => t.id)} strategy={verticalListSortingStrategy}>
+              <div id="focus" className="flex-1 overflow-y-auto pr-1 min-h-[40px]">
+                <div className="space-y-2">
+                  {focusList.length === 0 && (
+                    <div className="text-sm text-neutral-400 text-center py-8 border-2 border-dashed border-teal-200 rounded-xl">
+                      Drag a task here to focus on it today
+                    </div>
+                  )}
+                  {focusList.map(t => (
+                    <SortableTaskItem key={t.id} task={t} containerId="focus" onTaskClick={onTaskClick} />
+                  ))}
+                </div>
+              </div>
+            </SortableContext>
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-[#ECF7F3] to-transparent z-10" />
           </section>
         </div>
@@ -590,17 +737,28 @@ export function TodayTeam({
           <div className={`relative ${equalCardH} flex flex-col`}>
             <Card
               title="Full Task List"
-              subtitle="Everything on your plate"
+              subtitle="Drag tasks to Today's Focus"
               className="h-full flex flex-col"
             >
-              <div className="flex-1 overflow-y-auto pr-1">
-                <TaskList tasks={myTasks} onTaskClick={onTaskClick} onPin={onPinTask} />
-              </div>
+              <SortableContext items={activeList.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                <div id="active" className="flex-1 overflow-y-auto pr-1 min-h-[40px]">
+                  <div className="space-y-2">
+                    {activeList.length === 0 && <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>}
+                    {activeList.map(t => (
+                      <SortableTaskItem key={t.id} task={t} containerId="active" onTaskClick={onTaskClick} />
+                    ))}
+                  </div>
+                </div>
+              </SortableContext>
             </Card>
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-10 rounded-b-2xl bg-gradient-to-t from-white to-transparent z-10" />
           </div>
         </div>
       </div>
+      <DragOverlay>
+        {draggingTask && <TaskRow task={draggingTask} onClick={() => {}} />}
+      </DragOverlay>
+    </DndContext>
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-4">
