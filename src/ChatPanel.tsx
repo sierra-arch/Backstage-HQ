@@ -32,7 +32,7 @@ export function ChatPanel({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const teammates = teamMembers
-    .filter((tm) => tm.id !== currentUserId)
+    .filter((tm) => tm.id !== currentUserId && tm.display_name !== _userName)
     .map((tm) => tm.display_name)
     .filter((name): name is string => name !== null);
 
