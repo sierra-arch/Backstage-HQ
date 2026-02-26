@@ -106,7 +106,7 @@ export function CompaniesPage({
                 {/* Progress */}
                 <div className="flex flex-col items-end gap-1.5 shrink-0">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-28 rounded-full bg-teal-100 overflow-hidden">
+                    <div className="h-2 w-28 rounded-full bg-neutral-100 overflow-hidden">
                       <motion.div
                         className="h-full bg-teal-600"
                         initial={false}
@@ -181,7 +181,7 @@ export function CompaniesPage({
                             <p className="text-xs font-semibold text-neutral-800 truncate">{client.name}</p>
                             {clientProgress !== null ? (
                               <>
-                                <div className="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
+                                <div className="h-1.5 w-full rounded-full bg-neutral-200/60 overflow-hidden">
                                   <motion.div
                                     className={`h-full rounded-full ${progressColor(clientProgress)}`}
                                     initial={false}

@@ -465,7 +465,7 @@ export default function DashboardApp() {
   async function handleSendKudos(action: "archive" | "return", message: string) {
     if (!kudosTask) return;
     if (action === "archive") {
-      await dbUpdateTask(kudosTask.id, { status: "completed" });
+      await dbUpdateTask(kudosTask.id, { status: "completed", completed_at: new Date().toISOString() });
       if (kudosTask.assigned_to) {
         await addXPToProfile(kudosTask.assigned_to, XP_BY_IMPACT[kudosTask.impact]);
         if (message) {
