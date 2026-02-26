@@ -489,10 +489,15 @@ export default function DashboardApp() {
     if (action === "archive") {
       // Write XP FIRST so it's in the DB before the task-status realtime event fires
       // on the team member's client and triggers their profile refetch.
-      if (kudosTask.assigned_to) {
-        await addXPToProfile(kudosTask.assigned_to, XP_BY_IMPACT[kudosTask.impact]);
+      // Fall back to name lookup in case assigned_to UUID is missing on the task.
+      const assigneeId =
+        kudosTask.assigned_to ??
+        teamMembers.find((tm) => tm.display_name === kudosTask.assignee_name)?.id ??
+        null;
+      if (assigneeId) {
+        await addXPToProfile(assigneeId, XP_BY_IMPACT[kudosTask.impact]);
         if (message) {
-          await sendMessage(`🎉 ${message}`, kudosTask.assigned_to, true, kudosTask.id);
+          await sendMessage(`🎉 ${message}`, assigneeId, true, kudosTask.id);
         }
       }
       await dbUpdateTask(kudosTask.id, { status: "completed", completed_at: new Date().toISOString() });

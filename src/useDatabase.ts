@@ -218,20 +218,29 @@ export async function updateProfileGoogleDocId(userId: string, docId: string): P
 const LEVEL_XP_THRESHOLD = 200;
 
 export async function addXPToProfile(userId: string, xpGained: number): Promise<void> {
-  const { data: profile } = await supabase
+  const { data: profile, error: fetchErr } = await supabase
     .from("profiles")
     .select("xp, level")
     .eq("id", userId)
     .single();
-  if (!profile) return;
+  if (fetchErr || !profile) {
+    console.warn("addXPToProfile: could not fetch profile for", userId, fetchErr);
+    return;
+  }
 
-  let newXP = (profile.xp || 0) + xpGained;
-  let newLevel = profile.level || 1;
+  let newXP = (profile.xp ?? 0) + xpGained;
+  let newLevel = profile.level ?? 1;
   while (newXP >= LEVEL_XP_THRESHOLD) {
     newXP -= LEVEL_XP_THRESHOLD;
     newLevel++;
   }
-  await supabase.from("profiles").update({ xp: newXP, level: newLevel }).eq("id", userId);
+  const { error: updateErr } = await supabase
+    .from("profiles")
+    .update({ xp: newXP, level: newLevel })
+    .eq("id", userId);
+  if (updateErr) {
+    console.warn("addXPToProfile: update failed", updateErr);
+  }
 }
 
 export function useProfile() {
