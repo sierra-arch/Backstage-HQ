@@ -227,6 +227,12 @@ export function TaskModal({
                 </p>
               </div>
             </div>
+            {task.metadata?.link && (
+              <a href={task.metadata.link} target="_blank" rel="noopener noreferrer"
+                className="text-sm text-teal-600 hover:text-teal-800 underline break-all">
+                {task.metadata.link}
+              </a>
+            )}
             <div className="flex gap-3 pt-4 border-t">
               {!isDone && isSubmitted && isFounder(role) && onApprove ? (
                 <>
@@ -296,6 +302,7 @@ export function TaskCreateModal({
   const [level, setLevel] = useState<"small" | "medium" | "large">("medium");
   const [deadline, setDeadline] = useState("");
   const [clientId, setClientId] = useState<string>("");
+  const [linkUrl, setLinkUrl] = useState("");
   const [recurring, setRecurring] = useState<
     "none" | "daily" | "weekly" | "biweekly" | "monthly" | "quarterly"
   >("none");
@@ -345,7 +352,7 @@ export function TaskCreateModal({
       due_date: deadline || null,
       photo_url: photoUrl,
       client_id: clientId || null,
-      metadata: recurring !== "none" ? { recurring } : null,
+      metadata: (recurring !== "none" || linkUrl.trim()) ? { ...(recurring !== "none" ? { recurring } : {}), ...(linkUrl.trim() ? { link: linkUrl.trim() } : {}) } : null,
     });
 
     setCreating(false);
@@ -363,6 +370,7 @@ export function TaskCreateModal({
     setDescription("");
     setDeadline("");
     setClientId("");
+    setLinkUrl("");
     setRecurring("none");
     setPhotoFile(null);
     onCreated();
@@ -442,6 +450,16 @@ export function TaskCreateModal({
                 <option value="monthly">Monthly</option>
                 <option value="quarterly">Quarterly</option>
               </select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-neutral-500 mb-1 block">Link</label>
+              <input
+                type="url"
+                value={linkUrl}
+                onChange={(e) => setLinkUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              />
             </div>
             <div>
               <label className="text-xs font-medium text-neutral-500 mb-1 block">Cover photo</label>
