@@ -250,6 +250,13 @@ export function TaskModal({
                   </button>
                   <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
                 </>
+              ) : !isDone && isSubmitted ? (
+                <>
+                  <div className="flex-1 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-2 text-center font-medium">
+                    Pending founder review
+                  </div>
+                  <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+                </>
               ) : !isDone ? (
                 <>
                   <button
@@ -257,12 +264,12 @@ export function TaskModal({
                     className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
                   >
                     {buttonText}
-              </button>
-              <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
-            </>
-          ) : (
-            <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
-          )}
+                  </button>
+                  <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+                </>
+              ) : (
+                <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+              )}
         </div>
         {isFounder(role) && onSave && !isDone && (
           <button

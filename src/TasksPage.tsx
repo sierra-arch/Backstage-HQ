@@ -147,7 +147,10 @@ export function TasksPage({
   // When the status filter is pinned to completed/archived, show those directly.
   // Otherwise show only active/focus/submitted by default, with a toggle for completed/archived.
   const statusPinned = taskFilters.status === "completed" || taskFilters.status === "archived";
-  const activeTasks = scopedTasks.filter((t) => t.status !== "completed" && t.status !== "archived");
+  const activeTasks = scopedTasks.filter((t) =>
+    t.status !== "completed" && t.status !== "archived" &&
+    (isFounder(role) || t.status !== "submitted")
+  );
   const archivedTasks = scopedTasks.filter((t) => t.status === "completed" || t.status === "archived");
   const unsortedTasks = statusPinned
     ? scopedTasks

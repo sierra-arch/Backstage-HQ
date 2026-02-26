@@ -1315,6 +1315,16 @@ export async function markMessagesFromUserAsRead(
   return true;
 }
 
+export async function markAllDMsAsRead(): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from("messages")
+    .update({ is_read: true })
+    .eq("to_user_id", user.id)
+    .eq("is_read", false);
+}
+
 export async function getUnreadMessageCount(): Promise<number> {
   const {
     data: { user },
@@ -1462,6 +1472,12 @@ export async function upsertCompanyGoal(goal: Partial<CompanyGoal>): Promise<Com
     if (error) { console.error("Error inserting goal:", error); return null; }
     return data;
   }
+}
+
+export async function deleteCompanyGoal(id: string): Promise<boolean> {
+  const { error } = await supabase.from("company_goals").delete().eq("id", id);
+  if (error) { console.error("Error deleting goal:", error); return false; }
+  return true;
 }
 
 export function useCompanyGoals(companyId?: string) {

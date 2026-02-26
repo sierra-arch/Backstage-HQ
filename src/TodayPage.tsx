@@ -4,7 +4,7 @@ import { DBTask, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
 import { AccomplishmentDB, useMeetings } from "./useDatabase";
 import { Card, Chip, Avatar, CompanyChip, LevelRing } from "./ui";
 import { TaskList } from "./TasksPage";
-import { updateTask as dbUpdateTask, useCompanyGoals, upsertCompanyGoal } from "./useDatabase";
+import { updateTask as dbUpdateTask, useCompanyGoals, upsertCompanyGoal, deleteCompanyGoal } from "./useDatabase";
 
 /* ──────────────────────────────────────────────────────────────────
    Confetti
@@ -175,15 +175,37 @@ function NotesCard({ onSave }: { onSave: (text: string) => Promise<void> }) {
 function CompanyGoalsCard({ className, isFounder: founderView }: { className?: string; isFounder?: boolean }) {
   const { goals, refetch } = useCompanyGoals();
   const [editingId, setEditingId] = React.useState<string | null>(null);
+  const [editLabel, setEditLabel] = React.useState("");
   const [editCurrent, setEditCurrent] = React.useState("");
+  const [editTarget, setEditTarget] = React.useState("");
+  const [editUnit, setEditUnit] = React.useState("%");
   const [adding, setAdding] = React.useState(false);
   const [newLabel, setNewLabel] = React.useState("");
   const [newTarget, setNewTarget] = React.useState("");
   const [newUnit, setNewUnit] = React.useState("%");
 
+  function startEdit(g: { id: string; label: string; current_value: number; target_value: number; unit: string }) {
+    setEditingId(g.id);
+    setEditLabel(g.label);
+    setEditCurrent(String(g.current_value));
+    setEditTarget(String(g.target_value));
+    setEditUnit(g.unit || "%");
+  }
+
   async function saveEdit(id: string) {
-    await upsertCompanyGoal({ id, current_value: parseFloat(editCurrent) || 0 });
+    await upsertCompanyGoal({
+      id,
+      label: editLabel.trim(),
+      current_value: parseFloat(editCurrent) || 0,
+      target_value: parseFloat(editTarget) || 0,
+      unit: editUnit,
+    });
     setEditingId(null);
+    refetch();
+  }
+
+  async function handleDelete(id: string) {
+    await deleteCompanyGoal(id);
     refetch();
   }
 
@@ -210,28 +232,46 @@ function CompanyGoalsCard({ className, isFounder: founderView }: { className?: s
           const isEditing = editingId === g.id;
           return (
             <div key={g.id} className="rounded-xl border p-3 hover:border-teal-200 transition-colors bg-white">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium">{g.label}</div>
-                <div className="flex items-center gap-2">
-                  <div className="text-xs text-neutral-500">{g.current_value}/{g.target_value}{g.unit === "%" ? "%" : ` ${g.unit}`}</div>
-                  {founderView && !isEditing && (
-                    <button onClick={() => { setEditingId(g.id); setEditCurrent(String(g.current_value)); }}
-                      className="text-xs text-teal-600 hover:text-teal-800">Edit</button>
-                  )}
-                </div>
-              </div>
               {isEditing ? (
-                <div className="flex gap-2 mt-1">
-                  <input type="number" value={editCurrent} onChange={(e) => setEditCurrent(e.target.value)}
-                    className="flex-1 border rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-teal-200"
-                    placeholder="Current value" />
-                  <button onClick={() => saveEdit(g.id)} className="text-xs bg-teal-600 text-white px-2 py-1 rounded-lg hover:bg-teal-700">Save</button>
-                  <button onClick={() => setEditingId(null)} className="text-xs border px-2 py-1 rounded-lg hover:bg-neutral-50">✕</button>
+                <div className="space-y-2">
+                  <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="Goal label"
+                    className="w-full border rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-teal-200" />
+                  <div className="flex gap-2">
+                    <input type="number" value={editCurrent} onChange={(e) => setEditCurrent(e.target.value)}
+                      placeholder="Current" className="flex-1 border rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-teal-200" />
+                    <input type="number" value={editTarget} onChange={(e) => setEditTarget(e.target.value)}
+                      placeholder="Target" className="flex-1 border rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-teal-200" />
+                    <select value={editUnit} onChange={(e) => setEditUnit(e.target.value)}
+                      className="border rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-teal-200">
+                      <option value="%">%</option>
+                      <option value="clients">clients</option>
+                      <option value="orders">orders</option>
+                      <option value="tasks">tasks</option>
+                      <option value="$">$</option>
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => saveEdit(g.id)} className="flex-1 text-xs bg-teal-600 text-white px-2 py-1 rounded-lg hover:bg-teal-700">Save</button>
+                    <button onClick={() => setEditingId(null)} className="text-xs border px-2 py-1 rounded-lg hover:bg-neutral-50">Cancel</button>
+                    <button onClick={() => handleDelete(g.id)} className="text-xs text-red-500 hover:text-red-700 border border-red-200 px-2 py-1 rounded-lg hover:bg-red-50">Delete</button>
+                  </div>
                 </div>
               ) : (
-                <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                  <div className="h-full bg-teal-600 transition-all" style={{ width: `${pct}%` }} />
-                </div>
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium">{g.label}</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-xs text-neutral-500">{g.current_value}/{g.target_value}{g.unit === "%" ? "%" : ` ${g.unit}`}</div>
+                      {founderView && (
+                        <button onClick={() => startEdit(g)}
+                          className="text-xs text-teal-600 hover:text-teal-800">Edit</button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
+                    <div className="h-full bg-teal-600 transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                </>
               )}
             </div>
           );
@@ -517,7 +557,7 @@ export function TodayTeam({
   onSaveNote: (text: string) => Promise<void>;
   onPinTask?: (task: DBTask) => void;
 }) {
-  const myTasks = filteredTasks.filter((t) => t.assignee_name === userName && t.status !== "completed" && t.status !== "archived");
+  const myTasks = filteredTasks.filter((t) => t.assignee_name === userName && t.status !== "completed" && t.status !== "archived" && t.status !== "submitted");
   const equalCardH = "h-[360px]";
   const mySubmittedTasks = submittedTasks.filter((t) => t.assignee_name === userName);
 

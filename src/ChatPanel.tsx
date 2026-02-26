@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Message } from "./types";
-import { markMessagesFromUserAsRead } from "./useDatabase";
+import { markMessagesFromUserAsRead, markAllDMsAsRead } from "./useDatabase";
 import { Avatar } from "./ui";
 
 export function ChatPanel({
@@ -44,7 +44,7 @@ export function ChatPanel({
     );
   };
 
-  // Auto-switch to first unread DM when panel opens
+  // Auto-switch to first unread DM when panel opens; mark ALL DMs read to clear phantom badge
   useEffect(() => {
     if (isOpen && currentUserId) {
       const firstUnread = teammates.find((person) => hasUnreadDM(person));
@@ -53,6 +53,8 @@ export function ChatPanel({
         const otherUser = teamMembers.find((tm) => tm.display_name === firstUnread);
         if (otherUser) markMessagesFromUserAsRead(otherUser.id).then(() => onMarkRead?.());
       }
+      // Mark all DMs as read so phantom notifications (deleted users, system msgs) clear the badge
+      markAllDMsAsRead().then(() => onMarkRead?.());
     }
     // Reset to team chat when panel closes
     if (!isOpen) setActiveChannel("team");
