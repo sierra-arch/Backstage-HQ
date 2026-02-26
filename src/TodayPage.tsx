@@ -587,7 +587,7 @@ export function TodayTeam({
           </Card>
         </div>
         <div className="col-span-12 md:col-span-4">
-          <CompanySnapshot allTasks={allTasks.filter((t) => t.status !== "completed" && t.status !== "archived")} onCompanyClick={onCompanyClick} />
+          <CompanyGoalsCard />
         </div>
         <div className="col-span-12 md:col-span-4">
           <AccomplishmentsCard accomplishments={accomplishments} onOpenAddAccomplishment={onOpenAddAccomplishment} />
