@@ -709,14 +709,13 @@ export function TodayTeam({
           <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
             <header className="mb-3 flex-shrink-0">
               <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
-              <p className="text-xs text-neutral-600">Drag tasks here to prioritize</p>
             </header>
             <SortableContext items={focusList.map(t => t.id)} strategy={verticalListSortingStrategy}>
               <div id="focus" className="flex-1 overflow-y-auto pr-1 min-h-[40px]">
                 <div className="space-y-2">
                   {focusList.length === 0 && (
-                    <div className="text-sm text-neutral-400 text-center py-8 border-2 border-dashed border-teal-200 rounded-xl">
-                      Drag a task here to focus on it today
+                    <div className="text-sm text-neutral-400 text-center py-8">
+                      No focus tasks yet
                     </div>
                   )}
                   {focusList.map(t => (
@@ -743,7 +742,12 @@ export function TodayTeam({
               <SortableContext items={activeList.map(t => t.id)} strategy={verticalListSortingStrategy}>
                 <div id="active" className="flex-1 overflow-y-auto pr-1 min-h-[40px]">
                   <div className="space-y-2">
-                    {activeList.length === 0 && <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>}
+                    {activeList.length === 0 && (
+                      <div className="text-sm text-neutral-500 text-center py-8 leading-relaxed">
+                        Don't see any tasks?<br />
+                        <span className="text-neutral-400">Check the Tasks page for any unassigned tasks!</span>
+                      </div>
+                    )}
                     {activeList.map(t => (
                       <SortableTaskItem key={t.id} task={t} containerId="active" onTaskClick={onTaskClick} />
                     ))}

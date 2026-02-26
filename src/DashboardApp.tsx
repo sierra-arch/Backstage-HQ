@@ -418,20 +418,27 @@ export default function DashboardApp() {
   const isMyTask = (t: DBTask) =>
     t.assigned_to === profile?.id || t.assignee_name === userName;
 
-  // Founder: only their own tasks, only if truly urgent (overdue or due within 7 days)
+  // Founder: explicit focus tasks + auto-fill up to 2 with urgent active tasks
   const in7Days = new Date(); in7Days.setDate(in7Days.getDate() + 7);
   const in7DaysStr = in7Days.toISOString().slice(0, 10);
   const isUrgentForFounder = (t: DBTask) =>
     !!t.due_date && t.due_date <= in7DaysStr;
+  const founderPinned = tasks.filter((t) => t.status === "focus" && isMyTask(t));
   const founderFocusTasks = [
-    ...tasks.filter((t) => t.status === "focus" && isMyTask(t)),
-    ...tasks.filter((t) => t.status === "active" && isMyTask(t) && isUrgentForFounder(t)).sort(sortByUrgency),
+    ...founderPinned,
+    ...tasks.filter((t) => t.status === "active" && isMyTask(t) && isUrgentForFounder(t))
+      .sort(sortByUrgency)
+      .slice(0, Math.max(0, 2 - founderPinned.length)),
   ];
 
-  // Team: only own tasks, pinned first, fill to at least 2 with urgency-sorted active
+  // Team: explicit focus tasks + auto-fill up to 2 with urgency-sorted active tasks
   const teamPinned = tasks.filter((t) => t.status === "focus" && isMyTask(t));
-  const teamActive = tasks.filter((t) => t.status === "active" && isMyTask(t)).sort(sortByUrgency);
-  const teamFocusTasks = [...teamPinned, ...teamActive].slice(0, Math.max(2, teamPinned.length));
+  const teamFocusTasks = [
+    ...teamPinned,
+    ...tasks.filter((t) => t.status === "active" && isMyTask(t))
+      .sort(sortByUrgency)
+      .slice(0, Math.max(0, 2 - teamPinned.length)),
+  ];
 
   const focusTasks = isFounder(role) ? founderFocusTasks : teamFocusTasks;
   const allActiveTasks = tasks.filter((t) => t.status === "active" || t.status === "focus");
@@ -546,6 +553,8 @@ export default function DashboardApp() {
       metadata: { ...pendingSubmitTask.metadata, submission_notes: notes },
     });
     setPendingSubmitTask(null);
+    setCelebrate(true);
+    setTimeout(() => setCelebrate(false), 1500);
     refetch();
   }
 
