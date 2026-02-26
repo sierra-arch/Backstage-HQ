@@ -370,7 +370,9 @@ export default function DashboardApp() {
     [tasks]
   );
   React.useEffect(() => {
-    refetchProfile();
+    // Small delay so any concurrent XP writes finish before we read the profile
+    const timer = setTimeout(() => refetchProfile(), 800);
+    return () => clearTimeout(timer);
   }, [completedArchivedCount]);
 
   // Fire browser notification when a new DM arrives (if permission granted + pref enabled)
@@ -485,13 +487,15 @@ export default function DashboardApp() {
   async function handleSendKudos(action: "archive" | "return", message: string) {
     if (!kudosTask) return;
     if (action === "archive") {
-      await dbUpdateTask(kudosTask.id, { status: "completed", completed_at: new Date().toISOString() });
+      // Write XP FIRST so it's in the DB before the task-status realtime event fires
+      // on the team member's client and triggers their profile refetch.
       if (kudosTask.assigned_to) {
         await addXPToProfile(kudosTask.assigned_to, XP_BY_IMPACT[kudosTask.impact]);
         if (message) {
           await sendMessage(`🎉 ${message}`, kudosTask.assigned_to, true, kudosTask.id);
         }
       }
+      await dbUpdateTask(kudosTask.id, { status: "completed", completed_at: new Date().toISOString() });
       setCelebrate(true);
       setTimeout(() => setCelebrate(false), 1500);
     } else {
