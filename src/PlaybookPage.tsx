@@ -91,6 +91,7 @@ function SOPFormModal({
   const [tagInput, setTagInput] = useState("");
   const [tags, setTags] = useState<string[]>(existing?.tags ?? []);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   function addStep() { setSteps((s) => [...s, ""]); }
   function removeStep(i: number) { setSteps((s) => s.filter((_, idx) => idx !== i)); }
@@ -111,24 +112,30 @@ function SOPFormModal({
   async function handleSave() {
     if (!title.trim()) return;
     setSaving(true);
+    setSaveError(null);
     const instructions = steps
       .filter((s) => s.trim())
       .map((text, i) => ({ step: i + 1, text }));
-    await saveSOP({
-      id: existing?.id,
-      title,
-      short_description: shortDesc || null,
-      full_description: fullDesc || null,
-      role_context: roleContext || null,
-      instructions: instructions.length > 0 ? instructions : null,
-      tags: tags.length > 0 ? tags : null,
-      is_active: true,
-      task_count: existing?.task_count ?? 0,
-      company_id: existing?.company_id ?? null,
-    });
-    setSaving(false);
-    onSaved();
-    onClose();
+    try {
+      await saveSOP({
+        id: existing?.id,
+        title,
+        short_description: shortDesc || null,
+        full_description: fullDesc || null,
+        role_context: roleContext || null,
+        instructions: instructions.length > 0 ? instructions : null,
+        tags: tags.length > 0 ? tags : null,
+        is_active: true,
+        task_count: existing?.task_count ?? 0,
+        company_id: existing?.company_id ?? null,
+      });
+      setSaving(false);
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      setSaving(false);
+      setSaveError(err?.message ?? "Failed to save — check the browser console.");
+    }
   }
 
   return (
@@ -211,6 +218,11 @@ function SOPFormModal({
           <p className="text-xs text-neutral-400 mt-1">Press Enter or comma to add a tag</p>
         </div>
 
+        {saveError && (
+          <div className="rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2">
+            {saveError}
+          </div>
+        )}
         <div className="flex gap-3 pt-4 border-t">
           <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
           <button onClick={handleSave} disabled={!title.trim() || saving}

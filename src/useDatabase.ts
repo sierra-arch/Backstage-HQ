@@ -976,7 +976,7 @@ export async function saveSOP(
 
       if (error) {
         console.error("Error updating SOP:", error);
-        return null;
+        throw new Error(error.message);
       }
       return data;
     } else {
@@ -988,7 +988,7 @@ export async function saveSOP(
 
       if (error) {
         console.error("Error creating SOP:", error);
-        return null;
+        throw new Error(error.message);
       }
       return data;
     }
