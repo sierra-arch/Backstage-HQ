@@ -635,7 +635,7 @@ export function TodayTeam({
   refetch?: () => void;
 }) {
   const computedMyTasks = filteredTasks.filter(
-    (t) => t.assignee_name === userName && t.status !== "completed" && t.status !== "archived" && t.status !== "submitted"
+    (t) => t.assignee_name === userName && t.status === "active"
   );
   const equalCardH = "h-[360px]";
   const mySubmittedTasks = submittedTasks.filter((t) => t.assignee_name === userName);
