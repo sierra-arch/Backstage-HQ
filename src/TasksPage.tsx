@@ -8,11 +8,12 @@ import { Card, CompanyChip, Avatar } from "./ui";
    Task Row & List (shared, used by TodayPage too)
    ────────────────────────────────────────────────────────────────── */
 export function TaskRow({
-  task, onClick, onSubmit,
+  task, onClick, onSubmit, onClaim,
 }: {
   task: DBTask;
   onClick: () => void;
   onSubmit?: (task: DBTask) => void;
+  onClaim?: (task: DBTask) => void;
 }) {
   const todayStr = new Date().toISOString().slice(0, 10);
   const isOverdue = !!task.due_date && task.due_date < todayStr
@@ -54,6 +55,14 @@ export function TaskRow({
         </div>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        {onClaim && !task.assigned_to && !task.assignee_name && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onClaim(task); }}
+            className="text-[11px] rounded-xl border border-teal-400 bg-teal-600 text-white px-2.5 py-1 hover:bg-teal-700 font-medium"
+          >
+            Claim
+          </button>
+        )}
         {onSubmit && (task.status === "active" || task.status === "focus") && (
           <button
             onClick={(e) => { e.stopPropagation(); onSubmit(task); }}
@@ -68,11 +77,12 @@ export function TaskRow({
 }
 
 export function TaskList({
-  tasks, onTaskClick, onSubmit,
+  tasks, onTaskClick, onSubmit, onClaim,
 }: {
   tasks: DBTask[];
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
+  onClaim?: (task: DBTask) => void;
 }) {
   return (
     <div className="space-y-2">
@@ -80,7 +90,7 @@ export function TaskList({
         <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
       )}
       {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} />
+        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} onClaim={onClaim} />
       ))}
     </div>
   );
@@ -100,6 +110,7 @@ export function TasksPage({
   onOpenCreateTask,
   onTaskClick,
   onSubmit,
+  onClaim,
 }: {
   filteredTasks: DBTask[];
   taskFilters: { company: string; impact: string; priority: string; status: string; assignee: string };
@@ -111,6 +122,7 @@ export function TasksPage({
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
+  onClaim?: (task: DBTask) => void;
 }) {
   const [showArchived, setShowArchived] = React.useState(false);
   const [sortBy, setSortBy] = React.useState<"default" | "due_date" | "impact" | "status">("default");
@@ -255,7 +267,8 @@ export function TasksPage({
                   )}
                   onTaskClick={onTaskClick}
                   onSubmit={onSubmit}
-                                 />
+                  onClaim={!isFounder(role) ? onClaim : undefined}
+                />
               </div>
             </div>
           )}

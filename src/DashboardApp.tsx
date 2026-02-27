@@ -547,6 +547,12 @@ export default function DashboardApp() {
     refetchMessages();
   }
 
+  async function handleClaimTask(task: DBTask) {
+    if (!profile?.id) return;
+    await dbUpdateTask(task.id, { assigned_to: profile.id });
+    refetch();
+  }
+
   function handleSubmitForApproval(task: DBTask) {
     setShowTaskModal(false);
     setPendingSubmitTask(task);
@@ -642,6 +648,7 @@ export default function DashboardApp() {
               role={role} userName={userName} userId={profile?.id ?? ""} teamMembers={teamMembers}
               onOpenCreateTask={() => setShowCreateModal(true)} onTaskClick={openTaskModal}
               onSubmit={!isFounder(role) ? handleSubmitForApproval : undefined}
+              onClaim={!isFounder(role) ? handleClaimTask : undefined}
             />
           )}
 
