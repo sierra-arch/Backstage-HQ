@@ -327,11 +327,22 @@ export default function DashboardApp() {
   const { messages, unreadCount, refetch: refetchMessages } = useMessages();
   const { clients: allClients, refetch: refetchClients } = useClients();
   const { products: allProducts, refetch: refetchProducts } = useProducts();
-  const { companies: dbCompanies } = useCompanies();
+  const { companies: dbCompanies, refetch: refetchCompanies } = useCompanies();
 
   const [celebrate, setCelebrate] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [page, setPage] = useState<Page>("Today");
+  const [page, setPage] = useState<Page>(() => {
+    const saved = localStorage.getItem("lastPage");
+    const savedTime = localStorage.getItem("lastPageTime");
+    if (saved && savedTime && Date.now() - parseInt(savedTime, 10) < 5 * 60 * 1000) {
+      return saved as Page;
+    }
+    return "Today";
+  });
+  React.useEffect(() => {
+    localStorage.setItem("lastPage", page);
+    localStorage.setItem("lastPageTime", Date.now().toString());
+  }, [page]);
   const [selectedTask, setSelectedTask] = useState<DBTask | null>(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -721,6 +732,7 @@ export default function DashboardApp() {
         onCreated={refetch} role={role} userName={userName} teamMembers={teamMembers}
         defaultCompany={createDefaultCompany}
         clients={allClients}
+        companiesData={dbCompanies}
       />
 
       <CompanyDrawer
@@ -729,11 +741,11 @@ export default function DashboardApp() {
         role={role} company={selectedCompanyData} tasks={tasks}
         clients={allClients.filter((c: any) => c.company_id === selectedCompanyData?.id)}
         products={allProducts.filter((p: any) => p.company_id === selectedCompanyData?.id)}
-        onRefetch={() => { refetchClients(); refetchProducts(); }}
+        onRefetch={() => { refetchClients(); refetchProducts(); refetchCompanies(); }}
         onAddTask={(companyName) => { setCreateDefaultCompany(companyName); setShowCreateModal(true); }}
       />
 
-      <ClientModal client={selectedClient} isOpen={!!selectedClient} onClose={() => setSelectedClient(null)} />
+      <ClientModal client={selectedClient} isOpen={!!selectedClient} onClose={() => setSelectedClient(null)} onSaved={refetchClients} role={role} />
       <ProductModal product={selectedProduct} isOpen={!!selectedProduct} onClose={() => setSelectedProduct(null)} />
 
       <AnimatePresence>

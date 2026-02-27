@@ -74,21 +74,29 @@ export function CompaniesPage({
         const progress = calculateCompanyProgress(companyName, tasks);
         const remaining = remainingBreakdown(companyName, tasks);
 
-        // Client / product tiles
+        // DB row for this company (used for ID-based filtering and tools)
+        const companyRow = companiesData.find(
+          (c) => c.name === companyName || c.name.toLowerCase() === companyName.toLowerCase()
+        );
+        const tools: { name: string; url: string }[] = companyRow?.software_links ?? [];
+
+        // Client / product tiles — match by company_id (preferred) or company_name string
         const companyClients = clients
-          .filter((c) => c.company_name === companyName)
+          .filter((c) =>
+            (companyRow && c.company_id === companyRow.id) ||
+            c.company_name === companyName
+          )
           .slice(0, 4);
 
         const companyProducts = products
-          .filter((p) => p.company_name === companyName)
+          .filter((p) =>
+            (companyRow && p.company_id === companyRow.id) ||
+            p.company_name === companyName
+          )
           .slice(0, 6);
 
         const isMaire = companyName === "Mairë";
         const items: any[] = isMaire ? companyProducts : companyClients;
-
-        // Software tools from DB
-        const companyRow = companiesData.find((c) => c.name === companyName);
-        const tools: { name: string; url: string }[] = companyRow?.software_links ?? [];
 
         return (
           <Card
@@ -99,7 +107,7 @@ export function CompaniesPage({
               {/* Header row */}
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-xl font-bold text-teal-900 tracking-tight">{companyName}</h3>
+                  <h3 className="text-2xl font-extrabold text-teal-900 tracking-tight">{companyName}</h3>
                   <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
                 </div>
 
@@ -116,9 +124,6 @@ export function CompaniesPage({
                     </div>
                     <span className="text-xs text-neutral-500 w-8 text-right">{progress}%</span>
                   </div>
-                  <span className="text-[10px] text-neutral-400">
-                    {remaining.total === 0 ? "All clear" : `${remaining.total} remaining`}
-                  </span>
                 </div>
               </div>
 
@@ -153,35 +158,39 @@ export function CompaniesPage({
                           </div>
                         );
                       }
-                      // Clients: card with photo + progress bar
+                      // Clients: card with photo + progress
                       const client = item as Client;
+                      const clientTasks = tasks.filter(
+                        (t) => t.client_id === client.id && t.status !== "archived"
+                      );
                       const clientProgress = calculateClientProgress(client.id, tasks);
-                      const openCount = tasks.filter(
-                        (t) => t.client_id === client.id && t.status !== "completed" && t.status !== "archived"
+                      const completedCount = clientTasks.filter((t) => t.status === "completed").length;
+                      const openCount = clientTasks.filter(
+                        (t) => t.status !== "completed"
                       ).length;
                       return (
                         <div
                           key={client.id}
                           onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
-                          className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                          className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
                         >
                           {/* Photo */}
                           <div
-                            className="h-20 w-full"
+                            className="h-24 w-full"
                             style={{
                               backgroundImage: client.photo_url
                                 ? `url(${client.photo_url})`
-                                : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
+                                : `linear-gradient(135deg, #F0FAF7 0%, #C8EDE3 100%)`,
                               backgroundSize: "cover",
                               backgroundPosition: "center",
                             }}
                           />
                           {/* Info */}
-                          <div className="px-2.5 pt-2 pb-2.5 space-y-1.5">
-                            <p className="text-xs font-semibold text-neutral-800 truncate">{client.name}</p>
+                          <div className="px-3 pt-2.5 pb-3 space-y-2">
+                            <p className="text-sm font-semibold text-neutral-800 truncate">{client.name}</p>
                             {clientProgress !== null ? (
                               <>
-                                <div className="h-1.5 w-full rounded-full bg-neutral-200/60 overflow-hidden">
+                                <div className="h-2 w-full rounded-full bg-neutral-100 overflow-hidden">
                                   <motion.div
                                     className={`h-full rounded-full ${progressColor(clientProgress)}`}
                                     initial={false}
@@ -190,14 +199,16 @@ export function CompaniesPage({
                                   />
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-neutral-400">
-                                    {openCount > 0 ? `${openCount} open` : "All done"}
+                                  <span className="text-[11px] text-neutral-400">
+                                    {completedCount}/{completedCount + openCount} tasks
                                   </span>
-                                  <span className="text-[10px] font-medium text-neutral-500">{clientProgress}%</span>
+                                  <span className={`text-[11px] font-semibold ${clientProgress >= 70 ? "text-teal-600" : clientProgress >= 40 ? "text-amber-500" : "text-red-500"}`}>
+                                    {clientProgress}%
+                                  </span>
                                 </div>
                               </>
                             ) : (
-                              <p className="text-[10px] text-neutral-400">No tasks yet</p>
+                              <p className="text-[11px] text-neutral-400 italic">No tasks linked yet</p>
                             )}
                           </div>
                         </div>

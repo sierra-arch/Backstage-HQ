@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { DBTask, Client, Product, COMPANIES, TIME_BY_LEVEL, isFounder, Role } from "./types";
-import { createTask as dbCreateTask, getCompanyByName, sendMessage } from "./useDatabase";
+import { createTask as dbCreateTask, getCompanyByName, sendMessage, saveClient } from "./useDatabase";
 import { supabase } from "./supabase";
 import { CompanyChip, Avatar } from "./ui";
 
@@ -298,6 +298,7 @@ export function TaskCreateModal({
   teamMembers = [],
   defaultCompany,
   clients = [],
+  companiesData = [],
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -307,6 +308,7 @@ export function TaskCreateModal({
   teamMembers?: { id: string; display_name: string | null }[];
   defaultCompany?: string;
   clients?: Client[];
+  companiesData?: { id: string; name: string }[];
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -324,8 +326,11 @@ export function TaskCreateModal({
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Clients for the selected company
-  const companyClients = clients.filter((c) => c.company_name === company);
+  // Clients for the selected company — match by company_id (reliable) or company_name string
+  const companyRow = companiesData.find((c) => c.name === company);
+  const companyClients = clients.filter((c) =>
+    (companyRow && c.company_id === companyRow.id) || c.company_name === company
+  );
 
   async function handleCreate() {
     setCreating(true);
@@ -504,35 +509,162 @@ export function TaskCreateModal({
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Client Modal (view-only)
+   Client Modal (view + edit)
    ────────────────────────────────────────────────────────────────── */
 export function ClientModal({
   client,
   isOpen,
   onClose,
+  onSaved,
+  role,
 }: {
   client: Client | null;
   isOpen: boolean;
   onClose: () => void;
+  onSaved?: () => void;
+  role?: Role;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [scope, setScope] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (client) {
+      setName(client.name ?? "");
+      setDescription(client.description ?? "");
+      setContactEmail(client.contact_email ?? "");
+      setContactPhone(client.contact_phone ?? "");
+      setScope(client.scope ?? "");
+      setDeadline(client.deadline ?? "");
+      setLinks(client.quick_links ?? []);
+    }
+    setEditing(false);
+    setSaveError(null);
+  }, [client?.id]);
+
   if (!client) return null;
+
+  async function handleSave() {
+    if (!client) return;
+    setSaving(true);
+    setSaveError(null);
+    const result = await saveClient({
+      id: client.id,
+      name: name.trim(),
+      description: description.trim() || null,
+      contact_email: contactEmail.trim() || null,
+      contact_phone: contactPhone.trim() || null,
+      scope: scope.trim() || null,
+      deadline: deadline || null,
+      quick_links: links.filter((l) => l.name.trim() && l.url.trim()),
+    } as any);
+    setSaving(false);
+    if (!result) {
+      setSaveError("Failed to save — check console for details.");
+      return;
+    }
+    setEditing(false);
+    onSaved?.();
+  }
+
+  if (editing) {
+    return (
+      <Modal isOpen={isOpen} onClose={() => { setEditing(false); onClose(); }} title="Edit Client" size="large">
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+          </div>
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Description</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[72px] resize-none focus:ring-2 focus:ring-teal-200 outline-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Contact Email</label>
+              <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
+                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Contact Phone</label>
+              <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
+                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Scope</label>
+              <input value={scope} onChange={(e) => setScope(e.target.value)}
+                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Deadline</label>
+              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
+                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+            </div>
+          </div>
+          {/* Quick links */}
+          <div>
+            <label className="text-sm font-medium text-neutral-700 mb-1 block">Quick Links</label>
+            <div className="space-y-2">
+              {links.map((l, i) => (
+                <div key={i} className="flex gap-2">
+                  <input value={l.name} onChange={(e) => { const n = [...links]; n[i] = { ...n[i], name: e.target.value }; setLinks(n); }}
+                    placeholder="Label" className="flex-1 rounded-xl border px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+                  <input value={l.url} onChange={(e) => { const n = [...links]; n[i] = { ...n[i], url: e.target.value }; setLinks(n); }}
+                    placeholder="URL" className="flex-[2] rounded-xl border px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+                  <button onClick={() => setLinks(links.filter((_, idx) => idx !== i))}
+                    className="text-neutral-400 hover:text-red-500 px-1 text-lg leading-none">×</button>
+                </div>
+              ))}
+              <button onClick={() => setLinks([...links, { name: "", url: "" }])}
+                className="text-xs text-teal-600 hover:text-teal-800 font-medium">+ Add link</button>
+            </div>
+          </div>
+          {saveError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{saveError}</p>}
+          <div className="flex gap-3 pt-3 border-t">
+            <button onClick={() => setEditing(false)} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
+            <button onClick={handleSave} disabled={!name.trim() || saving}
+              className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium disabled:opacity-50">
+              {saving ? "Saving..." : "Save Changes"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={client.name} size="large" coverImage={client.photo_url}>
       <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium text-neutral-700">Description</label>
-          <p className="text-sm text-neutral-600 mt-1">{client.description}</p>
-        </div>
+        {client.description && (
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Description</label>
+            <p className="text-sm text-neutral-600 mt-1">{client.description}</p>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="text-sm font-medium text-neutral-700">Contact</label>
-            <p className="text-sm text-neutral-600 mt-1">{client.contact}</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700">Scope</label>
-            <p className="text-sm text-neutral-600 mt-1">{client.scope}</p>
-          </div>
+          {(client.contact_email || client.contact_phone) && (
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Contact</label>
+              <p className="text-sm text-neutral-600 mt-1">{client.contact_email || client.contact_phone}</p>
+            </div>
+          )}
+          {client.scope && (
+            <div>
+              <label className="text-sm font-medium text-neutral-700">Scope</label>
+              <p className="text-sm text-neutral-600 mt-1">{client.scope}</p>
+            </div>
+          )}
         </div>
         {client.quick_links && client.quick_links.length > 0 && (
           <div>
@@ -545,6 +677,14 @@ export function ClientModal({
                 </a>
               ))}
             </div>
+          </div>
+        )}
+        {(!role || isFounder(role)) && (
+          <div className="pt-4 border-t">
+            <button onClick={() => setEditing(true)}
+              className="w-full border rounded-xl py-2 text-sm hover:bg-neutral-50 font-medium">
+              Edit Client
+            </button>
           </div>
         )}
       </div>

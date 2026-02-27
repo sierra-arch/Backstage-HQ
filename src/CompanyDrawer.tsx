@@ -54,6 +54,9 @@ export function CompanyDrawer({
   const [newToolName, setNewToolName] = useState("");
   const [newToolUrl, setNewToolUrl] = useState("");
   const [toolSaving, setToolSaving] = useState(false);
+  const [editingToolIdx, setEditingToolIdx] = useState<number | null>(null);
+  const [editToolName, setEditToolName] = useState("");
+  const [editToolUrl, setEditToolUrl] = useState("");
 
   // Sync tools when company changes
   React.useEffect(() => {
@@ -61,6 +64,7 @@ export function CompanyDrawer({
     setShowAddTool(false);
     setNewToolName("");
     setNewToolUrl("");
+    setEditingToolIdx(null);
   }, [company?.id]);
 
   async function handleSaveTool() {
@@ -82,6 +86,20 @@ export function CompanyDrawer({
     const updated = localTools.filter((_, i) => i !== idx);
     const ok = await updateCompanySoftwareLinks(company.id, updated);
     if (ok) setLocalTools(updated);
+  }
+
+  async function handleSaveEditTool() {
+    if (!company?.id || editingToolIdx === null || !editToolName.trim() || !editToolUrl.trim()) return;
+    setToolSaving(true);
+    const updated = localTools.map((t, i) =>
+      i === editingToolIdx ? { name: editToolName.trim(), url: editToolUrl.trim() } : t
+    );
+    const ok = await updateCompanySoftwareLinks(company.id, updated);
+    if (ok) {
+      setLocalTools(updated);
+      setEditingToolIdx(null);
+    }
+    setToolSaving(false);
   }
 
   const [showAddClient, setShowAddClient] = useState(false);
@@ -239,25 +257,69 @@ export function CompanyDrawer({
                   )}
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {localTools.map((tool, i) => (
-                    <div key={i} className="group flex items-center gap-1 pl-3 pr-2 py-1.5 rounded-xl border bg-white">
-                      <a
-                        href={tool.url} target="_blank" rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-xs text-neutral-700 hover:text-teal-700 font-medium"
-                      >
-                        {tool.name} →
-                      </a>
-                      {founder && (
-                        <button
-                          onClick={() => handleRemoveTool(i)}
-                          className="text-neutral-300 hover:text-red-400 text-sm leading-none ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  {localTools.map((tool, i) =>
+                    editingToolIdx === i ? (
+                      <div key={i} className="w-full p-3 rounded-xl border bg-neutral-50 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            value={editToolName}
+                            onChange={(e) => setEditToolName(e.target.value)}
+                            placeholder="Tool name"
+                            className="rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                          />
+                          <input
+                            value={editToolUrl}
+                            onChange={(e) => setEditToolUrl(e.target.value)}
+                            placeholder="URL"
+                            className="rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSaveEditTool}
+                            disabled={toolSaving || !editToolName.trim() || !editToolUrl.trim()}
+                            className="text-xs bg-teal-600 text-white rounded-lg px-3 py-1.5 hover:bg-teal-700 disabled:opacity-50 font-medium"
+                          >
+                            {toolSaving ? "Saving…" : "Save"}
+                          </button>
+                          <button
+                            onClick={() => setEditingToolIdx(null)}
+                            className="text-xs text-neutral-500 hover:text-neutral-700 px-2"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div key={i} className="group flex items-center gap-1 pl-3 pr-2 py-1.5 rounded-xl border bg-white">
+                        <a
+                          href={tool.url} target="_blank" rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-xs text-neutral-700 hover:text-teal-700 font-medium"
                         >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                          {tool.name} →
+                        </a>
+                        {founder && (
+                          <>
+                            <button
+                              onClick={() => { setEditingToolIdx(i); setEditToolName(tool.name); setEditToolUrl(tool.url); }}
+                              className="text-neutral-300 hover:text-teal-500 text-xs leading-none ml-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Edit"
+                            >
+                              ✎
+                            </button>
+                            <button
+                              onClick={() => handleRemoveTool(i)}
+                              className="text-neutral-300 hover:text-red-400 text-sm leading-none opacity-0 group-hover:opacity-100 transition-opacity"
+                              title="Remove"
+                            >
+                              ×
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )
+                  )}
                   {localTools.length === 0 && !showAddTool && (
                     <div className="text-xs text-neutral-400">No tools added yet.</div>
                   )}
@@ -297,8 +359,8 @@ export function CompanyDrawer({
                 )}
               </div>
 
-              {/* Clients */}
-              <Card title="Clients" subtitle="Projects & accounts" className="p-4">
+              {/* Clients — not shown for Mairë */}
+              {!isMaire && <Card title="Clients" subtitle="Projects & accounts" className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-xs text-neutral-500">{clients.length} total</div>
                   {!isMaire && (
@@ -347,10 +409,10 @@ export function CompanyDrawer({
                   ))}
                   {clients.length === 0 && <div className="text-xs text-neutral-500">No clients yet.</div>}
                 </div>
-              </Card>
+              </Card>}
 
-              {/* Products */}
-              <Card title="Products" subtitle="Offers & SKUs" className="p-4">
+              {/* Products — only shown for Mairë */}
+              {isMaire && <Card title="Products" subtitle="Offers & SKUs" className="p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div className="text-xs text-neutral-500">{products.length} total</div>
                   {isMaire && (
@@ -387,7 +449,7 @@ export function CompanyDrawer({
                   ))}
                   {products.length === 0 && <div className="text-xs text-neutral-500">No products yet.</div>}
                 </div>
-              </Card>
+              </Card>}
             </div>
 
             {/* Add Client modal */}

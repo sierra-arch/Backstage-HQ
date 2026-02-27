@@ -367,7 +367,6 @@ export async function fetchCompanies(): Promise<Company[]> {
   const { data, error } = await supabase
     .from("companies")
     .select("*")
-    .eq("is_active", true)
     .order("name", { ascending: true });
 
   if (error) {
@@ -382,25 +381,24 @@ export function useCompanies() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadCompanies() {
-      const data = await fetchCompanies();
-      if (mounted) {
-        setCompanies(data);
-        setLoading(false);
-      }
-    }
-
-    loadCompanies();
-
-    return () => {
-      mounted = false;
-    };
+  const loadCompanies = useCallback(async () => {
+    const data = await fetchCompanies();
+    setCompanies(data);
+    setLoading(false);
   }, []);
 
-  return { companies, loading };
+  useEffect(() => {
+    loadCompanies();
+
+    const subscription = supabase
+      .channel("company-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "companies" }, loadCompanies)
+      .subscribe();
+
+    return () => { subscription.unsubscribe(); };
+  }, [loadCompanies]);
+
+  return { companies, loading, refetch: loadCompanies };
 }
 
 export async function getCompanyByName(name: string): Promise<Company | null> {

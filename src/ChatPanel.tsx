@@ -225,7 +225,7 @@ export function ChatPanel({
                         <div className="font-medium text-sm text-neutral-800">{parsed.displayText}</div>
                         {meeting && meeting.attendees?.length > 0 && (
                           <div className="mt-1.5 text-xs text-neutral-500">
-                            {meeting.attendees.map((a) => a.name).join(", ")} going
+                            {meeting.attendees.map((a) => a.name).join(", ")} attending
                           </div>
                         )}
                         {currentUserId && (
@@ -237,7 +237,7 @@ export function ChatPanel({
                                 : "bg-white text-teal-700 border-teal-300 hover:bg-teal-50"
                             }`}
                           >
-                            {isGoing ? "✓ Going" : "Going?"}
+                            {isGoing ? "✓ Attending" : "Confirm"}
                           </button>
                         )}
                       </div>

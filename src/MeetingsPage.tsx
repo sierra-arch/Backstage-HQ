@@ -149,7 +149,7 @@ function MeetingDetailModal({
                   : "bg-white text-teal-700 border-teal-300 hover:bg-teal-50"
               }`}
             >
-              {isGoing ? "✓ Going" : "Going?"}
+              {isGoing ? "✓ Attending" : "Confirm"}
             </button>
             {meeting.attendees?.length > 0 && (
               <span className="text-xs text-neutral-500">
@@ -406,13 +406,13 @@ export function MeetingsPage({ role, userId, userName }: { role: Role; userId: s
                             : "border-neutral-300 hover:border-teal-300 text-neutral-600"
                         }`}
                       >
-                        {isGoing ? "✓ Going" : "Going?"}
+                        {isGoing ? "✓ Attending" : "Confirm"}
                       </button>
                     </div>
                   </div>
                   {m.attendees?.length > 0 && (
                     <div className="mt-1.5 text-xs text-neutral-400">
-                      {m.attendees.map((a) => a.name).join(", ")} going
+                      {m.attendees.map((a) => a.name).join(", ")} attending
                     </div>
                   )}
                 </div>

@@ -245,17 +245,21 @@ export function PlaybookPage({ role }: { role: Role }) {
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState("");
 
-  const filtered = sops.filter((s) =>
-    s.title.toLowerCase().includes(search.toLowerCase()) ||
-    s.short_description?.toLowerCase().includes(search.toLowerCase()) ||
-    s.tags?.some((t) => t.toLowerCase().includes(search.toLowerCase()))
-  );
+  const q = search.toLowerCase();
+  const filtered = !q
+    ? sops
+    : sops.filter((s) =>
+        (s.title ?? "").toLowerCase().includes(q) ||
+        (s.short_description ?? "").toLowerCase().includes(q) ||
+        s.tags?.some((t) => t.toLowerCase().includes(q))
+      );
 
   return (
     <div className="space-y-4">
       <Card title="Playbooks" subtitle="SOPs and guides for your team">
         <div className="flex items-center gap-3 mb-4">
           <input
+            type="text"
             placeholder="Search by title, description, or tag..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -278,7 +282,7 @@ export function PlaybookPage({ role }: { role: Role }) {
               : "No results for that search."}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filtered.map((sop) => (
               <motion.div
                 key={sop.id}

@@ -634,8 +634,9 @@ export function TodayTeam({
   onSaveNote: (text: string) => Promise<void>;
   refetch?: () => void;
 }) {
+  const focusIds = new Set(focusTasks.map((t) => t.id));
   const computedMyTasks = filteredTasks.filter(
-    (t) => t.assignee_name === userName && t.status === "active"
+    (t) => t.assignee_name === userName && t.status === "active" && !focusIds.has(t.id)
   );
   const equalCardH = "h-[360px]";
   const mySubmittedTasks = submittedTasks.filter((t) => t.assignee_name === userName);
@@ -645,7 +646,7 @@ export function TodayTeam({
   const [activeList, setActiveList] = React.useState(computedMyTasks);
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
   React.useEffect(() => { setFocusList(focusTasks); }, [focusTasks]);
-  React.useEffect(() => { setActiveList(computedMyTasks); }, [filteredTasks, userName]);
+  React.useEffect(() => { setActiveList(computedMyTasks); }, [filteredTasks, userName, focusTasks]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
