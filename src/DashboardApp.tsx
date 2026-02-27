@@ -628,6 +628,7 @@ export default function DashboardApp() {
             <TodayFounder
               userName={userName} completedThisWeek={completedThisWeek} level={level} xp={xp}
               focusTasks={focusTasks} submittedTasks={submittedTasks} allActiveTasks={allActiveTasks}
+              allTasks={tasks}
               accomplishments={accomplishments}
               onOpenCreateTask={() => setShowCreateModal(true)}
               onTaskClick={openTaskModal} onApprove={handleApprove}

@@ -397,6 +397,156 @@ function AccomplishmentsCard({
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Weekly Digest Card
+   ────────────────────────────────────────────────────────────────── */
+function WeeklyDigestCard({
+  allTasks,
+  accomplishments,
+}: {
+  allTasks: DBTask[];
+  accomplishments: AccomplishmentDB[];
+}) {
+  const { meetings } = useMeetings();
+
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+
+  const completedThisWeek = allTasks.filter((t) => {
+    if (t.status !== "completed") return false;
+    const at = t.completed_at ? new Date(t.completed_at) : null;
+    return at && at >= weekStart && at < weekEnd;
+  });
+
+  const meetingsThisWeek = meetings
+    .filter((m) => {
+      const d = new Date(m.scheduled_at);
+      return d >= weekStart && d < weekEnd;
+    })
+    .sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+
+  const dueThisWeek = allTasks.filter((t) => {
+    if (!t.due_date || t.status === "completed" || t.status === "archived") return false;
+    const d = new Date(t.due_date);
+    return d >= weekStart && d < weekEnd;
+  });
+
+  const winsThisWeek = accomplishments.filter((a) => {
+    const d = new Date(a.created_at);
+    return d >= weekStart && d < weekEnd;
+  });
+
+  const weekLabel = weekStart.toLocaleDateString([], { month: "short", day: "numeric" });
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-[15px] font-semibold">Weekly Digest</h2>
+        <span className="text-xs text-neutral-400">Week of {weekLabel}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {/* Completed */}
+        <div className="rounded-xl border bg-white p-3">
+          <div className="text-xs font-semibold text-neutral-500 mb-2">
+            ✅ Completed <span className="font-normal">({completedThisWeek.length})</span>
+          </div>
+          {completedThisWeek.length === 0 ? (
+            <div className="text-xs text-neutral-400">No tasks completed yet</div>
+          ) : (
+            <div className="space-y-1.5">
+              {completedThisWeek.slice(0, 5).map((t) => (
+                <div key={t.id} className="text-xs leading-snug">
+                  <span className="font-medium text-neutral-700 line-clamp-1">{t.title}</span>
+                  {t.assignee_name && (
+                    <span className="text-neutral-400 ml-1">· {t.assignee_name}</span>
+                  )}
+                </div>
+              ))}
+              {completedThisWeek.length > 5 && (
+                <div className="text-xs text-neutral-400">+{completedThisWeek.length - 5} more</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Meetings */}
+        <div className="rounded-xl border bg-white p-3">
+          <div className="text-xs font-semibold text-neutral-500 mb-2">
+            📅 Meetings <span className="font-normal">({meetingsThisWeek.length})</span>
+          </div>
+          {meetingsThisWeek.length === 0 ? (
+            <div className="text-xs text-neutral-400">No meetings this week</div>
+          ) : (
+            <div className="space-y-1.5">
+              {meetingsThisWeek.slice(0, 5).map((m) => (
+                <div key={m.id} className="text-xs leading-snug">
+                  <span className="font-medium text-neutral-700 line-clamp-1">{m.title}</span>
+                  <span className="text-neutral-400 ml-1">
+                    · {new Date(m.scheduled_at).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+                  </span>
+                </div>
+              ))}
+              {meetingsThisWeek.length > 5 && (
+                <div className="text-xs text-neutral-400">+{meetingsThisWeek.length - 5} more</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Due this week */}
+        <div className="rounded-xl border bg-white p-3">
+          <div className="text-xs font-semibold text-neutral-500 mb-2">
+            ⚠️ Due This Week <span className="font-normal">({dueThisWeek.length})</span>
+          </div>
+          {dueThisWeek.length === 0 ? (
+            <div className="text-xs text-neutral-400">Nothing due this week</div>
+          ) : (
+            <div className="space-y-1.5">
+              {dueThisWeek.slice(0, 5).map((t) => (
+                <div key={t.id} className="text-xs leading-snug">
+                  <span className="font-medium text-neutral-700 line-clamp-1">{t.title}</span>
+                  {t.assignee_name && (
+                    <span className="text-neutral-400 ml-1">· {t.assignee_name}</span>
+                  )}
+                </div>
+              ))}
+              {dueThisWeek.length > 5 && (
+                <div className="text-xs text-neutral-400">+{dueThisWeek.length - 5} more</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Team Wins */}
+        <div className="rounded-xl border bg-white p-3">
+          <div className="text-xs font-semibold text-neutral-500 mb-2">
+            🏆 Team Wins <span className="font-normal">({winsThisWeek.length})</span>
+          </div>
+          {winsThisWeek.length === 0 ? (
+            <div className="text-xs text-neutral-400">No wins logged yet</div>
+          ) : (
+            <div className="space-y-1.5">
+              {winsThisWeek.slice(0, 5).map((a) => (
+                <div key={a.id} className="text-xs leading-snug">
+                  <span className="font-medium text-neutral-700">{a.user_name}</span>
+                  <span className="text-neutral-500 ml-1 line-clamp-1">· {a.text}</span>
+                </div>
+              ))}
+              {winsThisWeek.length > 5 && (
+                <div className="text-xs text-neutral-400">+{winsThisWeek.length - 5} more</div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
    TodayFounder
    ────────────────────────────────────────────────────────────────── */
 export function TodayFounder({
@@ -407,6 +557,7 @@ export function TodayFounder({
   focusTasks,
   submittedTasks,
   allActiveTasks,
+  allTasks,
   accomplishments,
   onOpenCreateTask,
   onTaskClick,
@@ -423,6 +574,7 @@ export function TodayFounder({
   focusTasks: DBTask[];
   submittedTasks: DBTask[];
   allActiveTasks: DBTask[];
+  allTasks: DBTask[];
   accomplishments: AccomplishmentDB[];
   onOpenCreateTask: () => void;
   onTaskClick: (task: DBTask) => void;
@@ -543,6 +695,8 @@ export function TodayFounder({
           <AccomplishmentsCard accomplishments={accomplishments} onOpenAddAccomplishment={onOpenAddAccomplishment} />
         </div>
       </div>
+
+      <WeeklyDigestCard allTasks={allTasks} accomplishments={accomplishments} />
     </>
   );
 }
