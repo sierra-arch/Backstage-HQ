@@ -108,33 +108,32 @@ export function CompaniesPage({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-extrabold text-teal-900 tracking-tight">{companyName}</h3>
-                  <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
+                  <span className="text-xs text-neutral-500">{openTasks.length} open tasks · {progress}%</span>
                 </div>
 
-                {/* Progress */}
-                <div className="flex flex-col items-end gap-1.5 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-28 rounded-full bg-neutral-100 overflow-hidden">
-                      <motion.div
-                        className="h-full bg-teal-600"
-                        initial={false}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.4, ease: "easeOut" }}
-                      />
-                    </div>
-                    <span className="text-xs text-neutral-500 w-8 text-right">{progress}%</span>
-                  </div>
+                {/* Tools in header */}
+                <div className="flex flex-wrap justify-end gap-2 shrink-0 max-w-[55%]">
+                  {tools.map((tool, i) => (
+                    <a
+                      key={i}
+                      href={tool.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs px-3 py-1.5 rounded-xl border bg-white hover:bg-teal-50 hover:border-teal-200 text-neutral-700 font-medium transition-colors whitespace-nowrap"
+                    >
+                      {tool.name} →
+                    </a>
+                  ))}
                 </div>
               </div>
 
-              {/* Two-column body: clients/products left (2/3), tools right (1/3) */}
-              <div className="grid gap-4" style={{ gridTemplateColumns: "3fr 1fr" }}>
-                {/* Left: client / product tiles */}
-                <div>
-                  <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
-                    {isMaire ? "Products" : "Clients"}
-                  </div>
-                  <div className={`grid gap-2 ${isMaire ? "grid-cols-3" : "grid-cols-3"}`}>
+              {/* Full-width clients/products */}
+              <div>
+                <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
+                  {isMaire ? "Products" : "Clients"}
+                </div>
+                <div className={`grid gap-2 ${isMaire ? "grid-cols-3" : "grid-cols-3"}`}>
                     {items.map((item: any) => {
                       if (isMaire) {
                         // Products: keep original photo tile style
@@ -197,7 +196,7 @@ export function CompaniesPage({
                               )}
                               {client.deadline && (
                                 <span className="text-[10px] font-medium text-teal-600 shrink-0">
-                                  Due {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
+                                  {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
                                 </span>
                               )}
                             </div>
@@ -233,34 +232,6 @@ export function CompaniesPage({
                       </div>
                     )}
                   </div>
-                </div>
-
-                {/* Right: software tools */}
-                <div>
-                  <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
-                    Tools & Software
-                  </div>
-                  {tools.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {tools.map((tool, i) => (
-                        <a
-                          key={i}
-                          href={tool.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-xs px-3 py-1.5 rounded-xl border bg-white hover:bg-teal-50 hover:border-teal-200 text-neutral-700 font-medium transition-colors"
-                        >
-                          {tool.name} →
-                        </a>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-neutral-400 py-1">
-                      Click to add tools in the drawer.
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           </Card>
