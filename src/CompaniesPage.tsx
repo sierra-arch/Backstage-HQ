@@ -86,7 +86,7 @@ export function CompaniesPage({
             (companyRow && c.company_id === companyRow.id) ||
             c.company_name === companyName
           )
-          .slice(0, 4);
+          .slice(0, 6);
 
         const companyProducts = products
           .filter((p) =>
@@ -127,14 +127,14 @@ export function CompaniesPage({
                 </div>
               </div>
 
-              {/* Two-column body: clients/products left, tools right */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Two-column body: clients/products left (2/3), tools right (1/3) */}
+              <div className="grid gap-4" style={{ gridTemplateColumns: "2fr 1fr" }}>
                 {/* Left: client / product tiles */}
                 <div>
                   <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
                     {isMaire ? "Products" : "Clients"}
                   </div>
-                  <div className={`grid gap-2 ${isMaire ? "grid-cols-3" : "grid-cols-2"}`}>
+                  <div className={`grid gap-2 ${isMaire ? "grid-cols-3" : "grid-cols-3"}`}>
                     {items.map((item: any) => {
                       if (isMaire) {
                         // Products: keep original photo tile style
@@ -186,11 +186,24 @@ export function CompaniesPage({
                             }}
                           />
                           {/* Info */}
-                          <div className="px-3 pt-2.5 pb-3 space-y-2">
+                          <div className="px-3 pt-2.5 pb-3 space-y-1.5">
                             <p className="text-sm font-semibold text-neutral-800 truncate">{client.name}</p>
+                            {client.scope && (
+                              <p className="text-[11px] text-neutral-500 line-clamp-2 leading-snug">{client.scope}</p>
+                            )}
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                              {client.contact_email && (
+                                <span className="text-[10px] text-neutral-400 truncate max-w-full">{client.contact_email}</span>
+                              )}
+                              {client.deadline && (
+                                <span className="text-[10px] font-medium text-teal-600 shrink-0">
+                                  Due {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
+                                </span>
+                              )}
+                            </div>
                             {clientProgress !== null ? (
                               <>
-                                <div className="h-2 w-full rounded-full bg-neutral-100 overflow-hidden">
+                                <div className="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
                                   <motion.div
                                     className={`h-full rounded-full ${progressColor(clientProgress)}`}
                                     initial={false}
@@ -199,16 +212,16 @@ export function CompaniesPage({
                                   />
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[11px] text-neutral-400">
+                                  <span className="text-[10px] text-neutral-400">
                                     {completedCount}/{completedCount + openCount} tasks
                                   </span>
-                                  <span className={`text-[11px] font-semibold ${clientProgress >= 70 ? "text-teal-600" : clientProgress >= 40 ? "text-amber-500" : "text-red-500"}`}>
+                                  <span className={`text-[10px] font-semibold ${clientProgress >= 70 ? "text-teal-600" : clientProgress >= 40 ? "text-amber-500" : "text-red-500"}`}>
                                     {clientProgress}%
                                   </span>
                                 </div>
                               </>
                             ) : (
-                              <p className="text-[11px] text-neutral-400 italic">No tasks linked yet</p>
+                              <p className="text-[10px] text-neutral-400 italic">No tasks yet</p>
                             )}
                           </div>
                         </div>

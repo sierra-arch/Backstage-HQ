@@ -30,6 +30,7 @@ export function CompanyDrawer({
   products,
   onRefetch,
   onAddTask,
+  onClientClick,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -40,6 +41,7 @@ export function CompanyDrawer({
   products: Product[];
   onRefetch?: () => void;
   onAddTask?: (companyName: string) => void;
+  onClientClick?: (client: Client) => void;
 }) {
   const founder = isFounder(role);
   const companyName = company?.name || "";
@@ -374,7 +376,7 @@ export function CompanyDrawer({
                 </div>
                 <div className="space-y-2">
                   {clients.slice(0, 8).map((c) => (
-                    <div key={c.id} className="rounded-xl border p-3 bg-white">
+                    <div key={c.id} onClick={() => onClientClick?.(c)} className={`rounded-xl border p-3 bg-white ${onClientClick ? "cursor-pointer hover:border-teal-200 hover:shadow-sm transition-all" : ""}`}>
                       <div className="flex items-start gap-3">
                         {c.photo_url && (
                           <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0"

@@ -743,6 +743,7 @@ export default function DashboardApp() {
         products={allProducts.filter((p: any) => p.company_id === selectedCompanyData?.id)}
         onRefetch={() => { refetchClients(); refetchProducts(); refetchCompanies(); }}
         onAddTask={(companyName) => { setCreateDefaultCompany(companyName); setShowCreateModal(true); }}
+        onClientClick={setSelectedClient}
       />
 
       <ClientModal client={selectedClient} isOpen={!!selectedClient} onClose={() => setSelectedClient(null)} onSaved={refetchClients} role={role} />
