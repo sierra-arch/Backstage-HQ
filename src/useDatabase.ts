@@ -1378,7 +1378,7 @@ export interface Meeting {
   company_id: string | null;
   notes: string | null;
   created_by: string | null;
-  attendees: { id: string; name: string }[];
+  attendees?: { id: string; name: string }[];
   created_at: string;
   updated_at: string;
 }

@@ -60,7 +60,7 @@ function MeetingFormModal({
       onSaved(null);
       onClose();
     } else {
-      const newMeeting = await createMeeting({ title, scheduled_at: isoString, notes: notes || null, company_id: null, created_by: null, attendees: [] });
+      const newMeeting = await createMeeting({ title, scheduled_at: isoString, notes: notes || null, company_id: null, created_by: null });
       setSaving(false);
       onSaved(newMeeting);
       onClose();
