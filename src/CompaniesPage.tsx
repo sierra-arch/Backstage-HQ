@@ -292,7 +292,7 @@ export function CompaniesPage({
                       <div className="text-xs text-neutral-400 py-4">No products yet.</div>
                     )}
                   </div>
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-teal-50 to-transparent" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
                   </div>
                 ) : (
                   <div className="relative">
@@ -317,7 +317,7 @@ export function CompaniesPage({
                       </div>
                     </SortableContext>
                   </DndContext>
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-teal-50 to-transparent" />
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
                   </div>
                 )}
               </div>
