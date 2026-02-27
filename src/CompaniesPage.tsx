@@ -101,7 +101,7 @@ function SortableClientCard({
           <div
             {...attributes}
             {...listeners}
-            className="w-9 h-9 rounded-full overflow-hidden shrink-0 cursor-grab active:cursor-grabbing"
+            className="w-12 h-12 rounded-full overflow-hidden shrink-0 cursor-grab active:cursor-grabbing"
             onClick={(e) => e.stopPropagation()}
           >
             {client.photo_url ? (
@@ -135,9 +135,6 @@ function SortableClientCard({
                     transition={{ duration: 0.4, ease: "easeOut" }}
                   />
                 </div>
-                <span className={`text-[10px] font-semibold ${clientProgress >= 70 ? "text-teal-600" : clientProgress >= 40 ? "text-amber-500" : "text-red-500"}`}>
-                  {clientProgress}%
-                </span>
               </>
             )}
           </div>
