@@ -91,7 +91,7 @@ function SortableClientCard({
   const openCount = clientTasks.filter((t) => t.status !== "completed").length;
 
   return (
-    <div ref={setNodeRef} style={style}>
+    <div ref={setNodeRef} style={style} className="w-24 shrink-0">
       <div
         onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
         className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
@@ -239,7 +239,7 @@ export function CompaniesPage({
 
         const isMaire = companyName === "Mairë";
         const key = companyRow?.id ?? companyName;
-        const orderedClients = getOrderedClients(key, companyClients).slice(0, 8);
+        const orderedClients = getOrderedClients(key, companyClients);
 
         return (
           <Card key={companyName} onClick={() => onCompanyClick(companyName)}>
@@ -273,12 +273,12 @@ export function CompaniesPage({
                 </div>
 
                 {isMaire ? (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="flex gap-2 overflow-x-auto pb-1">
                     {companyProducts.map((item) => (
                       <div
                         key={item.id}
                         onClick={(e) => { e.stopPropagation(); onProductClick(item as Product); }}
-                        className="relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
+                        className="relative w-24 shrink-0 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
                         style={{
                           backgroundImage: item.photo_url
                             ? `url(${item.photo_url})`
@@ -294,7 +294,7 @@ export function CompaniesPage({
                       </div>
                     ))}
                     {companyProducts.length === 0 && (
-                      <div className="col-span-4 text-xs text-neutral-400 py-4">No products yet.</div>
+                      <div className="text-xs text-neutral-400 py-4">No products yet.</div>
                     )}
                   </div>
                 ) : (
@@ -304,7 +304,7 @@ export function CompaniesPage({
                     onDragEnd={(e) => handleDragEnd(e, key, companyClients)}
                   >
                     <SortableContext items={orderedClients.map((c) => c.id)} strategy={rectSortingStrategy}>
-                      <div className="grid grid-cols-4 gap-2">
+                      <div className="flex gap-2 overflow-x-auto pb-1">
                         {orderedClients.map((client) => (
                           <SortableClientCard
                             key={client.id}
@@ -314,7 +314,7 @@ export function CompaniesPage({
                           />
                         ))}
                         {orderedClients.length === 0 && (
-                          <div className="col-span-4 text-xs text-neutral-400 py-4">No clients yet.</div>
+                          <div className="text-xs text-neutral-400 py-4">No clients yet.</div>
                         )}
                       </div>
                     </SortableContext>
