@@ -221,7 +221,7 @@ export function ChatPanel({
                     </div>
                     {parsed ? (
                       <div className="rounded-xl border-2 border-teal-200 bg-[#ECF7F3] p-3">
-                        <div className="text-[10px] font-semibold text-teal-600 uppercase tracking-wide mb-1">📅 Meeting</div>
+                        <div className="text-[10px] font-semibold text-teal-600 uppercase tracking-wide mb-1">Meeting</div>
                         <div className="font-medium text-sm text-neutral-800">{parsed.displayText}</div>
                         {meeting && meeting.attendees?.length > 0 && (
                           <div className="mt-1.5 text-xs text-neutral-500">
