@@ -91,7 +91,7 @@ function SortableClientCard({
   const openCount = clientTasks.filter((t) => t.status !== "completed").length;
 
   return (
-    <div ref={setNodeRef} style={style} className="w-36 shrink-0">
+    <div ref={setNodeRef} style={style} className="w-44 shrink-0">
       <div
         onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
         className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
