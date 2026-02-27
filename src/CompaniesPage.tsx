@@ -1,9 +1,24 @@
 // CompaniesPage.tsx
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import {
+  SortableContext,
+  rectSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Card } from "./ui";
-import { remainingBreakdown } from "./ui";
 import { Client, Product, DBTask, TASK_WEIGHT } from "./types";
+import { supabase } from "./supabase";
 
 function calculateClientProgress(clientId: string, tasks: DBTask[]) {
   const relevant = tasks.filter(
@@ -30,19 +45,116 @@ function calculateCompanyProgress(companyName: string, tasks: DBTask[]) {
     (t) => t.company_name === companyName && t.status !== "archived"
   );
   if (relevant.length === 0) return 100;
-
   let total = 0;
   let completed = 0;
   relevant.forEach((t) => {
     total += TASK_WEIGHT[t.impact];
     if (t.status === "completed") completed += TASK_WEIGHT[t.impact];
   });
-
   return total > 0 ? Math.round((completed / total) * 100) : 0;
 }
 
 type CompanyRow = { id: string; name: string; software_links?: { name: string; url: string }[] | null };
 
+/* ── Sortable client card ── */
+function SortableClientCard({
+  client,
+  tasks,
+  onClientClick,
+}: {
+  client: Client;
+  tasks: DBTask[];
+  onClientClick: (c: Client) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: client.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.45 : 1,
+    zIndex: isDragging ? 10 : undefined,
+    position: "relative" as const,
+  };
+
+  const clientTasks = tasks.filter(
+    (t) => t.client_id === client.id && t.status !== "archived"
+  );
+  const clientProgress = calculateClientProgress(client.id, tasks);
+  const completedCount = clientTasks.filter((t) => t.status === "completed").length;
+  const openCount = clientTasks.filter((t) => t.status !== "completed").length;
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <div
+        onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
+        className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
+      >
+        {/* Drag handle + photo */}
+        <div
+          className="h-14 w-full relative"
+          style={{
+            backgroundImage: client.photo_url
+              ? `url(${client.photo_url})`
+              : `linear-gradient(135deg, #F0FAF7 0%, #C8EDE3 100%)`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        >
+          {/* Invisible drag area on the photo */}
+          <div
+            {...attributes}
+            {...listeners}
+            className="absolute inset-0 cursor-grab active:cursor-grabbing"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+        {/* Info */}
+        <div className="px-2 pt-1.5 pb-2 space-y-1">
+          <p className="text-xs font-semibold text-neutral-800 truncate">{client.name}</p>
+          {client.scope && (
+            <p className="text-[10px] text-neutral-500 line-clamp-1 leading-snug">{client.scope}</p>
+          )}
+          {client.deadline && (
+            <span className="text-[10px] font-medium text-teal-600 block">
+              {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
+            </span>
+          )}
+          {clientProgress !== null ? (
+            <>
+              <div className="h-1 w-full rounded-full bg-neutral-100 overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full ${progressColor(clientProgress)}`}
+                  initial={false}
+                  animate={{ width: `${clientProgress}%` }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-neutral-400">
+                  {completedCount}/{completedCount + openCount}
+                </span>
+                <span className={`text-[10px] font-semibold ${clientProgress >= 70 ? "text-teal-600" : clientProgress >= 40 ? "text-amber-500" : "text-red-500"}`}>
+                  {clientProgress}%
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="text-[10px] text-neutral-400 italic">No tasks</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main page ── */
 export function CompaniesPage({
   companies,
   tasks,
@@ -63,6 +175,42 @@ export function CompaniesPage({
   onProductClick: (product: Product) => void;
   onTaskClick?: (task: DBTask) => void;
 }) {
+  // Custom drag order per company (keyed by company ID or name)
+  const [orderedIds, setOrderedIds] = useState<Record<string, string[]>>({});
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
+  function sortByDeadline(list: Client[]): Client[] {
+    return [...list].sort((a, b) => {
+      if (!a.deadline && !b.deadline) return 0;
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    });
+  }
+
+  function getOrderedClients(key: string, list: Client[]): Client[] {
+    const custom = orderedIds[key];
+    if (custom) {
+      return custom.map((id) => list.find((c) => c.id === id)).filter(Boolean) as Client[];
+    }
+    return sortByDeadline(list);
+  }
+
+  async function handleDragEnd(event: DragEndEvent, key: string, list: Client[]) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const current = getOrderedClients(key, list).map((c) => c.id);
+    const newOrder = arrayMove(current, current.indexOf(active.id as string), current.indexOf(over.id as string));
+    setOrderedIds((prev) => ({ ...prev, [key]: newOrder }));
+    // Persist sort_order to DB (requires: ALTER TABLE clients ADD COLUMN IF NOT EXISTS sort_order integer)
+    newOrder.forEach((id, idx) => {
+      supabase.from("clients").update({ sort_order: idx }).eq("id", id);
+    });
+  }
+
   return (
     <div className="space-y-6">
       {companies.map((companyName) => {
@@ -70,23 +218,17 @@ export function CompaniesPage({
         const openTasks = companyTasks.filter(
           (t) => t.status !== "completed" && t.status !== "archived"
         );
-
         const progress = calculateCompanyProgress(companyName, tasks);
-        const remaining = remainingBreakdown(companyName, tasks);
 
-        // DB row for this company (used for ID-based filtering and tools)
         const companyRow = companiesData.find(
           (c) => c.name === companyName || c.name.toLowerCase() === companyName.toLowerCase()
         );
         const tools: { name: string; url: string }[] = companyRow?.software_links ?? [];
 
-        // Client / product tiles — match by company_id (preferred) or company_name string
-        const companyClients = clients
-          .filter((c) =>
-            (companyRow && c.company_id === companyRow.id) ||
-            c.company_name === companyName
-          )
-          .slice(0, 6);
+        const companyClients = clients.filter((c) =>
+          (companyRow && c.company_id === companyRow.id) ||
+          c.company_name === companyName
+        );
 
         const companyProducts = products
           .filter((p) =>
@@ -96,22 +238,18 @@ export function CompaniesPage({
           .slice(0, 6);
 
         const isMaire = companyName === "Mairë";
-        const items: any[] = isMaire ? companyProducts : companyClients;
+        const key = companyRow?.id ?? companyName;
+        const orderedClients = getOrderedClients(key, companyClients).slice(0, 8);
 
         return (
-          <Card
-            key={companyName}
-            onClick={() => onCompanyClick(companyName)}
-          >
+          <Card key={companyName} onClick={() => onCompanyClick(companyName)}>
             <div className="space-y-4">
-              {/* Header row */}
+              {/* Header */}
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-extrabold text-teal-900 tracking-tight">{companyName}</h3>
                   <span className="text-xs text-neutral-500">{openTasks.length} open tasks · {progress}%</span>
                 </div>
-
-                {/* Tools in header */}
                 <div className="flex flex-wrap justify-end gap-2 shrink-0 max-w-[55%]">
                   {tools.map((tool, i) => (
                     <a
@@ -128,110 +266,60 @@ export function CompaniesPage({
                 </div>
               </div>
 
-              {/* Full-width clients/products */}
+              {/* Clients / Products */}
               <div>
                 <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
                   {isMaire ? "Products" : "Clients"}
                 </div>
-                <div className={`grid gap-2 ${isMaire ? "grid-cols-3" : "grid-cols-3"}`}>
-                    {items.map((item: any) => {
-                      if (isMaire) {
-                        // Products: keep original photo tile style
-                        return (
-                          <div
-                            key={item.id}
-                            onClick={(e) => { e.stopPropagation(); onProductClick(item as Product); }}
-                            className="relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
-                            style={{
-                              backgroundImage: item.photo_url
-                                ? `url(${item.photo_url})`
-                                : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }}
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                            <div className="absolute bottom-0 left-0 right-0 p-2">
-                              <p className="text-white text-xs font-medium truncate">{item.name}</p>
-                            </div>
-                          </div>
-                        );
-                      }
-                      // Clients: card with photo + progress
-                      const client = item as Client;
-                      const clientTasks = tasks.filter(
-                        (t) => t.client_id === client.id && t.status !== "archived"
-                      );
-                      const clientProgress = calculateClientProgress(client.id, tasks);
-                      const completedCount = clientTasks.filter((t) => t.status === "completed").length;
-                      const openCount = clientTasks.filter(
-                        (t) => t.status !== "completed"
-                      ).length;
-                      return (
-                        <div
-                          key={client.id}
-                          onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
-                          className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
-                        >
-                          {/* Photo */}
-                          <div
-                            className="h-24 w-full"
-                            style={{
-                              backgroundImage: client.photo_url
-                                ? `url(${client.photo_url})`
-                                : `linear-gradient(135deg, #F0FAF7 0%, #C8EDE3 100%)`,
-                              backgroundSize: "cover",
-                              backgroundPosition: "center",
-                            }}
-                          />
-                          {/* Info */}
-                          <div className="px-3 pt-2.5 pb-3 space-y-1.5">
-                            <p className="text-sm font-semibold text-neutral-800 truncate">{client.name}</p>
-                            {client.scope && (
-                              <p className="text-[11px] text-neutral-500 line-clamp-2 leading-snug">{client.scope}</p>
-                            )}
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                              {client.contact_email && (
-                                <span className="text-[10px] text-neutral-400 truncate max-w-full">{client.contact_email}</span>
-                              )}
-                              {client.deadline && (
-                                <span className="text-[10px] font-medium text-teal-600 shrink-0">
-                                  {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
-                                </span>
-                              )}
-                            </div>
-                            {clientProgress !== null ? (
-                              <>
-                                <div className="h-1.5 w-full rounded-full bg-neutral-100 overflow-hidden">
-                                  <motion.div
-                                    className={`h-full rounded-full ${progressColor(clientProgress)}`}
-                                    initial={false}
-                                    animate={{ width: `${clientProgress}%` }}
-                                    transition={{ duration: 0.4, ease: "easeOut" }}
-                                  />
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] text-neutral-400">
-                                    {completedCount}/{completedCount + openCount} tasks
-                                  </span>
-                                  <span className={`text-[10px] font-semibold ${clientProgress >= 70 ? "text-teal-600" : clientProgress >= 40 ? "text-amber-500" : "text-red-500"}`}>
-                                    {clientProgress}%
-                                  </span>
-                                </div>
-                              </>
-                            ) : (
-                              <p className="text-[10px] text-neutral-400 italic">No tasks yet</p>
-                            )}
-                          </div>
+
+                {isMaire ? (
+                  <div className="grid grid-cols-4 gap-2">
+                    {companyProducts.map((item) => (
+                      <div
+                        key={item.id}
+                        onClick={(e) => { e.stopPropagation(); onProductClick(item as Product); }}
+                        className="relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
+                        style={{
+                          backgroundImage: item.photo_url
+                            ? `url(${item.photo_url})`
+                            : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 p-2">
+                          <p className="text-white text-xs font-medium truncate">{item.name}</p>
                         </div>
-                      );
-                    })}
-                    {items.length === 0 && (
-                      <div className="col-span-2 text-xs text-neutral-400 py-4">
-                        No {isMaire ? "products" : "clients"} yet.
                       </div>
+                    ))}
+                    {companyProducts.length === 0 && (
+                      <div className="col-span-4 text-xs text-neutral-400 py-4">No products yet.</div>
                     )}
                   </div>
+                ) : (
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={(e) => handleDragEnd(e, key, companyClients)}
+                  >
+                    <SortableContext items={orderedClients.map((c) => c.id)} strategy={rectSortingStrategy}>
+                      <div className="grid grid-cols-4 gap-2">
+                        {orderedClients.map((client) => (
+                          <SortableClientCard
+                            key={client.id}
+                            client={client}
+                            tasks={tasks}
+                            onClientClick={onClientClick}
+                          />
+                        ))}
+                        {orderedClients.length === 0 && (
+                          <div className="col-span-4 text-xs text-neutral-400 py-4">No clients yet.</div>
+                        )}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
               </div>
             </div>
           </Card>
