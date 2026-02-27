@@ -526,44 +526,56 @@ export function ClientModal({
 }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [scope, setScope] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactPhone, setContactPhone] = useState("");
-  const [scope, setScope] = useState("");
   const [deadline, setDeadline] = useState("");
   const [links, setLinks] = useState<{ name: string; url: string }[]>([]);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (client) {
       setName(client.name ?? "");
-      setDescription(client.description ?? "");
+      setScope(client.scope ?? "");
       setContactEmail(client.contact_email ?? "");
       setContactPhone(client.contact_phone ?? "");
-      setScope(client.scope ?? "");
       setDeadline(client.deadline ?? "");
       setLinks(client.quick_links ?? []);
     }
     setEditing(false);
+    setPhotoFile(null);
     setSaveError(null);
   }, [client?.id]);
 
   if (!client) return null;
 
+  async function uploadClientPhoto(file: File): Promise<string | null> {
+    const ext = file.name.split(".").pop();
+    const path = `clients/${Date.now()}.${ext}`;
+    const { data, error } = await supabase.storage
+      .from("task-photos")
+      .upload(path, file, { contentType: file.type });
+    if (error || !data) return null;
+    const { data: { publicUrl } } = supabase.storage.from("task-photos").getPublicUrl(data.path);
+    return publicUrl;
+  }
+
   async function handleSave() {
     if (!client) return;
     setSaving(true);
     setSaveError(null);
+    const photo_url = photoFile ? await uploadClientPhoto(photoFile) : undefined;
     const result = await saveClient({
       id: client.id,
       name: name.trim(),
-      description: description.trim() || null,
+      scope: scope.trim() || null,
       contact_email: contactEmail.trim() || null,
       contact_phone: contactPhone.trim() || null,
-      scope: scope.trim() || null,
       deadline: deadline || null,
       quick_links: links.filter((l) => l.name.trim() && l.url.trim()),
+      ...(photo_url ? { photo_url } : {}),
     } as any);
     setSaving(false);
     if (!result) {
@@ -571,6 +583,7 @@ export function ClientModal({
       return;
     }
     setEditing(false);
+    setPhotoFile(null);
     onSaved?.();
   }
 
@@ -579,60 +592,67 @@ export function ClientModal({
       <Modal isOpen={isOpen} onClose={() => { setEditing(false); onClose(); }} title="Edit Client" size="large">
         <div className="space-y-3">
           <div>
-            <label className="text-sm font-medium text-neutral-700">Name</label>
+            <label className="text-xs font-medium text-neutral-600">Client name *</label>
             <input value={name} onChange={(e) => setName(e.target.value)}
               className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
           </div>
           <div>
-            <label className="text-sm font-medium text-neutral-700">Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[72px] resize-none focus:ring-2 focus:ring-teal-200 outline-none" />
+            <label className="text-xs font-medium text-neutral-600">What we're doing for them</label>
+            <textarea value={scope} onChange={(e) => setScope(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[72px] resize-none focus:ring-2 focus:ring-teal-200 outline-none"
+              placeholder="e.g. Monthly social media management, content creation…" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-sm font-medium text-neutral-700">Contact Email</label>
+              <label className="text-xs font-medium text-neutral-600">Contact email</label>
               <input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="name@company.com"
                 className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
             </div>
             <div>
-              <label className="text-sm font-medium text-neutral-700">Contact Phone</label>
+              <label className="text-xs font-medium text-neutral-600">Contact phone</label>
               <input value={contactPhone} onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="(555) 000-0000"
                 className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium text-neutral-700">Scope</label>
-              <input value={scope} onChange={(e) => setScope(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-neutral-700">Deadline</label>
-              <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
-            </div>
-          </div>
-          {/* Quick links */}
           <div>
-            <label className="text-sm font-medium text-neutral-700 mb-1 block">Quick Links</label>
-            <div className="space-y-2">
+            <label className="text-xs font-medium text-neutral-600">Project / due date</label>
+            <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)}
+              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-neutral-600">Quick Links</label>
+            <div className="mt-1 space-y-2">
               {links.map((l, i) => (
-                <div key={i} className="flex gap-2">
+                <div key={i} className="flex gap-2 items-center">
                   <input value={l.name} onChange={(e) => { const n = [...links]; n[i] = { ...n[i], name: e.target.value }; setLinks(n); }}
-                    placeholder="Label" className="flex-1 rounded-xl border px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+                    placeholder="Label (e.g. Notion)"
+                    className="w-28 rounded-lg border px-2 py-1.5 text-xs focus:ring-2 focus:ring-teal-200 outline-none" />
                   <input value={l.url} onChange={(e) => { const n = [...links]; n[i] = { ...n[i], url: e.target.value }; setLinks(n); }}
-                    placeholder="URL" className="flex-[2] rounded-xl border px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-200 outline-none" />
+                    placeholder="https://..."
+                    className="flex-1 rounded-lg border px-2 py-1.5 text-xs focus:ring-2 focus:ring-teal-200 outline-none" />
                   <button onClick={() => setLinks(links.filter((_, idx) => idx !== i))}
-                    className="text-neutral-400 hover:text-red-500 px-1 text-lg leading-none">×</button>
+                    className="text-neutral-400 hover:text-red-500 text-sm leading-none">✕</button>
                 </div>
               ))}
-              <button onClick={() => setLinks([...links, { name: "", url: "" }])}
-                className="text-xs text-teal-600 hover:text-teal-800 font-medium">+ Add link</button>
+              {links.length < 4 && (
+                <button onClick={() => setLinks([...links, { name: "", url: "" }])}
+                  className="text-xs text-teal-600 hover:text-teal-800">+ Add link</button>
+              )}
             </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-neutral-600">Photo</label>
+            <label className="mt-1 flex items-center gap-2 cursor-pointer rounded-xl border border-dashed px-3 py-2 hover:border-teal-300 transition-colors">
+              <span className="text-sm text-neutral-400 truncate">{photoFile ? photoFile.name : (client.photo_url ? "Replace photo…" : "Choose image...")}</span>
+              <input type="file" accept="image/*" className="hidden"
+                onChange={(e) => setPhotoFile(e.target.files?.[0] || null)} />
+            </label>
           </div>
           {saveError && <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{saveError}</p>}
           <div className="flex gap-3 pt-3 border-t">
-            <button onClick={() => setEditing(false)} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
+            <button onClick={() => { setEditing(false); setPhotoFile(null); }} className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm">Cancel</button>
             <button onClick={handleSave} disabled={!name.trim() || saving}
               className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium disabled:opacity-50">
               {saving ? "Saving..." : "Save Changes"}
