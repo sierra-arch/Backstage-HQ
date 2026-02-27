@@ -96,61 +96,51 @@ function SortableClientCard({
         onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
         className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
       >
-        {/* Drag handle + photo / initials fallback */}
-        <div className="h-14 w-full relative overflow-hidden">
-          {client.photo_url ? (
-            <div
-              className="absolute inset-0"
-              style={{ backgroundImage: `url(${client.photo_url})`, backgroundSize: "cover", backgroundPosition: "center" }}
-            />
-          ) : (
-            <div className="absolute inset-0 bg-teal-100 flex items-center justify-center">
-              <span className="text-teal-700 font-bold text-xl leading-none select-none">
-                {client.name.split(" ").map((w: string) => w[0] ?? "").join("").slice(0, 2).toUpperCase()}
-              </span>
-            </div>
-          )}
-          {/* Invisible drag area on the photo */}
+        <div className="p-2.5 flex items-start gap-2">
+          {/* Round avatar — also the drag handle */}
           <div
             {...attributes}
             {...listeners}
-            className="absolute inset-0 cursor-grab active:cursor-grabbing"
+            className="w-9 h-9 rounded-full overflow-hidden shrink-0 cursor-grab active:cursor-grabbing"
             onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-        {/* Info */}
-        <div className="px-2 pt-1.5 pb-2 space-y-1">
-          <p className="text-xs font-semibold text-neutral-800 truncate">{client.name}</p>
-          {client.scope && (
-            <p className="text-[10px] text-neutral-500 line-clamp-1 leading-snug">{client.scope}</p>
-          )}
-          {client.deadline && (
-            <span className="text-[10px] font-medium text-teal-600 block">
-              {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
-            </span>
-          )}
-          {clientProgress !== null ? (
-            <>
-              <div className="h-1 w-full rounded-full bg-neutral-100 overflow-hidden">
-                <motion.div
-                  className={`h-full rounded-full ${progressColor(clientProgress)}`}
-                  initial={false}
-                  animate={{ width: `${clientProgress}%` }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-neutral-400">
-                  {completedCount}/{completedCount + openCount}
+          >
+            {client.photo_url ? (
+              <img src={client.photo_url} alt={client.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-teal-100 flex items-center justify-center">
+                <span className="text-teal-700 font-bold text-[11px] leading-none select-none">
+                  {client.name.split(" ").map((w: string) => w[0] ?? "").join("").slice(0, 2).toUpperCase()}
                 </span>
+              </div>
+            )}
+          </div>
+          {/* Info */}
+          <div className="flex-1 min-w-0 space-y-0.5 pt-0.5">
+            <p className="text-xs font-semibold text-neutral-800 truncate leading-tight">{client.name}</p>
+            {client.scope && (
+              <p className="text-[10px] text-neutral-500 line-clamp-1 leading-snug">{client.scope}</p>
+            )}
+            {client.deadline && (
+              <span className="text-[10px] font-medium text-teal-600 block">
+                {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
+              </span>
+            )}
+            {clientProgress !== null && (
+              <>
+                <div className="h-1 w-full rounded-full bg-neutral-100 overflow-hidden">
+                  <motion.div
+                    className={`h-full rounded-full ${progressColor(clientProgress)}`}
+                    initial={false}
+                    animate={{ width: `${clientProgress}%` }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  />
+                </div>
                 <span className={`text-[10px] font-semibold ${clientProgress >= 70 ? "text-teal-600" : clientProgress >= 40 ? "text-amber-500" : "text-red-500"}`}>
                   {clientProgress}%
                 </span>
-              </div>
-            </>
-          ) : (
-            <p className="text-[10px] text-neutral-400 italic">No tasks</p>
-          )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -248,7 +238,7 @@ export function CompaniesPage({
           <section
             key={companyName}
             onClick={() => onCompanyClick(companyName)}
-            className="rounded-2xl border border-neutral-200 bg-teal-50/40 p-5 md:p-6 shadow-sm cursor-pointer hover:border-teal-300 transition-colors"
+            className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 shadow-sm cursor-pointer hover:border-teal-300 transition-colors"
           >
             <div className="space-y-4">
               {/* Header */}
