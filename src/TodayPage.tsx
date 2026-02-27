@@ -696,7 +696,9 @@ export function TodayFounder({
         </div>
       </div>
 
+      {/* Weekly Digest — hidden for now, uncomment to re-enable:
       <WeeklyDigestCard allTasks={allTasks} accomplishments={accomplishments} />
+      */}
     </>
   );
 }
