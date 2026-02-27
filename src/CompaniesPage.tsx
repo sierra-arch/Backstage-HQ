@@ -96,7 +96,7 @@ function SortableClientCard({
         onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
         className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
       >
-        <div className="p-2.5 flex items-start gap-2">
+        <div className="p-2.5 flex items-stretch gap-2">
           {/* Round avatar — also the drag handle */}
           <div
             {...attributes}
@@ -115,7 +115,7 @@ function SortableClientCard({
             )}
           </div>
           {/* Info */}
-          <div className="flex-1 min-w-0 space-y-0.5 pt-0.5">
+          <div className="flex-1 min-w-0 flex flex-col pt-0.5">
             <p className="text-xs font-semibold text-neutral-800 truncate leading-tight">{client.name}</p>
             {client.scope && (
               <p className="text-[10px] text-neutral-500 line-clamp-1 leading-snug">{client.scope}</p>
@@ -127,7 +127,7 @@ function SortableClientCard({
             )}
             {clientProgress !== null && (
               <>
-                <div className="h-1 w-3/4 rounded-full bg-neutral-100 overflow-hidden mt-3">
+                <div className="h-1 w-3/4 rounded-full bg-neutral-100 overflow-hidden mt-auto pt-0.5">
                   <motion.div
                     className={`h-full rounded-full ${progressColor(clientProgress)}`}
                     initial={false}
