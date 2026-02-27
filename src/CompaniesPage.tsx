@@ -91,7 +91,7 @@ function SortableClientCard({
   const openCount = clientTasks.filter((t) => t.status !== "completed").length;
 
   return (
-    <div ref={setNodeRef} style={style} className="w-24 shrink-0">
+    <div ref={setNodeRef} style={style} className="w-36 shrink-0">
       <div
         onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
         className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
@@ -278,7 +278,7 @@ export function CompaniesPage({
                       <div
                         key={item.id}
                         onClick={(e) => { e.stopPropagation(); onProductClick(item as Product); }}
-                        className="relative w-24 shrink-0 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
+                        className="relative w-36 shrink-0 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
                         style={{
                           backgroundImage: item.photo_url
                             ? `url(${item.photo_url})`
