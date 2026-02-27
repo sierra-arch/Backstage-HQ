@@ -127,7 +127,7 @@ function SortableClientCard({
             )}
             {clientProgress !== null && (
               <>
-                <div className="h-1 w-full rounded-full bg-neutral-100 overflow-hidden">
+                <div className="h-1 w-full rounded-full bg-neutral-100 overflow-hidden mt-1.5">
                   <motion.div
                     className={`h-full rounded-full ${progressColor(clientProgress)}`}
                     initial={false}
