@@ -96,17 +96,20 @@ function SortableClientCard({
         onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
         className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
       >
-        {/* Drag handle + photo */}
-        <div
-          className="h-14 w-full relative"
-          style={{
-            backgroundImage: client.photo_url
-              ? `url(${client.photo_url})`
-              : `linear-gradient(135deg, #F0FAF7 0%, #C8EDE3 100%)`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-          }}
-        >
+        {/* Drag handle + photo / initials fallback */}
+        <div className="h-14 w-full relative overflow-hidden">
+          {client.photo_url ? (
+            <div
+              className="absolute inset-0"
+              style={{ backgroundImage: `url(${client.photo_url})`, backgroundSize: "cover", backgroundPosition: "center" }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-teal-100 flex items-center justify-center">
+              <span className="text-teal-700 font-bold text-xl leading-none select-none">
+                {client.name.split(" ").map((w: string) => w[0] ?? "").join("").slice(0, 2).toUpperCase()}
+              </span>
+            </div>
+          )}
           {/* Invisible drag area on the photo */}
           <div
             {...attributes}
@@ -242,7 +245,11 @@ export function CompaniesPage({
         const orderedClients = getOrderedClients(key, companyClients);
 
         return (
-          <Card key={companyName} onClick={() => onCompanyClick(companyName)}>
+          <section
+            key={companyName}
+            onClick={() => onCompanyClick(companyName)}
+            className="rounded-2xl border border-neutral-200 bg-teal-50/40 p-5 md:p-6 shadow-sm cursor-pointer hover:border-teal-300 transition-colors"
+          >
             <div className="space-y-4">
               {/* Header */}
               <div className="flex items-start justify-between gap-4">
@@ -273,7 +280,8 @@ export function CompaniesPage({
                 </div>
 
                 {isMaire ? (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
+                  <div className="relative">
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                     {companyProducts.map((item) => (
                       <div
                         key={item.id}
@@ -297,14 +305,17 @@ export function CompaniesPage({
                       <div className="text-xs text-neutral-400 py-4">No products yet.</div>
                     )}
                   </div>
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-teal-50 to-transparent" />
+                  </div>
                 ) : (
+                  <div className="relative">
                   <DndContext
                     sensors={sensors}
                     collisionDetection={closestCenter}
                     onDragEnd={(e) => handleDragEnd(e, key, companyClients)}
                   >
                     <SortableContext items={orderedClients.map((c) => c.id)} strategy={rectSortingStrategy}>
-                      <div className="flex gap-2 overflow-x-auto pb-1">
+                      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                         {orderedClients.map((client) => (
                           <SortableClientCard
                             key={client.id}
@@ -319,10 +330,12 @@ export function CompaniesPage({
                       </div>
                     </SortableContext>
                   </DndContext>
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-teal-50 to-transparent" />
+                  </div>
                 )}
               </div>
             </div>
-          </Card>
+          </section>
         );
       })}
     </div>

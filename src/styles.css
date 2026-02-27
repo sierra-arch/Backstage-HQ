@@ -618,6 +618,10 @@ input[type="radio"] {
   background: transparent;
 }
 
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Accessible focus ring fallback */
 :focus-visible {
   outline: 2px solid rgba(45, 212, 191, 0.45);
