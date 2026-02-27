@@ -128,7 +128,7 @@ export function CompaniesPage({
               </div>
 
               {/* Two-column body: clients/products left (2/3), tools right (1/3) */}
-              <div className="grid gap-4" style={{ gridTemplateColumns: "2fr 1fr" }}>
+              <div className="grid gap-4" style={{ gridTemplateColumns: "3fr 1fr" }}>
                 {/* Left: client / product tiles */}
                 <div>
                   <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
