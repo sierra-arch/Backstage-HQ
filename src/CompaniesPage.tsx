@@ -242,7 +242,7 @@ export function CompaniesPage({
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-extrabold text-teal-900 tracking-tight">{companyName}</h3>
-                  <span className="text-xs text-neutral-500">{openTasks.length} open tasks · {progress}%</span>
+                  <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2 shrink-0 max-w-[55%]">
                   {tools.map((tool, i) => (
