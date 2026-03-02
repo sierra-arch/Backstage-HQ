@@ -32,8 +32,8 @@ export function MyTeamPage({
     const completedThisMonth = completedTasks.filter((t) => t.completed_at && new Date(t.completed_at) >= startOfMonth).length;
     const totalXP = completedTasks.reduce((sum, t) => sum + XP_BY_IMPACT[t.impact], 0);
     const memberAccomplishments = accomplishments.filter((a) => a.user_name === name);
-    const level = member.level ?? 1;
-    const xp = member.xp ?? 0;
+    const level = Math.floor(totalXP / LEVEL_XP_THRESHOLD) + 1;
+    const xp = totalXP % LEVEL_XP_THRESHOLD;
 
     return { id: member.id, name, level, xp, activeTasks, completedTasks, completedThisWeek, completedThisMonth, totalXP, memberAccomplishments, avatarUrl: member.avatar_url ?? null };
   });
@@ -62,7 +62,7 @@ export function MyTeamPage({
               </div>
               <div className="flex gap-2">
                 <Chip>Level {m.level}</Chip>
-                <Chip>{m.xp} XP</Chip>
+                <Chip>{m.totalXP.toLocaleString()} pts</Chip>
               </div>
             </div>
           ))}
@@ -82,7 +82,7 @@ export function MyTeamPage({
               <Avatar name={selectedMemberData.name} size={60} photoUrl={selectedMemberData.avatarUrl ?? undefined} />
               <div className="flex-1">
                 <h3 className="text-xl font-semibold">{selectedMemberData.name}</h3>
-                <p className="text-sm text-neutral-500">Level {selectedMemberData.level} · {selectedMemberData.xp} XP</p>
+                <p className="text-sm text-neutral-500">Level {selectedMemberData.level} · {selectedMemberData.totalXP.toLocaleString()} pts</p>
               </div>
               <div className="flex items-center gap-2">
                 {onSendKudos && (
