@@ -247,7 +247,7 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
           </button>
         </div>
       </Card>
-      <NotificationPrefsCard />
+      {/* <NotificationPrefsCard /> — hidden until notifications are ready */}
       <Card title="Google Docs">
         {docId ? (
           <div className="space-y-3">
