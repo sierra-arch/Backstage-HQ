@@ -329,6 +329,10 @@ export function MeetingsPage({ role, userId, userName }: { role: Role; userId: s
     ? meetings.filter((m) => new Date(m.scheduled_at).toLocaleDateString("en-CA") === selectedDate)
     : upcoming;
 
+  const deadlinesOnDate = selectedDate
+    ? clients.filter((c) => c.deadline && new Date(c.deadline).toLocaleDateString("en-CA") === selectedDate)
+    : [];
+
   async function handleDelete(id: string) {
     await deleteMeeting(id);
     setSelectedMeeting(null);
@@ -388,12 +392,23 @@ export function MeetingsPage({ role, userId, userName }: { role: Role; userId: s
           </div>
           {loading ? (
             <div className="text-sm text-neutral-500 text-center py-6">Loading...</div>
-          ) : displayedUpcoming.length === 0 ? (
+          ) : displayedUpcoming.length === 0 && deadlinesOnDate.length === 0 ? (
             <div className="text-sm text-neutral-500 text-center py-6">
               {selectedDate ? "No meetings on this day." : "No upcoming meetings scheduled."}
             </div>
           ) : (
             <div className="space-y-2">
+              {deadlinesOnDate.map((c) => (
+                <div key={c.id} className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-amber-500 text-base leading-none">⚑</span>
+                    <div>
+                      <div className="text-sm font-medium text-amber-900">{c.name}</div>
+                      <div className="text-xs text-amber-600">Project deadline</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
               {displayedUpcoming.map((m) => {
                 const isPast = new Date(m.scheduled_at) < now;
                 const isGoing = m.attendees?.some((a) => a.id === userId) ?? false;
