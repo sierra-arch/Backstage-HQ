@@ -1,9 +1,9 @@
 // MeetingsPage.tsx - Meetings with real Supabase data
 import React, { useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { useMeetings, createMeeting, updateMeeting, deleteMeeting, rsvpMeeting, sendMessage, Meeting } from "./useDatabase";
+import { useMeetings, useClients, createMeeting, updateMeeting, deleteMeeting, rsvpMeeting, sendMessage, Meeting } from "./useDatabase";
 import { Card } from "./ui";
-import { COMPANIES, Role, isFounder } from "./types";
+import { COMPANIES, Role, isFounder, Client } from "./types";
 import { Modal } from "./TaskModals";
 
 /* ──────────────────────────────────────────────────────────────────
@@ -186,10 +186,12 @@ function MeetingDetailModal({
    ────────────────────────────────────────────────────────────────── */
 function MiniCalendar({
   meetings,
+  clients,
   selectedDate,
   onSelectDate,
 }: {
   meetings: Meeting[];
+  clients: Client[];
   selectedDate: string | null;
   onSelectDate: (dateStr: string | null) => void;
 }) {
@@ -206,6 +208,15 @@ function MiniCalendar({
     const key = new Date(m.scheduled_at).toLocaleDateString("en-CA"); // "YYYY-MM-DD"
     if (!byDay[key]) byDay[key] = [];
     byDay[key].push(m);
+  });
+
+  // Map "YYYY-MM-DD" → clients with deadline on that day
+  const deadlineByDay: Record<string, Client[]> = {};
+  clients.forEach((c) => {
+    if (!c.deadline) return;
+    const key = new Date(c.deadline).toLocaleDateString("en-CA");
+    if (!deadlineByDay[key]) deadlineByDay[key] = [];
+    deadlineByDay[key].push(c);
   });
 
   const todayStr = new Date().toLocaleDateString("en-CA");
@@ -246,6 +257,7 @@ function MiniCalendar({
           const day = i + 1;
           const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const hasMeeting = !!byDay[dateStr];
+          const hasDeadline = !!deadlineByDay[dateStr];
           const isToday = dateStr === todayStr;
           const isSelected = dateStr === selectedDate;
 
@@ -262,10 +274,15 @@ function MiniCalendar({
               }`}
             >
               {day}
-              {hasMeeting && (
-                <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${
-                  isSelected ? "bg-white" : "bg-teal-500"
-                }`} />
+              {(hasMeeting || hasDeadline) && (
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
+                  {hasMeeting && (
+                    <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-teal-500"}`} />
+                  )}
+                  {hasDeadline && (
+                    <span className={`w-1 h-1 rounded-full ${isSelected ? "bg-white" : "bg-amber-400"}`} />
+                  )}
+                </span>
               )}
             </button>
           );
@@ -297,6 +314,7 @@ function googleCalendarUrl(meeting: Meeting) {
    ────────────────────────────────────────────────────────────────── */
 export function MeetingsPage({ role, userId, userName }: { role: Role; userId: string; userName: string }) {
   const { meetings, loading, refetch } = useMeetings();
+  const { clients } = useClients();
   const [showCreate, setShowCreate] = useState(false);
   const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
   const [editingMeeting, setEditingMeeting] = useState<Meeting | null>(null);
@@ -349,7 +367,7 @@ export function MeetingsPage({ role, userId, userName }: { role: Role; userId: s
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         {/* Calendar */}
         <Card title="Calendar">
-          <MiniCalendar meetings={meetings} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+          <MiniCalendar meetings={meetings} clients={clients} selectedDate={selectedDate} onSelectDate={setSelectedDate} />
         </Card>
 
         {/* Upcoming list */}
