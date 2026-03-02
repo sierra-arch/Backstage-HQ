@@ -1,7 +1,7 @@
 // DashboardApp.tsx - Main app shell: routing, state, and handlers
 import "./styles.css";
 import React, { useState } from "react";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "./supabase";
 import {
   useTasks,
@@ -330,6 +330,8 @@ export default function DashboardApp() {
   const { companies: dbCompanies, refetch: refetchCompanies } = useCompanies();
 
   const [celebrate, setCelebrate] = useState(false);
+  const [submitToast, setSubmitToast] = useState(false);
+  const submitToastTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [page, setPage] = useState<Page>(() => {
     const saved = localStorage.getItem("lastPage");
@@ -577,6 +579,9 @@ export default function DashboardApp() {
     setPendingSubmitTask(null);
     setCelebrate(true);
     setTimeout(() => setCelebrate(false), 1500);
+    setSubmitToast(true);
+    if (submitToastTimer.current) clearTimeout(submitToastTimer.current);
+    submitToastTimer.current = setTimeout(() => setSubmitToast(false), 3500);
     refetch();
   }
 
@@ -603,6 +608,26 @@ export default function DashboardApp() {
   return (
     <div className="min-h-screen bg-neutral-50 text-neutral-900 relative text-[15px]">
       <Confetti fire={celebrate} />
+
+      {/* Submit toast */}
+      <AnimatePresence>
+        {submitToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.25 }}
+            onClick={() => { setSubmitToast(false); if (submitToastTimer.current) clearTimeout(submitToastTimer.current); }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 cursor-pointer bg-white border border-teal-200 shadow-lg rounded-2xl px-5 py-3 flex items-center gap-3 select-none"
+          >
+            <span className="text-xl">🎉</span>
+            <div>
+              <div className="text-sm font-semibold text-neutral-800">Task submitted!</div>
+              <div className="text-xs text-neutral-500">Your work has been sent for review.</div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex">
         <Sidebar
           role={role} active={page} onSelect={setPage as any} userName={userName}
