@@ -432,6 +432,37 @@ export default function DashboardApp() {
 
   const focusTasks = tasks.filter((t) => t.status === "focus" && isMyTask(t));
 
+  // One-time onboarding seed for new team members
+  React.useEffect(() => {
+    if (!profile?.id || isFounder(role)) return;
+    const onboardingKey = `onboardingSeeded_${profile.id}`;
+    if (localStorage.getItem(onboardingKey)) return;
+    Promise.all([
+      dbCreateTask({
+        title: "👋 Get to know this dashboard",
+        description: "Explore the app! Here's where to start:\n• Today — your daily focus tasks live here\n• Tasks — see everything assigned to you\n• Companies — check out active clients & projects\n• Meetings — upcoming sessions & calendar\n• Career Path — track your XP and level up!\n• Chat — message the team in real time",
+        status: "focus",
+        impact: "low",
+        assigned_to: profile.id,
+        assignee_name: userName,
+        priority: "medium",
+      }),
+      dbCreateTask({
+        title: "🎯 Freebie: Practice submitting a task",
+        description: "Try out the approval flow:\n1. Open any task (including this one!)\n2. Click the 'Complete' button\n3. Add a short note about what you did\n4. Hit Submit — your work goes to Sierra for review\n5. Once approved, you'll earn XP and level up!\n\nDon't worry, this is just practice — have fun with it!",
+        status: "focus",
+        impact: "low",
+        assigned_to: profile.id,
+        assignee_name: userName,
+        priority: "medium",
+      }),
+    ]).then(() => {
+      localStorage.setItem(onboardingKey, "true");
+      refetch();
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id, role]);
+
   // Daily morning seed: each new day, push 2 urgent active tasks into focus
   React.useEffect(() => {
     if (!tasks.length || !profile?.id) return;
