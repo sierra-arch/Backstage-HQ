@@ -40,20 +40,6 @@ function progressColor(pct: number) {
   return "bg-red-400";
 }
 
-function calculateCompanyProgress(companyName: string, tasks: DBTask[]) {
-  const relevant = tasks.filter(
-    (t) => t.company_name === companyName && t.status !== "archived"
-  );
-  if (relevant.length === 0) return 100;
-  let total = 0;
-  let completed = 0;
-  relevant.forEach((t) => {
-    total += TASK_WEIGHT[t.impact];
-    if (t.status === "completed") completed += TASK_WEIGHT[t.impact];
-  });
-  return total > 0 ? Math.round((completed / total) * 100) : 0;
-}
-
 type CompanyRow = { id: string; name: string; software_links?: { name: string; url: string }[] | null };
 
 /* ── Sortable client card ── */
@@ -86,9 +72,6 @@ function SortableClientCard({
   const clientTasks = tasks.filter(
     (t) => t.client_id === client.id && t.status !== "archived"
   );
-  const clientProgress = calculateClientProgress(client.id, tasks);
-  const completedCount = clientTasks.filter((t) => t.status === "completed").length;
-  const openCount = clientTasks.filter((t) => t.status !== "completed").length;
 
   return (
     <div ref={setNodeRef} style={style} className="w-44 shrink-0">
@@ -124,18 +107,6 @@ function SortableClientCard({
               <span className="text-[10px] font-medium text-teal-600 block">
                 {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
               </span>
-            )}
-            {clientProgress !== null && (
-              <>
-                <div className="h-1 w-3/4 rounded-full bg-neutral-100 overflow-hidden mt-auto pt-0.5">
-                  <motion.div
-                    className={`h-full rounded-full ${progressColor(clientProgress)}`}
-                    initial={false}
-                    animate={{ width: `${clientProgress}%` }}
-                    transition={{ duration: 0.4, ease: "easeOut" }}
-                  />
-                </div>
-              </>
             )}
           </div>
         </div>
@@ -208,7 +179,6 @@ export function CompaniesPage({
         const openTasks = companyTasks.filter(
           (t) => t.status !== "completed" && t.status !== "archived"
         );
-        const progress = calculateCompanyProgress(companyName, tasks);
 
         const companyRow = companiesData.find(
           (c) => c.name === companyName || c.name.toLowerCase() === companyName.toLowerCase()
@@ -239,12 +209,9 @@ export function CompaniesPage({
           >
             <div className="space-y-4">
               {/* Header */}
-              <div className="flex items-start justify-between gap-4">
-                <div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="text-2xl font-extrabold text-teal-900 tracking-tight">{companyName}</h3>
-                  <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
-                </div>
-                <div className="flex flex-wrap justify-end gap-2 shrink-0 max-w-[55%]">
                   {tools.map((tool, i) => (
                     <a
                       key={i}
@@ -258,6 +225,7 @@ export function CompaniesPage({
                     </a>
                   ))}
                 </div>
+                <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
               </div>
 
               {/* Clients / Products */}
