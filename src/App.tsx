@@ -209,7 +209,7 @@ function AuthGate({ children }: { children: React.ReactElement }) {
             <div className="mb-8">
               <div className="text-xs font-semibold tracking-widest text-teal-600 uppercase mb-2">Backstage HQ</div>
               <h1 className="text-3xl font-bold text-neutral-900 leading-tight">Welcome to the team.</h1>
-              <p className="text-neutral-500 text-sm mt-2">Sign in to see your tasks, track your progress, and stay in sync.</p>
+              <p className="text-neutral-500 text-sm mt-2 whitespace-nowrap">Sign in to see your tasks, earn XP, and stay in sync.</p>
             </div>
             <GoogleSignInButton />
             <p className="text-xs text-neutral-400 text-center mt-4">Only invited team members can access this workspace.</p>
