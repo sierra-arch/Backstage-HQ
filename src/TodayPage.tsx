@@ -122,9 +122,9 @@ function WelcomeCard({
           </div>
         </div>
         <div className="mt-auto pt-2 flex flex-wrap items-center gap-2">
+          <Chip>{doneThisWeek} completed this week</Chip>
           <Chip>{((level - 1) * levelMax + levelXP).toLocaleString()} pts</Chip>
           <Chip>{pct}% to next level</Chip>
-          <Chip>{doneThisWeek} completed this week</Chip>
         </div>
       </div>
     </Card>
