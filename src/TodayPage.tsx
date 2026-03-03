@@ -121,10 +121,14 @@ function WelcomeCard({
             <LevelRing level={level} value={levelXP} max={levelMax} showStats={false} size={120} stroke={14} />
           </div>
         </div>
-        <div className="mt-auto pt-2 flex flex-wrap items-center gap-2">
-          <Chip>{doneThisWeek} completed this week</Chip>
-          <Chip>{((level - 1) * levelMax + levelXP).toLocaleString()} pts</Chip>
-          <Chip>{pct}% to next level</Chip>
+        <div className="mt-auto pt-2 space-y-1.5">
+          <div className="flex gap-2">
+            <Chip>{doneThisWeek} completed this week</Chip>
+          </div>
+          <div className="flex gap-2">
+            <Chip>{((level - 1) * levelMax + levelXP).toLocaleString()} pts</Chip>
+            <Chip>{pct}% to next level</Chip>
+          </div>
         </div>
       </div>
     </Card>
