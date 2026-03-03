@@ -112,7 +112,7 @@ function WelcomeCard({
   return (
     <Card variant="compact" className={`h-full ${className}`}>
       <div className="flex h-full flex-col">
-        <div className="flex items-center gap-6 pt-1 pb-4">
+        <div className="flex items-center gap-6 pt-1 pb-2">
           <div className="flex-1 min-w-0">
             <div className="text-[12px] text-neutral-500">Welcome back</div>
             <div className={`${getNameFontSize()} font-semibold tracking-tight leading-tight`}>{firstName}</div>
@@ -121,7 +121,7 @@ function WelcomeCard({
             <LevelRing level={level} value={levelXP} max={levelMax} showStats={false} size={120} stroke={14} />
           </div>
         </div>
-        <div className="mt-auto pt-2 space-y-1.5">
+        <div className="mt-auto pt-1 space-y-1.5">
           <div className="flex gap-2">
             <Chip>{doneThisWeek} completed this week</Chip>
           </div>
