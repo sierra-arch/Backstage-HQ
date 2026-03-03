@@ -208,11 +208,11 @@ function AuthGate({ children }: { children: React.ReactElement }) {
           <div className="w-full max-w-sm">
             <div className="mb-8">
               <div className="text-xs font-semibold tracking-widest text-teal-600 uppercase mb-2">Backstage HQ</div>
-              <h1 className="text-3xl font-bold text-neutral-900 leading-tight">Welcome back.</h1>
-              <p className="text-neutral-500 text-sm mt-2">Sign in to manage your team, clients, and projects.</p>
+              <h1 className="text-3xl font-bold text-neutral-900 leading-tight">Welcome to the team.</h1>
+              <p className="text-neutral-500 text-sm mt-2">Sign in to see your tasks, track your progress, and stay in sync.</p>
             </div>
             <GoogleSignInButton />
-            <p className="text-xs text-neutral-400 text-center mt-4">Only authorized team members can access this workspace.</p>
+            <p className="text-xs text-neutral-400 text-center mt-4">Only invited team members can access this workspace.</p>
           </div>
         </div>
 
