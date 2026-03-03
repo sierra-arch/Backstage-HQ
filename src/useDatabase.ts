@@ -1715,4 +1715,3 @@ export function useNotes(authorId: string) {
 
   return { notes, refetch: load };
 }
-}
