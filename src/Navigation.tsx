@@ -29,13 +29,13 @@ export function Sidebar({
   }
 
   const sidebarContent = (
-    <aside className="w-72 h-full bg-white/95 backdrop-blur-sm flex flex-col p-4">
+    <aside className="w-72 h-full flex flex-col p-4" style={{ backgroundColor: "#0C3B37" }}>
       <button
         onClick={() => handleSelect("Today" as Page)}
-        className="mb-6 text-left hover:text-teal-700 transition-colors"
+        className="mb-6 text-left transition-colors"
       >
-        <div className="text-[20px] font-semibold leading-tight tracking-tight">Prose | Backstage</div>
-        <div className="text-[12px] font-normal text-neutral-400 leading-tight mt-0.5">Dashboard</div>
+        <div className="text-[20px] font-semibold leading-tight tracking-tight text-white">Prose | Backstage</div>
+        <div className="text-[12px] font-normal text-white/40 leading-tight mt-0.5">Dashboard</div>
       </button>
       <nav className="space-y-1 text-[15px]">
         {nav.map((item) => {
@@ -45,8 +45,10 @@ export function Sidebar({
             <button
               key={item}
               onClick={() => handleSelect(item)}
-              className={`w-full text-left flex items-center justify-between rounded-xl px-3 py-2 hover:bg-teal-50 ${
-                isActive ? "bg-teal-50 text-teal-900 font-medium" : ""
+              className={`w-full text-left flex items-center justify-between rounded-xl px-3 py-2 transition-colors ${
+                isActive
+                  ? "bg-white/15 text-white font-medium"
+                  : "text-white/60 hover:bg-white/10 hover:text-white"
               }`}
             >
               <span>{label}</span>
@@ -57,7 +59,7 @@ export function Sidebar({
       <div className="mt-auto pt-6">
         <button
           onClick={() => handleSelect("Settings" as Page)}
-          className="text-sm font-medium hover:text-teal-600 transition-colors text-left"
+          className="text-sm font-medium text-white/50 hover:text-white transition-colors text-left"
         >
           {userName}
         </button>
@@ -68,7 +70,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop sidebar — always visible on md+ */}
-      <div className="hidden md:flex w-72 shrink-0 border-r sticky top-0 h-screen">
+      <div className="hidden md:flex w-72 shrink-0 sticky top-0 h-screen">
         {sidebarContent}
       </div>
 
