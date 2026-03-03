@@ -207,7 +207,7 @@ function AuthGate({ children }: { children: React.ReactElement }) {
         <div className="flex-1 flex flex-col justify-center items-center bg-white px-8 py-12">
           <div className="w-full max-w-sm">
             <div className="mb-8">
-              <div className="text-xs font-semibold tracking-widest text-teal-600 uppercase mb-2">Backstage HQ</div>
+              <div className="text-xs font-semibold tracking-widest text-teal-600 uppercase mb-2">Backstage Dashboard</div>
               <h1 className="text-3xl font-bold text-neutral-900 leading-tight">Welcome to the team.</h1>
               <p className="text-neutral-500 text-sm mt-2 whitespace-nowrap">Sign in to see your tasks, earn XP, and stay in sync.</p>
             </div>
