@@ -29,7 +29,7 @@ export function Sidebar({
   }
 
   const sidebarContent = (
-    <aside className="w-72 h-full flex flex-col p-4" style={{ backgroundColor: "#0C3B37" }}>
+    <aside className="w-56 h-full flex flex-col p-4" style={{ backgroundColor: "#0C3B37" }}>
       <button
         onClick={() => handleSelect("Today" as Page)}
         className="mb-6 text-left transition-colors"
@@ -70,7 +70,7 @@ export function Sidebar({
   return (
     <>
       {/* Desktop sidebar — always visible on md+ */}
-      <div className="hidden md:flex w-72 shrink-0 sticky top-0 h-screen">
+      <div className="hidden md:flex w-56 shrink-0 sticky top-0 h-screen">
         {sidebarContent}
       </div>
 
@@ -90,9 +90,9 @@ export function Sidebar({
             {/* Panel */}
             <motion.div
               key="panel"
-              initial={{ x: -288 }}
+              initial={{ x: -224 }}
               animate={{ x: 0 }}
-              exit={{ x: -288 }}
+              exit={{ x: -224 }}
               transition={{ type: "tween", duration: 0.22 }}
               className="fixed top-0 left-0 bottom-0 z-50 md:hidden border-r shadow-2xl"
             >
