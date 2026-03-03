@@ -211,7 +211,7 @@ function NotesCard({ onSave }: { onSave: (text: string) => Promise<void> }) {
           disabled={!note.trim() || saving}
           className="rounded-full bg-teal-600 text-white px-4 py-1.5 hover:bg-teal-700 text-sm font-medium disabled:opacity-40 transition-opacity"
         >
-          {saved ? "Saved!" : saving ? "Saving…" : "Save to Google Doc"}
+          {saved ? "Saved!" : saving ? "Saving…" : "Save Note"}
         </button>
       </div>
     </Card>

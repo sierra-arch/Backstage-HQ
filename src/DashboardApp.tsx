@@ -16,12 +16,11 @@ import {
   createTask as dbCreateTask,
   getCompanyByName,
   sendMessage,
-  updateProfileGoogleDocId,
   addXPToProfile,
   saveAccomplishment,
   useAllAccomplishments,
+  saveNote,
 } from "./useDatabase";
-import { connectGoogle, getTokenSilently, createGoogleDoc, appendToDoc } from "./useGoogleDocs";
 import {
   fromDbToUi, isFounder,
   COMPANIES, XP_BY_IMPACT, LEVEL_XP_THRESHOLD,
@@ -134,14 +133,12 @@ function NotificationPrefsCard() {
   );
 }
 
-function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onPhotoUploaded }: {
-  userName: string; userEmail: string; userId: string; googleDocId?: string | null; avatarUrl?: string | null; onPhotoUploaded?: () => void;
+function SettingsPage({ userName, userEmail, userId, avatarUrl, onPhotoUploaded }: {
+  userName: string; userEmail: string; userId: string; avatarUrl?: string | null; onPhotoUploaded?: () => void;
 }) {
   const [displayName, setDisplayName] = useState(userName);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [docId, setDocId] = useState(googleDocId ?? null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(avatarUrl ?? null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoStatus, setPhotoStatus] = useState<"idle" | "success" | "error">("idle");
@@ -182,20 +179,6 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
 
   async function handleSignOut() {
     await supabase.auth.signOut();
-  }
-
-  async function handleConnectGoogle() {
-    setConnecting(true);
-    try {
-      const token = await connectGoogle();
-      const newDocId = await createGoogleDoc(`${userName}'s Backstage Notes`, token);
-      await updateProfileGoogleDocId(userId, newDocId);
-      setDocId(newDocId);
-    } catch (err) {
-      console.error("Google Docs connect failed:", err);
-    } finally {
-      setConnecting(false);
-    }
   }
 
   return (
@@ -248,36 +231,6 @@ function SettingsPage({ userName, userEmail, userId, googleDocId, avatarUrl, onP
         </div>
       </Card>
       {/* <NotificationPrefsCard /> — hidden until notifications are ready */}
-      <Card title="Google Docs">
-        {docId ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm text-teal-700 font-medium">
-              <span>✓ Connected</span>
-            </div>
-            <p className="text-xs text-neutral-500">Notes from your Today page are saved to your personal doc.</p>
-            <a
-              href={`https://docs.google.com/document/d/${docId}/edit`}
-              target="_blank" rel="noopener noreferrer"
-              className="inline-block text-sm text-teal-600 underline hover:text-teal-800">
-              Open my notes doc →
-            </a>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-neutral-600">
-              Connect Google Docs to automatically save your notes to a personal doc — one per team member, all in one place.
-            </p>
-            <button onClick={handleConnectGoogle} disabled={connecting}
-              className="border rounded-xl px-4 py-2 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 flex items-center gap-2">
-              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
-                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-              {connecting ? "Connecting..." : "Connect Google Docs"}
-            </button>
-          </div>
-        )}
-      </Card>
       <Card title="Danger Zone">
         <button onClick={handleSignOut}
           className="text-red-600 border border-red-200 rounded-xl px-4 py-2 hover:bg-red-50 text-sm font-medium">
@@ -555,16 +508,8 @@ export default function DashboardApp() {
   }
 
   async function handleSaveNote(text: string) {
-    if (!profile?.google_doc_id) {
-      alert("Connect Google Docs in Settings first to save notes.");
-      return;
-    }
-    const token = await getTokenSilently();
-    if (!token) {
-      alert("Google session expired — reconnect in Settings.");
-      return;
-    }
-    await appendToDoc(profile.google_doc_id, text, token);
+    if (!profile?.id) return;
+    await saveNote(text, profile.id, role);
   }
 
   async function handleAddAccomplishment(text: string) {
@@ -572,12 +517,6 @@ export default function DashboardApp() {
     refetchAccomplishments();
     await sendMessage(`🎉 ${text}`, undefined, false, undefined);
     refetchMessages();
-    if (profile?.google_doc_id) {
-      const token = await getTokenSilently();
-      if (token) {
-        appendToDoc(profile.google_doc_id, text, token).catch(console.error);
-      }
-    }
   }
 
   async function handleSendMessage(content: string, to?: string) {
@@ -747,7 +686,6 @@ export default function DashboardApp() {
               userName={userName}
               userEmail={session?.user?.email ?? ""}
               userId={profile?.id ?? ""}
-              googleDocId={profile?.google_doc_id}
               avatarUrl={profile?.avatar_url}
               onPhotoUploaded={refetchProfile}
             />

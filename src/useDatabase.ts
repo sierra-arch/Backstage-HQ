@@ -1659,10 +1659,60 @@ export function useMessages() {
     };
   }, [loadMessages]);
 
-  return { 
-    messages, 
-    loading, 
+  return {
+    messages,
+    loading,
     unreadCount,
-    refetch: loadMessages 
+    refetch: loadMessages
   };
+}
+
+// =====================================================
+// Notes
+// =====================================================
+
+export interface Note {
+  id: string;
+  author_id: string;
+  company_id: string | null;
+  is_pinned: boolean;
+  content: string;
+  role_context: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function saveNote(
+  content: string,
+  authorId: string,
+  roleContext?: string,
+  companyId?: string
+): Promise<Note | null> {
+  const { data, error } = await supabase
+    .from("notes")
+    .insert({ content, author_id: authorId, role_context: roleContext ?? null, company_id: companyId ?? null, is_pinned: false })
+    .select()
+    .single();
+  if (error) { console.error("Error saving note:", error); return null; }
+  return data;
+}
+
+export function useNotes(authorId: string) {
+  const [notes, setNotes] = useState<Note[]>([]);
+
+  async function load() {
+    if (!authorId) return;
+    const { data } = await supabase
+      .from("notes")
+      .select("*")
+      .eq("author_id", authorId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    setNotes(data ?? []);
+  }
+
+  useEffect(() => { load(); }, [authorId]);
+
+  return { notes, refetch: load };
+}
 }
