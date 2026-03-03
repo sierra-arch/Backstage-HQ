@@ -27,7 +27,7 @@ export function LevelRing({
       <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#CCFBF1" fill="none" />
       <circle
         cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke}
-        stroke="#0F766E" fill="none" strokeLinecap="round"
+        stroke="#0C3B37" fill="none" strokeLinecap="round"
         style={{ strokeDasharray: c, strokeDashoffset: off, transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
       />
       <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
@@ -131,7 +131,7 @@ export function Avatar({
     .map((s) => s[0]?.toUpperCase())
     .join("")
     .slice(0, 2);
-  const palette = ["#0F766E", "#166534", "#065F46", "#064E3B", "#0B4D4B"];
+  const palette = ["#0C3B37", "#166534", "#065F46", "#064E3B", "#0B4D4B"];
   const color =
     palette[
       (name.charCodeAt(0) + name.charCodeAt(name.length - 1)) % palette.length

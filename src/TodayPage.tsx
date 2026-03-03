@@ -625,7 +625,7 @@ export function TodayFounder({
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-12 md:col-span-6">
-          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
+          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0C3B37" }}>
             <header className="mb-3 flex-shrink-0 flex items-center justify-between">
               <div>
                 <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
@@ -868,7 +868,7 @@ export function TodayTeam({
         </div>
         {/* Today's Focus — order-2 on mobile, order-3 on desktop */}
         <div className="col-span-12 md:col-span-6 order-2 md:order-3">
-          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0F766E" }}>
+          <section className="relative rounded-2xl p-4 md:p-5 shadow-sm border bg-[#ECF7F3] h-[360px] flex flex-col" style={{ borderColor: "#0C3B37" }}>
             <header className="mb-3 flex-shrink-0">
               <h2 className="text-[15px] font-semibold leading-tight">Today's Focus</h2>
             </header>
