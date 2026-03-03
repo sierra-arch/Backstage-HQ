@@ -24,10 +24,10 @@ export function LevelRing({
 
   const ringSvg = (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#CCFBF1" fill="none" />
+      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#99F6E4" fill="none" />
       <circle
         cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke}
-        stroke="#0F766E" fill="none" strokeLinecap="round"
+        stroke="#0D9488" fill="none" strokeLinecap="round"
         style={{ strokeDasharray: c, strokeDashoffset: off, transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
       />
       <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
