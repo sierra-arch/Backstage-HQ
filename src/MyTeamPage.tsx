@@ -103,7 +103,7 @@ export function MyTeamPage({
                 { label: "This Week", value: selectedMemberData.completedThisWeek },
                 { label: "This Month", value: selectedMemberData.completedThisMonth },
                 { label: "All Time", value: selectedMemberData.completedTasks.length },
-                { label: "Total XP", value: selectedMemberData.totalXP },
+                { label: "Total Points", value: selectedMemberData.totalXP },
               ].map((s) => (
                 <div key={s.label} className="rounded-xl border bg-neutral-50 p-3 text-center">
                   <div className="text-lg font-bold text-teal-700">{s.value}</div>
@@ -163,7 +163,7 @@ export function MyTeamPage({
                         <div className="text-xs text-neutral-500 mt-0.5">{task.company_name} · {task.impact} impact</div>
                       </div>
                       <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 flex-shrink-0">
-                        +{XP_BY_IMPACT[task.impact]} XP
+                        +{XP_BY_IMPACT[task.impact]} pts
                       </span>
                     </div>
                   ))}

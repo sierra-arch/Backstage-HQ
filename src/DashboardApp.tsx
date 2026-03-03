@@ -393,7 +393,7 @@ export default function DashboardApp() {
     Promise.all([
       dbCreateTask({
         title: "👋 Get to know this dashboard",
-        description: "Explore the app! Here's where to start:\n• Today — your daily focus tasks live here\n• Tasks — see everything assigned to you\n• Companies — check out active clients & projects\n• Meetings — upcoming sessions & calendar\n• Career Path — track your XP and level up!\n• Chat — message the team in real time",
+        description: "Explore the app! Here's where to start:\n• Today — your daily focus tasks live here\n• Tasks — see everything assigned to you\n• Companies — check out active clients & projects\n• Meetings — upcoming sessions & calendar\n• Career Path — track your points and level up!\n• Chat — message the team in real time",
         status: "focus",
         impact: "low",
         assigned_to: profile.id,
@@ -402,7 +402,7 @@ export default function DashboardApp() {
       }),
       dbCreateTask({
         title: "🎯 Freebie: Practice submitting a task",
-        description: "Try out the approval flow:\n1. Open any task (including this one!)\n2. Click the 'Complete' button\n3. Add a short note about what you did\n4. Hit Submit — your work goes to Sierra for review\n5. Once approved, you'll earn XP and level up!\n\nDon't worry, this is just practice — have fun with it!",
+        description: "Try out the approval flow:\n1. Open any task (including this one!)\n2. Click the 'Complete' button\n3. Add a short note about what you did\n4. Hit Submit — your work goes to Sierra for review\n5. Once approved, you'll earn points and level up!\n\nDon't worry, this is just practice — have fun with it!",
         status: "focus",
         impact: "low",
         assigned_to: profile.id,

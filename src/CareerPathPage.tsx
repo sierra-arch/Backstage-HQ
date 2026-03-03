@@ -39,16 +39,16 @@ export function CareerPathPage({
       <div>
         <div className="text-3xl font-bold tracking-tight">Level {level}</div>
         <div className="text-sm text-neutral-600 mt-1">
-          {xp} / {LEVEL_XP_THRESHOLD} XP &nbsp;·&nbsp; {LEVEL_XP_THRESHOLD - xp} XP to Level {level + 1}
+          {xp} / {LEVEL_XP_THRESHOLD} pts &nbsp;·&nbsp; {LEVEL_XP_THRESHOLD - xp} pts to Level {level + 1}
         </div>
         {/* XP bar */}
         <div className="mt-3 h-2.5 w-full max-w-xs rounded-full bg-teal-100 overflow-hidden">
           <div className="h-full bg-teal-600 transition-all rounded-full" style={{ width: `${pct}%` }} />
         </div>
         <div className="mt-3 flex gap-1.5">
-          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Small = 5 XP</span>
-          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Medium = 10 XP</span>
-          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Large = 20 XP</span>
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Small = 5 pts</span>
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Medium = 10 pts</span>
+          <span className="text-[11px] px-2 py-1 rounded-full bg-white border border-teal-200 text-teal-800 whitespace-nowrap">Large = 20 pts</span>
         </div>
       </div>
 
@@ -58,7 +58,7 @@ export function CareerPathPage({
           { label: "This Week", value: completedThisWeek.length, sub: "completed" },
           { label: "This Month", value: completedThisMonth.length, sub: "completed" },
           { label: "All Time", value: myCompleted.length, sub: "completed" },
-          { label: "Total XP", value: totalXPEarned, sub: "earned" },
+          { label: "Total Points", value: totalXPEarned, sub: "earned" },
         ].map((s) => (
           <div key={s.label} className="rounded-xl bg-white border border-teal-100 p-4 text-center">
             <div className="text-2xl font-bold text-teal-700">{s.value}</div>
@@ -76,7 +76,7 @@ export function CareerPathPage({
         <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
           {myCompleted.length === 0 && (
             <div className="rounded-xl bg-white border border-teal-100 p-6 text-sm text-neutral-400 text-center">
-              No completed tasks yet — finish your first one to earn XP!
+              No completed tasks yet — finish your first one to earn points!
             </div>
           )}
           {[...myCompleted]
@@ -100,7 +100,7 @@ export function CareerPathPage({
                   </div>
                 </div>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 flex-shrink-0 font-medium">
-                  +{XP_BY_IMPACT[t.impact]} XP
+                  +{XP_BY_IMPACT[t.impact]} pts
                 </span>
               </div>
             ))}
