@@ -223,7 +223,7 @@ export function TaskModal({
                   {task.due_date ? "Due Date" : "Estimate"}
                 </label>
                 <p className="text-sm text-neutral-600 mt-1">
-                  {task.due_date ? new Date(task.due_date).toLocaleDateString() : `${task.estimate_minutes} min`}
+                  {task.due_date ? new Date(task.due_date + "T12:00:00").toLocaleDateString() : `${task.estimate_minutes} min`}
                 </p>
               </div>
             </div>

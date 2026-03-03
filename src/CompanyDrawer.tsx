@@ -390,7 +390,7 @@ export function CompanyDrawer({
                             {c.contact_phone && <span className="text-[10px] text-neutral-400">{c.contact_phone}</span>}
                             {c.deadline && (
                               <span className="text-[10px] text-teal-600 font-medium">
-                                Due {new Date(c.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
+                                Due {new Date(c.deadline + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" })}
                               </span>
                             )}
                           </div>

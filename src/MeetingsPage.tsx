@@ -214,7 +214,7 @@ function MiniCalendar({
   const deadlineByDay: Record<string, Client[]> = {};
   clients.forEach((c) => {
     if (!c.deadline) return;
-    const key = new Date(c.deadline).toLocaleDateString("en-CA");
+    const key = new Date(c.deadline + "T12:00:00").toLocaleDateString("en-CA");
     if (!deadlineByDay[key]) deadlineByDay[key] = [];
     deadlineByDay[key].push(c);
   });
@@ -330,7 +330,7 @@ export function MeetingsPage({ role, userId, userName }: { role: Role; userId: s
     : upcoming;
 
   const deadlinesOnDate = selectedDate
-    ? clients.filter((c) => c.deadline && new Date(c.deadline).toLocaleDateString("en-CA") === selectedDate)
+    ? clients.filter((c) => c.deadline && new Date(c.deadline + "T12:00:00").toLocaleDateString("en-CA") === selectedDate)
     : [];
 
   async function handleDelete(id: string) {

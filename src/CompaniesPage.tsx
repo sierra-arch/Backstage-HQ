@@ -105,7 +105,7 @@ function SortableClientCard({
             )}
             {client.deadline && (
               <span className="text-[10px] font-medium text-teal-600 block">
-                {new Date(client.deadline).toLocaleDateString([], { month: "short", day: "numeric" })}
+                {new Date(client.deadline + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" })}
               </span>
             )}
           </div>
