@@ -82,7 +82,7 @@ export function TaskRow({
         <div className="text-[13px] md:text-[14px] font-medium truncate">{task.title}</div>
         <div className="text-xs text-neutral-500 truncate">{task.description || "No description"}</div>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <CompanyChip name={task.company_name || "Unknown"} />
+          {task.company_name && <CompanyChip name={task.company_name} />}
           <span className="text-[10px] px-2 py-0.5 rounded-full border bg-teal-50 text-teal-900/80">{task.impact}</span>
           <span className="text-[10px] px-2 py-0.5 rounded-full border bg-neutral-50 inline-flex items-center gap-1">
             <Avatar name={task.assignee_name || "Unassigned"} size={14} />

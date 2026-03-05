@@ -728,7 +728,7 @@ export default function DashboardApp() {
       <TaskCreateModal
         isOpen={showCreateModal}
         onClose={() => { setShowCreateModal(false); setCreateDefaultCompany(undefined); }}
-        onCreated={refetch} role={role} userName={userName} teamMembers={teamMembers}
+        onCreated={refetch} role={role} userName={userName} userId={profile?.id ?? ""} teamMembers={teamMembers}
         defaultCompany={createDefaultCompany}
         clients={allClients}
         companiesData={dbCompanies}
