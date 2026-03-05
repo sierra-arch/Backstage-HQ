@@ -442,7 +442,7 @@ export function TaskCreateModal({
               {companyClients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           )}
-          {isFounder(role) && (
+          {teamMembers.length > 0 && (
             <select value={assignee} onChange={(e) => setAssignee(e.target.value)}
               className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
               <option value="">Unassigned</option>

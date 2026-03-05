@@ -273,12 +273,10 @@ export function TasksPage({
     <div className="flex flex-col md:flex-row gap-4 items-start">
       {/* Filters — top on mobile, right column on desktop */}
       <div className="w-full md:w-40 md:flex-shrink-0 md:order-last md:space-y-2 md:pt-1 flex flex-row flex-wrap gap-2 md:flex-col md:flex-nowrap">
-        {isFounder(role) && (
-          <button onClick={onOpenCreateTask}
-            className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1.5 hover:bg-teal-50 text-xs font-medium md:w-full">
-            + New Task
-          </button>
-        )}
+        <button onClick={onOpenCreateTask}
+          className="rounded-full border-2 border-teal-600 bg-white text-teal-600 px-3 py-1.5 hover:bg-teal-50 text-xs font-medium md:w-full">
+          + New Task
+        </button>
 
         <select value={taskFilters.company}
           onChange={(e) => setTaskFilters({ ...taskFilters, company: e.target.value })}
