@@ -367,9 +367,12 @@ export default function DashboardApp() {
   ).length;
 
   const filteredTasks = tasks.filter((t) => {
+    const isCompleted = t.status === "completed" || t.status === "archived";
     const matchesSearch =
       t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.description?.toLowerCase().includes(searchQuery.toLowerCase());
+    // Don't surface completed/archived tasks in search unless status filter is set explicitly
+    if (searchQuery && isCompleted && taskFilters.status === "all") return false;
     const matchesCompany = taskFilters.company === "all" || t.company_name === taskFilters.company;
     const matchesImpact = taskFilters.impact === "all" || t.impact === taskFilters.impact;
     const matchesPriority = taskFilters.priority === "all" || t.priority === taskFilters.priority;
