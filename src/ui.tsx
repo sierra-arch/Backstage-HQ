@@ -27,7 +27,7 @@ export function LevelRing({
       <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#CCFBF1" fill="none" />
       <circle
         cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke}
-        stroke="#0F766E" fill="none" strokeLinecap="round"
+        stroke="#0C3B37" fill="none" strokeLinecap="round"
         style={{ strokeDasharray: c, strokeDashoffset: off, transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
       />
       <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
