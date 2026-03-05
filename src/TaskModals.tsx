@@ -72,6 +72,7 @@ export function TaskModal({
   onReassign,
   onApprove,
   onSave,
+  onDelete,
   role,
   teamMembers = [],
 }: {
@@ -82,6 +83,7 @@ export function TaskModal({
   onReassign?: (taskId: string, memberId: string | null) => Promise<void>;
   onApprove?: (task: DBTask) => void;
   onSave?: (taskId: string, updates: Partial<DBTask>) => Promise<void>;
+  onDelete?: (taskId: string) => Promise<void>;
   role: Role;
   teamMembers?: { id: string; display_name: string | null }[];
 }) {
@@ -268,7 +270,17 @@ export function TaskModal({
                   <button onClick={onClose} className="px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
                 </>
               ) : (
-                <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+                <>
+                  <button onClick={onClose} className="flex-1 px-4 py-2 border rounded-xl hover:bg-neutral-50">Close</button>
+                  {isFounder(role) && onDelete && (
+                    <button
+                      onClick={() => { onDelete(task.id); onClose(); }}
+                      className="px-4 py-2 border border-red-200 text-red-600 rounded-xl hover:bg-red-50"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </>
               )}
         </div>
         {isFounder(role) && onSave && !isDone && (
@@ -354,9 +366,8 @@ export function TaskCreateModal({
       }
     }
 
-    // Resolve assignee display name → user ID
-    const assignedMember = teamMembers.find((tm) => tm.display_name === assignee);
-    const assignedToId = assignedMember?.id ?? null;
+    // assignee state holds the team member's ID (or "" for unassigned)
+    const assignedToId = assignee || null;
 
     const result = await dbCreateTask({
       title,
@@ -396,8 +407,6 @@ export function TaskCreateModal({
   }
 
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const teamMemberNames = teamMembers.map((tm) => tm.display_name || "Unknown");
-  const assignOptions = isFounder(role) ? teamMemberNames : [userName, "Founder"];
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="New Task" size="small">
@@ -435,7 +444,9 @@ export function TaskCreateModal({
             <select value={assignee} onChange={(e) => setAssignee(e.target.value)}
               className="rounded-full border px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-teal-200 outline-none bg-white">
               <option value="">Unassigned</option>
-              {assignOptions.map((t) => <option key={t} value={t}>{t || "Unassigned"}</option>)}
+              {teamMembers.map((tm) => (
+                <option key={tm.id} value={tm.id}>{tm.display_name || tm.id}</option>
+              ))}
             </select>
           )}
           <select value={level} onChange={(e) => setLevel(e.target.value as any)}

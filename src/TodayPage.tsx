@@ -1,7 +1,7 @@
 // TodayPage.tsx - Today page for Founder and Team views
 import React from "react";
 import { DBTask, COMPANIES, LEVEL_XP_THRESHOLD } from "./types";
-import { AccomplishmentDB, useMeetings } from "./useDatabase";
+import { AccomplishmentDB, useMeetings, useNotes } from "./useDatabase";
 import { Card, Chip, Avatar, CompanyChip, LevelRing } from "./ui";
 import { TaskRow } from "./TasksPage";
 import { updateTask as dbUpdateTask, useCompanyGoals, upsertCompanyGoal, deleteCompanyGoal } from "./useDatabase";
@@ -180,10 +180,11 @@ function CompanySnapshot({
 /* ──────────────────────────────────────────────────────────────────
    Notes Card
    ────────────────────────────────────────────────────────────────── */
-function NotesCard({ onSave }: { onSave: (text: string) => Promise<void> }) {
+function NotesCard({ onSave, userId }: { onSave: (text: string) => Promise<void>; userId: string }) {
   const [note, setNote] = React.useState("");
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
+  const { notes, refetch: refetchNotes } = useNotes(userId);
 
   async function handleSave() {
     if (!note.trim()) return;
@@ -192,28 +193,39 @@ function NotesCard({ onSave }: { onSave: (text: string) => Promise<void> }) {
     setSaving(false);
     setSaved(true);
     setNote("");
+    refetchNotes();
     setTimeout(() => setSaved(false), 2500);
   }
 
   return (
     <Card title="Notes" variant="compact" className="h-full flex flex-col">
-      <div className="flex-1">
+      <div className="flex gap-2">
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full h-full min-h-[80px] rounded-xl border p-3 text-sm resize-none focus:ring-2 focus:ring-teal-200 outline-none"
+          className="flex-1 min-h-[72px] rounded-xl border p-3 text-sm resize-none focus:ring-2 focus:ring-teal-200 outline-none"
           placeholder="Quick note…"
         />
-      </div>
-      <div className="mt-3 flex justify-end">
         <button
           onClick={handleSave}
           disabled={!note.trim() || saving}
-          className="rounded-full bg-teal-600 text-white px-4 py-1.5 hover:bg-teal-700 text-sm font-medium disabled:opacity-40 transition-opacity"
+          className="self-end rounded-full bg-teal-600 text-white px-4 py-1.5 hover:bg-teal-700 text-sm font-medium disabled:opacity-40 transition-opacity whitespace-nowrap"
         >
-          {saved ? "Saved!" : saving ? "Saving…" : "Save Note"}
+          {saved ? "Saved!" : saving ? "Saving…" : "Save"}
         </button>
       </div>
+      {notes.length > 0 && (
+        <div className="mt-3 space-y-2 max-h-[180px] overflow-y-auto pr-1">
+          {notes.map((n) => (
+            <div key={n.id} className="rounded-xl bg-neutral-50 border px-3 py-2">
+              <p className="text-sm text-neutral-800 whitespace-pre-wrap">{n.content}</p>
+              <p className="text-[10px] text-neutral-400 mt-1">
+                {new Date(n.created_at).toLocaleDateString([], { month: "short", day: "numeric" })} · {new Date(n.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 }
@@ -571,8 +583,10 @@ export function TodayFounder({
   onCompanyClick,
   onSaveNote,
   refetch,
+  userId,
 }: {
   userName: string;
+  userId: string;
   completedThisWeek: number;
   level: number;
   xp: number;
@@ -619,7 +633,7 @@ export function TodayFounder({
           <WelcomeCard name={userName} doneThisWeek={completedThisWeek} level={level} levelXP={xp} levelMax={LEVEL_XP_THRESHOLD} className="h-full" />
         </div>
         <div className="col-span-12 md:col-span-8">
-          <NotesCard onSave={onSaveNote} />
+          <NotesCard onSave={onSaveNote} userId={userId} />
         </div>
       </div>
 
@@ -778,8 +792,10 @@ export function TodayTeam({
   onOpenAddAccomplishment,
   onSaveNote,
   refetch,
+  userId,
 }: {
   userName: string;
+  userId: string;
   completedThisWeek: number;
   level: number;
   xp: number;
@@ -891,7 +907,7 @@ export function TodayTeam({
         </div>
         {/* Notes — order-3 on mobile, order-2 on desktop */}
         <div className="col-span-12 md:col-span-8 order-3 md:order-2">
-          <NotesCard onSave={onSaveNote} />
+          <NotesCard onSave={onSaveNote} userId={userId} />
         </div>
         {/* Full Task List — order-4 always */}
         <div className="col-span-12 md:col-span-6 order-4">

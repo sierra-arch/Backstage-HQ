@@ -3,6 +3,51 @@ import React from "react";
 import { motion } from "framer-motion";
 import { DBTask, COMPANIES, Role, isFounder } from "./types";
 import { Card, CompanyChip, Avatar } from "./ui";
+import { updateTask as dbUpdateTask } from "./useDatabase";
+import {
+  DndContext, DragEndEvent, DragOverlay,
+  PointerSensor, useSensor, useSensors, closestCorners,
+} from "@dnd-kit/core";
+import {
+  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+/* ──────────────────────────────────────────────────────────────────
+   SortableTaskItem — TaskRow with a drag handle for DnD
+   ────────────────────────────────────────────────────────────────── */
+function SortableTaskItem({
+  task, onTaskClick, onSubmit, onClaim,
+}: {
+  task: DBTask;
+  onTaskClick: (task: DBTask) => void;
+  onSubmit?: (task: DBTask) => void;
+  onClaim?: (task: DBTask) => void;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id: task.id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}
+      className="flex items-center gap-1"
+    >
+      <div
+        ref={setActivatorNodeRef}
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-neutral-300 hover:text-neutral-500 flex-shrink-0 touch-none select-none px-0.5 text-base leading-none"
+        title="Drag to reorder"
+      >
+        ⠿
+      </div>
+      <div className="flex-1 min-w-0">
+        <TaskRow task={task} onClick={() => onTaskClick(task)} onSubmit={onSubmit} onClaim={onClaim} />
+      </div>
+    </div>
+  );
+}
 
 /* ──────────────────────────────────────────────────────────────────
    Task Row & List (shared, used by TodayPage too)
@@ -77,22 +122,75 @@ export function TaskRow({
 }
 
 export function TaskList({
-  tasks, onTaskClick, onSubmit, onClaim,
+  tasks, onTaskClick, onSubmit, onClaim, sortable,
 }: {
   tasks: DBTask[];
   onTaskClick: (task: DBTask) => void;
   onSubmit?: (task: DBTask) => void;
   onClaim?: (task: DBTask) => void;
+  sortable?: boolean;
 }) {
+  const [localTasks, setLocalTasks] = React.useState(tasks);
+  const [draggingId, setDraggingId] = React.useState<string | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const taskIds = tasks.map((t) => t.id).join(",");
+  React.useEffect(() => { setLocalTasks(tasks); }, [taskIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleDragEnd({ active, over }: DragEndEvent) {
+    setDraggingId(null);
+    if (!over || active.id === over.id) return;
+    const oldIndex = localTasks.findIndex((t) => t.id === active.id);
+    const newIndex = localTasks.findIndex((t) => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newList = arrayMove(localTasks, oldIndex, newIndex);
+    setLocalTasks(newList);
+    await Promise.all(newList.map((t, i) => dbUpdateTask(t.id, { sort_order: i })));
+  }
+
+  const draggingTask = draggingId ? localTasks.find((t) => t.id === draggingId) : null;
+
+  if (!sortable) {
+    return (
+      <div className="space-y-2">
+        {tasks.length === 0 && (
+          <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
+        )}
+        {tasks.map((t) => (
+          <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} onClaim={onClaim} />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-2">
-      {tasks.length === 0 && (
-        <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
-      )}
-      {tasks.map((t) => (
-        <TaskRow key={t.id} task={t} onClick={() => onTaskClick(t)} onSubmit={onSubmit} onClaim={onClaim} />
-      ))}
-    </div>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={({ active }) => setDraggingId(active.id as string)}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={localTasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <div className="space-y-2">
+          {localTasks.length === 0 && (
+            <div className="text-sm text-neutral-500 text-center py-8">No tasks yet</div>
+          )}
+          {localTasks.map((t) => (
+            <SortableTaskItem key={t.id} task={t} onTaskClick={onTaskClick} onSubmit={onSubmit} onClaim={onClaim} />
+          ))}
+        </div>
+      </SortableContext>
+      <DragOverlay>
+        {draggingTask && (
+          <div className="flex items-center gap-1 opacity-90">
+            <div className="text-neutral-300 px-0.5 text-base leading-none">⠿</div>
+            <div className="flex-1 min-w-0">
+              <TaskRow task={draggingTask} onClick={() => {}} />
+            </div>
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
@@ -242,7 +340,7 @@ export function TasksPage({
       <div className="flex-1 min-w-0">
         <Card title="All Tasks">
           {statusPinned ? (
-            <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} />
+            <TaskList tasks={displayedTasks} onTaskClick={onTaskClick} onSubmit={onSubmit} sortable={sortBy === "default"} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="rounded-2xl p-4 bg-[#ECF7F3]">
@@ -253,7 +351,8 @@ export function TasksPage({
                   )}
                   onTaskClick={onTaskClick}
                   onSubmit={onSubmit}
-                                 />
+                  sortable={sortBy === "default"}
+                />
               </div>
               <div>
                 <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">
@@ -268,6 +367,7 @@ export function TasksPage({
                   onTaskClick={onTaskClick}
                   onSubmit={onSubmit}
                   onClaim={!isFounder(role) ? onClaim : undefined}
+                  sortable={sortBy === "default"}
                 />
               </div>
             </div>

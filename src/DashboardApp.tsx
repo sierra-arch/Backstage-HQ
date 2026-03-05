@@ -20,6 +20,7 @@ import {
   saveAccomplishment,
   useAllAccomplishments,
   saveNote,
+  deleteTask as dbDeleteTask,
 } from "./useDatabase";
 import {
   fromDbToUi, isFounder,
@@ -621,7 +622,7 @@ export default function DashboardApp() {
 
           {page === "Today" && isFounder(role) && (
             <TodayFounder
-              userName={userName} completedThisWeek={completedThisWeek} level={level} xp={xp}
+              userName={userName} userId={profile?.id ?? ""} completedThisWeek={completedThisWeek} level={level} xp={xp}
               focusTasks={focusTasks} submittedTasks={submittedTasks} allActiveTasks={allActiveTasks}
               allTasks={tasks}
               accomplishments={accomplishments}
@@ -634,7 +635,7 @@ export default function DashboardApp() {
 
           {page === "Today" && !isFounder(role) && (
             <TodayTeam
-              userName={userName} completedThisWeek={completedThisWeek} level={level} xp={xp}
+              userName={userName} userId={profile?.id ?? ""} completedThisWeek={completedThisWeek} level={level} xp={xp}
               focusTasks={focusTasks} submittedTasks={submittedTasks} filteredTasks={filteredTasks}
               allTasks={tasks} accomplishments={accomplishments}
               onOpenCreateTask={() => setShowCreateModal(true)}
@@ -716,6 +717,7 @@ export default function DashboardApp() {
           refetch();
         }}
         onSave={async (taskId, updates) => { await dbUpdateTask(taskId, updates); refetch(); }}
+        onDelete={async (taskId) => { await dbDeleteTask(taskId); refetch(); }}
         role={role}
         teamMembers={teamMembers}
       />

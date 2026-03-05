@@ -587,6 +587,12 @@ export async function updateTask(
   return data;
 }
 
+export async function deleteTask(taskId: string): Promise<boolean> {
+  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+  if (error) { console.error("Error deleting task:", error); return false; }
+  return true;
+}
+
 export async function completeTask(taskId: string): Promise<boolean> {
   const {
     data: { user },
