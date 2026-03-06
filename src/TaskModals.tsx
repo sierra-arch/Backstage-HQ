@@ -191,7 +191,7 @@ export function TaskModal({
               </div>
               <div>
                 <label className="text-sm font-medium text-neutral-700">Assigned To</label>
-                {isFounder(role) && onReassign ? (
+                {onReassign && teamMembers.length > 0 ? (
                   <select
                     defaultValue={task.assigned_to ?? ""}
                     onChange={handleReassign}
