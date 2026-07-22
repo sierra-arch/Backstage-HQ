@@ -210,7 +210,7 @@ later enhancement once there's more than one real template in use.
 - `/portal` additions in `ClientPortalApp.tsx`: render Design Brief + line items (with toggles/quantity for optional items) + computed total + payment schedule + accept/decline action
 
 ## Verification
-- Additive schema (0007) build-checked and user-run, same process as prior migrations.
+- Migration 0007 applied directly (per the founder's 2026-07-22 authorization documented in CLAUDE.md) after verifying live-schema assumptions with a read-only query and confirming `get_advisors` showed no new security gaps on the new tables.
 - Seed Prose Florals' real proposal as the first template; generate one real `generated_documents` instance for a test client end-to-end: authored content in, client selections in via the portal, confirm the computed total matches a manual calculation, confirm `payment_installments` get created correctly from the configured rules once accepted.
 - Security check consistent with prior milestones: confirm a client's session cannot read or write another client's `generated_documents`/`payment_installments` via direct API calls, and confirm `field_values.authored` cannot be altered via `api/submit-proposal-selections.ts` no matter what's sent in the request body (server must recompute from the template, never trust client-sent prices).
 

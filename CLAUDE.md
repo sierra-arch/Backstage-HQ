@@ -122,10 +122,18 @@ order without checking that doc's dependency notes first.
 - **Multi-tenancy (other businesses signing up) is not built.** Everything
   scopes to `company_id` for now. Don't add tenant/org scaffolding, but
   don't hardcode anything that would block adding it later.
-- **RLS-sensitive changes (anything touching `supabase/migrations/`) get
-  written by Claude but run by the user against the live database** — never
-  execute schema/security migrations autonomously. This project has no
-  staging environment; the database is live and in daily use.
+- **✅ UPDATED (2026-07-22):** the founder has explicitly authorized Claude
+  to write AND apply schema/RLS migrations directly against the live
+  database (via the Supabase connector's `apply_migration`), rather than
+  handing off `.sql` files for her to run manually. This project still has
+  no staging environment and the database is still live and in daily use
+  — so extra care remains warranted: verify column/table assumptions
+  against the live schema with a read-only query *before* writing a
+  migration, keep changes additive wherever possible, run
+  `get_advisors(type="security")` after applying to confirm no new RLS
+  gaps were introduced, and still save every migration to
+  `supabase/migrations/` in the repo (for history/review) even though it's
+  applied immediately rather than queued for manual execution.
 
 ## Visual Design System (2026-07-22 full-boldness redesign)
 
