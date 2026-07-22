@@ -34,6 +34,9 @@ import {
   useBrandKit,
   saveBrandKit,
   fetchDocumentTemplates,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
   createProposal,
   markProposalSent,
   useProposals,
@@ -62,6 +65,14 @@ import {
   computeDocumentTotals,
   getDesignBriefSection,
   getLineItemSections,
+  type TemplateSection,
+  type DesignBriefSection,
+  type LineItemsSection,
+  type PaymentRulesSection,
+  type ContractSection,
+  type LineItem,
+  type DesignBriefField,
+  type PaymentRuleInstallment,
 } from "../api/_lib/proposalEngine";
 import { AssistantChat } from "./AssistantChat";
 
@@ -2482,6 +2493,376 @@ function TestimonialsSection({ companyId }: { companyId: string }) {
   );
 }
 
+const TEMPLATE_TYPES = [
+  "proposal",
+  "design_brief",
+  "contract",
+  "freebie",
+  "new_hire_packet",
+  "product_sheet",
+  "pricing_breakdown",
+  "policies_sheet",
+  "links_page",
+  "onboarding",
+];
+
+function DesignBriefSectionEditor({ section, onChange }: { section: DesignBriefSection; onChange: (s: DesignBriefSection) => void }) {
+  function updateField(i: number, patch: Partial<DesignBriefField>) {
+    const fields = [...section.fields];
+    fields[i] = { ...fields[i], ...patch };
+    onChange({ ...section, fields });
+  }
+  function addField() {
+    onChange({ ...section, fields: [...section.fields, { key: `field_${section.fields.length + 1}`, label: "", kind: "text" }] });
+  }
+  function removeField(i: number) {
+    onChange({ ...section, fields: section.fields.filter((_, idx) => idx !== i) });
+  }
+  return (
+    <div className="space-y-2">
+      <input
+        value={section.title}
+        onChange={(e) => onChange({ ...section, title: e.target.value })}
+        placeholder="Section title"
+        className="w-full rounded-xl border px-3 py-2 text-sm"
+      />
+      {section.fields.map((f, i) => (
+        <div key={i} className="flex gap-2 items-center">
+          <input
+            value={f.key}
+            onChange={(e) => updateField(i, { key: e.target.value })}
+            placeholder="key"
+            className="w-28 rounded-xl border px-2 py-1.5 text-xs"
+          />
+          <input
+            value={f.label}
+            onChange={(e) => updateField(i, { label: e.target.value })}
+            placeholder="Label"
+            className="flex-1 rounded-xl border px-2 py-1.5 text-xs"
+          />
+          <select
+            value={f.kind}
+            onChange={(e) => updateField(i, { kind: e.target.value })}
+            className="rounded-xl border px-2 py-1.5 text-xs"
+          >
+            <option value="text">text</option>
+            <option value="textarea">textarea</option>
+            <option value="image_list">image_list</option>
+          </select>
+          <button onClick={() => removeField(i)} className="text-xs text-red-500">✕</button>
+        </div>
+      ))}
+      <button onClick={addField} className="text-xs font-medium text-teal-700">+ Add Field</button>
+    </div>
+  );
+}
+
+function LineItemsSectionEditor({ section, onChange }: { section: LineItemsSection; onChange: (s: LineItemsSection) => void }) {
+  function updateItem(i: number, patch: Partial<LineItem>) {
+    const items = [...section.items];
+    items[i] = { ...items[i], ...patch };
+    onChange({ ...section, items });
+  }
+  function addItem() {
+    onChange({
+      ...section,
+      items: [
+        ...section.items,
+        { key: `item_${section.items.length + 1}`, name: "", description: "", unit_price: 0, default_quantity: 1, is_optional: false, is_included: true },
+      ],
+    });
+  }
+  function removeItem(i: number) {
+    onChange({ ...section, items: section.items.filter((_, idx) => idx !== i) });
+  }
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        <input value={section.name} onChange={(e) => onChange({ ...section, name: e.target.value })} placeholder="Section name" className="rounded-xl border px-3 py-2 text-sm" />
+        <input value={section.description} onChange={(e) => onChange({ ...section, description: e.target.value })} placeholder="Description" className="rounded-xl border px-3 py-2 text-sm" />
+      </div>
+      {section.items.map((item, i) => (
+        <div key={i} className="rounded-xl border p-2 space-y-1.5 bg-neutral-50">
+          <div className="flex gap-2">
+            <input value={item.key} onChange={(e) => updateItem(i, { key: e.target.value })} placeholder="key" className="w-24 rounded-lg border px-2 py-1 text-xs" />
+            <input value={item.name} onChange={(e) => updateItem(i, { name: e.target.value })} placeholder="Name" className="flex-1 rounded-lg border px-2 py-1 text-xs" />
+            <button onClick={() => removeItem(i)} className="text-xs text-red-500">✕</button>
+          </div>
+          <input value={item.description} onChange={(e) => updateItem(i, { description: e.target.value })} placeholder="Description" className="w-full rounded-lg border px-2 py-1 text-xs" />
+          <div className="flex gap-2 items-center flex-wrap">
+            <label className="text-xs text-neutral-500">$</label>
+            <input type="number" value={item.unit_price} onChange={(e) => updateItem(i, { unit_price: Number(e.target.value) })} className="w-20 rounded-lg border px-2 py-1 text-xs" />
+            <label className="text-xs text-neutral-500">Qty</label>
+            <input type="number" value={item.default_quantity} onChange={(e) => updateItem(i, { default_quantity: Number(e.target.value) })} className="w-16 rounded-lg border px-2 py-1 text-xs" />
+            <label className="flex items-center gap-1 text-xs text-neutral-500">
+              <input type="checkbox" checked={item.is_optional} onChange={(e) => updateItem(i, { is_optional: e.target.checked })} /> Optional
+            </label>
+            <label className="flex items-center gap-1 text-xs text-neutral-500">
+              <input type="checkbox" checked={item.is_included} onChange={(e) => updateItem(i, { is_included: e.target.checked })} /> Included by default
+            </label>
+          </div>
+        </div>
+      ))}
+      <button onClick={addItem} className="text-xs font-medium text-teal-700">+ Add Line Item</button>
+    </div>
+  );
+}
+
+function PaymentRulesSectionEditor({ section, onChange }: { section: PaymentRulesSection; onChange: (s: PaymentRulesSection) => void }) {
+  function updateInstallment(i: number, patch: Partial<PaymentRuleInstallment>) {
+    const installments = [...section.installments];
+    installments[i] = { ...installments[i], ...patch };
+    onChange({ ...section, installments });
+  }
+  function addInstallment() {
+    onChange({ ...section, installments: [...section.installments, { label: "", percent: 0, due_rule_type: "on_signing", due_rule_offset_days: 0 }] });
+  }
+  function removeInstallment(i: number) {
+    onChange({ ...section, installments: section.installments.filter((_, idx) => idx !== i) });
+  }
+  return (
+    <div className="space-y-2">
+      {section.installments.map((inst, i) => (
+        <div key={i} className="flex gap-2 items-center flex-wrap">
+          <input value={inst.label} onChange={(e) => updateInstallment(i, { label: e.target.value })} placeholder="Label" className="w-28 rounded-lg border px-2 py-1 text-xs" />
+          <input type="number" value={inst.percent} onChange={(e) => updateInstallment(i, { percent: Number(e.target.value) })} placeholder="%" className="w-16 rounded-lg border px-2 py-1 text-xs" />
+          <select value={inst.due_rule_type} onChange={(e) => updateInstallment(i, { due_rule_type: e.target.value as PaymentRuleInstallment["due_rule_type"] })} className="rounded-lg border px-2 py-1 text-xs">
+            <option value="on_signing">On signing</option>
+            <option value="days_before_event">Days before event</option>
+          </select>
+          <input type="number" value={inst.due_rule_offset_days} onChange={(e) => updateInstallment(i, { due_rule_offset_days: Number(e.target.value) })} placeholder="Offset days" className="w-20 rounded-lg border px-2 py-1 text-xs" />
+          <button onClick={() => removeInstallment(i)} className="text-xs text-red-500">✕</button>
+        </div>
+      ))}
+      <button onClick={addInstallment} className="text-xs font-medium text-teal-700">+ Add Installment</button>
+    </div>
+  );
+}
+
+function ContractSectionEditor({ section, onChange }: { section: ContractSection; onChange: (s: ContractSection) => void }) {
+  return (
+    <div className="space-y-2">
+      <input value={section.title} onChange={(e) => onChange({ ...section, title: e.target.value })} placeholder="Title" className="w-full rounded-xl border px-3 py-2 text-sm" />
+      <textarea value={section.body} onChange={(e) => onChange({ ...section, body: e.target.value })} placeholder="Contract body" rows={6} className="w-full rounded-xl border px-3 py-2 text-sm" />
+    </div>
+  );
+}
+
+function TemplateSectionEditor({ section, onChange, onRemove }: { section: TemplateSection; onChange: (s: TemplateSection) => void; onRemove: () => void }) {
+  return (
+    <div className="rounded-2xl border p-3 bg-white space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold uppercase tracking-wide text-neutral-400">{section.type.replace("_", " ")}</span>
+        <button onClick={onRemove} className="text-xs text-red-500">Remove section</button>
+      </div>
+      {section.type === "design_brief" && <DesignBriefSectionEditor section={section} onChange={onChange as any} />}
+      {section.type === "line_items" && <LineItemsSectionEditor section={section} onChange={onChange as any} />}
+      {section.type === "payment_rules" && <PaymentRulesSectionEditor section={section} onChange={onChange as any} />}
+      {section.type === "contract" && <ContractSectionEditor section={section} onChange={onChange as any} />}
+    </div>
+  );
+}
+
+function newSectionOfType(type: TemplateSection["type"]): TemplateSection {
+  if (type === "design_brief") return { type, title: "New Section", fields: [] };
+  if (type === "line_items") return { type, key: `section_${Date.now()}`, name: "New Section", description: "", items: [] };
+  if (type === "payment_rules") return { type, installments: [] };
+  return { type: "contract", title: "New Section", body: "" };
+}
+
+function TemplateEditorModal({
+  template,
+  isOpen,
+  onClose,
+  onSaved,
+}: {
+  template: DocumentTemplate | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [isDefault, setIsDefault] = useState(false);
+  const [structure, setStructure] = useState<TemplateSection[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [addType, setAddType] = useState<TemplateSection["type"]>("design_brief");
+
+  useEffect(() => {
+    if (template) {
+      setName(template.name);
+      setIsDefault(template.is_default);
+      setStructure(template.structure);
+    }
+  }, [template?.id]);
+
+  if (!template) return null;
+
+  function updateSection(i: number, s: TemplateSection) {
+    const next = [...structure];
+    next[i] = s;
+    setStructure(next);
+  }
+  function removeSection(i: number) {
+    setStructure(structure.filter((_, idx) => idx !== i));
+  }
+  function addSection() {
+    setStructure([...structure, newSectionOfType(addType)]);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    await updateTemplate(template!.id, { name, structure, is_default: isDefault });
+    setSaving(false);
+    onSaved();
+    onClose();
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Edit Template: ${template.name}`} size="large">
+      <div className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="text-sm font-medium text-neutral-700">Name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm" />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-neutral-600 mt-6">
+            <input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} />
+            Default template for this type
+          </label>
+        </div>
+
+        <div className="space-y-3">
+          {structure.map((section, i) => (
+            <TemplateSectionEditor
+              key={i}
+              section={section}
+              onChange={(s) => updateSection(i, s)}
+              onRemove={() => removeSection(i)}
+            />
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 border-t pt-4">
+          <select value={addType} onChange={(e) => setAddType(e.target.value as TemplateSection["type"])} className="rounded-2xl border px-3 py-2 text-sm">
+            <option value="design_brief">Design Brief</option>
+            <option value="line_items">Line Items</option>
+            <option value="payment_rules">Payment Rules</option>
+            <option value="contract">Contract</option>
+          </select>
+          <button onClick={addSection} className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-neutral-50">
+            + Add Section
+          </button>
+        </div>
+
+        <div className="flex gap-3 pt-2 border-t">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save Template"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function TemplateManagerModal({
+  companyId,
+  isOpen,
+  onClose,
+}: {
+  companyId: string | null;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
+  const [editing, setEditing] = useState<DocumentTemplate | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newType, setNewType] = useState("proposal");
+
+  const load = useCallback(async () => {
+    if (!companyId) return;
+    setTemplates(await fetchDocumentTemplates(companyId));
+  }, [companyId]);
+
+  useEffect(() => {
+    if (isOpen) load();
+  }, [isOpen, load]);
+
+  async function handleCreate() {
+    if (!newName.trim() || !companyId) return;
+    const created = await createTemplate({ companyId, type: newType, name: newName.trim() });
+    setNewName("");
+    await load();
+    if (created) setEditing(created);
+  }
+
+  async function handleDelete(id: string) {
+    await deleteTemplate(id);
+    load();
+  }
+
+  return (
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title="Document Templates" size="large">
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <input
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="New template name"
+              className="flex-1 rounded-2xl border px-3 py-2 text-sm"
+            />
+            <select value={newType} onChange={(e) => setNewType(e.target.value)} className="rounded-2xl border px-3 py-2 text-sm">
+              {TEMPLATE_TYPES.map((t) => (
+                <option key={t} value={t}>{t.replace("_", " ")}</option>
+              ))}
+            </select>
+            <button
+              onClick={handleCreate}
+              disabled={!newName.trim()}
+              className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+            >
+              Create
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            {templates.length === 0 && <p className="text-sm text-neutral-400 text-center py-6">No templates yet</p>}
+            {templates.map((t) => (
+              <div key={t.id} className="flex items-center justify-between rounded-2xl border p-3 bg-neutral-50">
+                <div>
+                  <p className="text-sm font-medium text-neutral-700">
+                    {t.name} {t.is_default && <span className="text-xs text-teal-700">(default)</span>}
+                  </p>
+                  <p className="text-xs text-neutral-400 capitalize">{t.type.replace("_", " ")}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setEditing(t)} className="text-xs font-medium text-teal-700 hover:underline">
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(t.id)} className="text-xs font-medium text-red-500 hover:underline">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      <TemplateEditorModal
+        template={editing}
+        isOpen={!!editing}
+        onClose={() => setEditing(null)}
+        onSaved={load}
+      />
+    </>
+  );
+}
+
 function CompanyModal({
   companyName,
   isOpen,
@@ -2509,6 +2890,7 @@ function CompanyModal({
 }) {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [showBrandKitModal, setShowBrandKitModal] = useState(false);
+  const [showTemplateManager, setShowTemplateManager] = useState(false);
 
   useEffect(() => {
     if (!companyName) {
@@ -2587,6 +2969,12 @@ function CompanyModal({
             className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
           >
             Brand Kit
+          </button>
+          <button
+            onClick={() => setShowTemplateManager(true)}
+            className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
+          >
+            Templates
           </button>
         </div>
 
@@ -2670,6 +3058,11 @@ function CompanyModal({
       onClose={() => setShowBrandKitModal(false)}
       companyId={companyId}
       companyName={companyName}
+    />
+    <TemplateManagerModal
+      companyId={companyId}
+      isOpen={showTemplateManager}
+      onClose={() => setShowTemplateManager(false)}
     />
     </>
   );

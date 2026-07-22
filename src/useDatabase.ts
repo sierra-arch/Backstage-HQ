@@ -1706,6 +1706,44 @@ export interface PaymentInstallment {
   created_at: string;
 }
 
+export async function createTemplate(params: {
+  companyId: string;
+  type: string;
+  name: string;
+}): Promise<DocumentTemplate | null> {
+  const { data, error } = await supabase
+    .from("document_templates")
+    .insert({ company_id: params.companyId, type: params.type, name: params.name, structure: [] })
+    .select()
+    .single();
+  if (error) {
+    console.error("Error creating template:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function updateTemplate(
+  id: string,
+  updates: { name?: string; structure?: TemplateSection[]; is_default?: boolean }
+): Promise<boolean> {
+  const { error } = await supabase.from("document_templates").update(updates).eq("id", id);
+  if (error) {
+    console.error("Error updating template:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteTemplate(id: string): Promise<boolean> {
+  const { error } = await supabase.from("document_templates").delete().eq("id", id);
+  if (error) {
+    console.error("Error deleting template:", error);
+    return false;
+  }
+  return true;
+}
+
 export async function fetchDocumentTemplates(
   companyId: string,
   type?: string

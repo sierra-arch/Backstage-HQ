@@ -202,6 +202,20 @@ appear next time the client visits — the founder-notify above is what's
 actually new here. Real email delivery (an actual "we'd love your
 testimonial" email) still waits on Phase 12 (Resend).
 
+**Template manager (2026-07-22, Client Portal Expansion Phase 11).** A
+structured, form-based editor for `document_templates.structure` — not the
+drag-and-drop visual builder Milestone 5 explicitly deferred as a separate
+undertaking, but a real working CRUD UI (`TemplateManagerModal` /
+`TemplateEditorModal`, opened via a new "Templates" button next to Brand Kit
+in `CompanyModal`). Covers all four section types the proposal engine
+understands (`design_brief` — the "variable fields" a proposal collects per
+client; `line_items`; `payment_rules`; `contract`), matching
+`proposalEngine.ts`'s `TemplateSection` union exactly so anything built here
+renders correctly in both the internal `ProposalDetailModal` and the client
+portal's `ProposalCard`. Teams no longer need a direct-DB-insert session to
+create or edit a template — that precedent (how Prose Florals' first
+proposal template was seeded) is no longer the only path.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`
