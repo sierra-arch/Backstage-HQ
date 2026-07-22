@@ -63,13 +63,18 @@ Career Path · Settings
 
 ## Current Priority
 
-**Milestone 2, Phase B: Google Drive OAuth** — blocked on the user setting
-up credentials in their existing Google Cloud project (enable Drive API,
-add the narrow `drive.file` scope, create a new OAuth Client ID, hand over
-Client ID/Secret). Once those arrive, the schema and flow are already
-designed in `claude/roadmap.md` and ready to build. If that's still
-pending, **Milestone 3 (intake wizard + Client Journey state machine)** can
-be started instead — it doesn't depend on Drive.
+**✅ SUPERSEDES THE ABOVE PRIORITY (2026-07-22):** the founder reviewed a new
+full spec — `claude/client-portal-expansion-spec.md` — expanding Backstage
+into a three-tier platform (Public/Client/Internal) and explicitly chose to
+build it **full multi-tenant from day one** (not the deferred/single-tenant
+path originally recommended), paced as **one continuous push** rather than
+phase-by-phase check-ins. Read `claude/client-portal-expansion-spec.md` in
+full, especially its "Reconciliation note" section, before writing any code
+against it — it maps the spec's abstract data model onto the real live
+schema and flags what's already built vs. genuinely new. The still-open
+Google Drive OAuth (Milestone 2 Phase B) and the 13-milestone roadmap below
+are not abandoned, just no longer the top priority — resume them once the
+expansion's foundation phase lands.
 
 Full 13-milestone roadmap + the detailed schema plan for the Proposal
 Generator milestone: `claude/roadmap.md`. Do not start a milestone out of
@@ -119,9 +124,20 @@ order without checking that doc's dependency notes first.
 - **Brand Kit is a shareable reference surface, not a settings form.**
   One-click copy on hex codes/font names, downloadable logo assets, a
   presentable `/brand/{slug}` view.
-- **Multi-tenancy (other businesses signing up) is not built.** Everything
-  scopes to `company_id` for now. Don't add tenant/org scaffolding, but
-  don't hardcode anything that would block adding it later.
+- **✅ REVERSED (2026-07-22):** multi-tenancy is now an active, explicit goal
+  — the founder chose "full multi-tenant from day one" over the deferred
+  single-tenant path. Build real `org_id`-scoped RLS, not just a
+  `company_id` column with a single default row. `companies` is the real
+  tenant table (the spec's proposed `organizations` table is redundant with
+  it — extend `companies`, don't create a parallel table, unless a session
+  finds a concrete reason `companies` can't carry the tenant-config load).
+  See `claude/client-portal-expansion-spec.md` for the full spec and its
+  reconciliation note against the live schema. The original caution here
+  still applies in spirit even though the decision reversed: RLS is
+  security-critical and untested against a real second tenant, so verify
+  policies with `get_advisors(type="security")` after every migration, and
+  do not consider tenant isolation "done" until a real second `companies`
+  row (test data is fine) has been used to confirm rows don't leak.
 - **✅ UPDATED (2026-07-22):** the founder has explicitly authorized Claude
   to write AND apply schema/RLS migrations directly against the live
   database (via the Supabase connector's `apply_migration`), rather than
@@ -153,6 +169,7 @@ explicitly asking for it again.
 
 ## Reference Docs (in `claude/` — read before big features)
 
+- `claude/client-portal-expansion-spec.md` — **current top priority**, see above. Three-tier Public/Client/Internal expansion spec, full multi-tenant from day one. Read its "Reconciliation note" section first.
 - `claude/vocabulary-reference.md` — full terminology authority, current build status detail
 - `claude/roadmap.md` — the 13-milestone build sequence + resolved schema decisions + the detailed Proposal Generator (milestone 5) plan
 - `claude/saas-feature-spec.md` — the full template/systems/dashboard feature spec (source document the roadmap was built from)
