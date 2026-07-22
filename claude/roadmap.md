@@ -216,6 +216,28 @@ portal's `ProposalCard`. Teams no longer need a direct-DB-insert session to
 create or edit a template — that precedent (how Prose Florals' first
 proposal template was seeded) is no longer the only path.
 
+**Email marketing (2026-07-22, Client Portal Expansion Phase 12).** New
+"Marketing" nav item. Broadcasts: compose → save draft → "Send Now"
+(`api/send-broadcast.ts`, one email per recipient via Resend, never a
+single multi-recipient send) to a segment (`all_clients` / `active_clients`
+/ `leads`) — that segment picker doubles as the "segmentation" requirement.
+Sequences: multi-step drips with **manual enrollment by email** (migration
+`0019` relaxed the original lead/client-linked-only constraint — the
+sending logic only ever reads the `email` column, so requiring a
+pre-existing record was pure friction), processed daily by a new Vercel
+cron job (`api/cron/process-email-sequences.ts`, registered in
+`vercel.json`'s `crons`, protected by `CRON_SECRET` which Vercel auto-sends
+as a bearer token on scheduled invocations). No auto-enrollment trigger
+(e.g. "new lead → auto-join welcome sequence") — matches this build's
+"hardcode 2-3 automations, not a generic builder" posture applied to
+marketing too; that's a real gap to revisit if it turns out to matter.
+**Untested — needs your Resend API key**: `RESEND_API_KEY` (and ideally
+`RESEND_FROM_ADDRESS` once a sending domain is verified — defaults to
+Resend's own `onboarding@resend.dev` otherwise) must be set in Vercel env
+vars, and `CRON_SECRET` should be set for the cron endpoint to be
+authenticated, before a real send or a real scheduled sequence step can be
+verified end-to-end.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

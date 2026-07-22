@@ -52,6 +52,16 @@ import {
   updateLeadStatus,
   convertLeadToClient,
   notifyFounders,
+  fetchBroadcasts,
+  createBroadcast,
+  fetchSequences,
+  createSequence,
+  fetchSequenceSteps,
+  addSequenceStep,
+  enrollInSequence,
+  type EmailBroadcast,
+  type EmailSequence,
+  type EmailSequenceStep,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
@@ -3307,6 +3317,7 @@ type FounderPage =
   | "Meetings"
   | "Tasks"
   | "Leads"
+  | "Marketing"
   | "Companies"
   | "Playbook"
   | "My Team"
@@ -3315,6 +3326,7 @@ type TeamPage =
   | "Today"
   | "Tasks"
   | "Leads"
+  | "Marketing"
   | "Companies"
   | "Playbook"
   | "Career Path"
@@ -3337,6 +3349,7 @@ function Sidebar({
     "Meetings",
     "Tasks",
     "Leads",
+    "Marketing",
     "Companies",
     "Playbook",
     "My Team",
@@ -3345,6 +3358,7 @@ function Sidebar({
     "Today",
     "Tasks",
     "Leads",
+    "Marketing",
     "Companies",
     "Playbook",
     "Career Path",
@@ -3914,6 +3928,244 @@ function LeadsPage({ companies }: { companies: Company[] }) {
           )}
         </div>
       </Card>
+    </div>
+  );
+}
+
+function BroadcastsPanel({ companyId }: { companyId: string }) {
+  const [broadcasts, setBroadcasts] = useState<EmailBroadcast[]>([]);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [filter, setFilter] = useState<EmailBroadcast["recipient_filter"]>("active_clients");
+  const [saving, setSaving] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setBroadcasts(await fetchBroadcasts(companyId));
+  }, [companyId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleCreate() {
+    if (!subject.trim() || !body.trim()) return;
+    setSaving(true);
+    await createBroadcast({ companyId, subject: subject.trim(), body: body.trim(), recipientFilter: filter });
+    setSubject("");
+    setBody("");
+    setSaving(false);
+    load();
+  }
+
+  async function handleSend(id: string) {
+    setSendingId(id);
+    setError(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setError("Your session expired — please refresh the page.");
+      setSendingId(null);
+      return;
+    }
+    try {
+      const res = await fetch("/api/send-broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ broadcast_id: id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Something went wrong sending this broadcast.");
+        setSendingId(null);
+        return;
+      }
+    } catch {
+      setError("Something went wrong sending this broadcast.");
+    } finally {
+      setSendingId(null);
+      load();
+    }
+  }
+
+  return (
+    <Card>
+      <h2 className="text-[15px] font-semibold mb-3">Broadcasts</h2>
+      <div className="space-y-2 mb-4">
+        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" className="w-full rounded-2xl border px-3 py-2 text-sm" />
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Email body (HTML allowed)" rows={4} className="w-full rounded-2xl border px-3 py-2 text-sm" />
+        <div className="flex gap-2">
+          <select value={filter} onChange={(e) => setFilter(e.target.value as EmailBroadcast["recipient_filter"])} className="rounded-2xl border px-3 py-2 text-sm">
+            <option value="active_clients">Active clients</option>
+            <option value="all_clients">All clients</option>
+            <option value="leads">Leads</option>
+          </select>
+          <button
+            onClick={handleCreate}
+            disabled={!subject.trim() || !body.trim() || saving}
+            className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+          >
+            Save Draft
+          </button>
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+      </div>
+      <div className="space-y-2">
+        {broadcasts.map((b) => (
+          <div key={b.id} className="flex items-center justify-between rounded-2xl border p-3 bg-neutral-50">
+            <div>
+              <p className="text-sm font-medium text-neutral-700">{b.subject}</p>
+              <p className="text-xs text-neutral-400 capitalize">
+                {b.recipient_filter.replace("_", " ")} · {b.status === "sent" ? `Sent to ${b.sent_count}` : "Draft"}
+              </p>
+            </div>
+            {b.status === "draft" && (
+              <button
+                onClick={() => handleSend(b.id)}
+                disabled={sendingId !== null}
+                className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-1.5 text-xs font-medium hover:bg-teal-50 disabled:opacity-50"
+              >
+                {sendingId === b.id ? "Sending…" : "Send Now"}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function SequenceDetail({ sequence }: { sequence: EmailSequence }) {
+  const [steps, setSteps] = useState<EmailSequenceStep[]>([]);
+  const [subject, setSubject] = useState("");
+  const [body, setBody] = useState("");
+  const [delayDays, setDelayDays] = useState(0);
+  const [enrollEmail, setEnrollEmail] = useState("");
+
+  const load = useCallback(async () => {
+    setSteps(await fetchSequenceSteps(sequence.id));
+  }, [sequence.id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleAddStep() {
+    if (!subject.trim() || !body.trim()) return;
+    await addSequenceStep({ sequenceId: sequence.id, stepOrder: steps.length + 1, delayDays, subject: subject.trim(), body: body.trim() });
+    setSubject("");
+    setBody("");
+    setDelayDays(0);
+    load();
+  }
+
+  async function handleEnroll() {
+    if (!enrollEmail.trim()) return;
+    await enrollInSequence({ sequenceId: sequence.id, email: enrollEmail.trim() });
+    setEnrollEmail("");
+  }
+
+  return (
+    <div className="rounded-2xl border p-3 bg-white space-y-3">
+      <div className="space-y-2">
+        {steps.map((s) => (
+          <div key={s.id} className="rounded-xl border p-2 bg-neutral-50">
+            <p className="text-xs font-semibold text-neutral-500">
+              Step {s.step_order} · {s.delay_days === 0 ? "immediately" : `${s.delay_days}d later`}
+            </p>
+            <p className="text-sm text-neutral-700">{s.subject}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2 items-end border-t pt-3">
+        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Step subject" className="rounded-xl border px-2 py-1.5 text-xs" />
+        <input value={body} onChange={(e) => setBody(e.target.value)} placeholder="Step body" className="rounded-xl border px-2 py-1.5 text-xs flex-1" />
+        <input type="number" value={delayDays} onChange={(e) => setDelayDays(Number(e.target.value))} placeholder="Delay days" className="w-24 rounded-xl border px-2 py-1.5 text-xs" />
+        <button onClick={handleAddStep} className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-neutral-50">
+          + Add Step
+        </button>
+      </div>
+      <div className="flex gap-2 border-t pt-3">
+        <input value={enrollEmail} onChange={(e) => setEnrollEmail(e.target.value)} placeholder="Enroll by email" className="flex-1 rounded-xl border px-2 py-1.5 text-xs" />
+        <button onClick={handleEnroll} disabled={!enrollEmail.trim()} className="rounded-full bg-teal-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-teal-700 disabled:opacity-50">
+          Enroll
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SequencesPanel({ companyId }: { companyId: string }) {
+  const [sequences, setSequences] = useState<EmailSequence[]>([]);
+  const [newName, setNewName] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setSequences(await fetchSequences(companyId));
+  }, [companyId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function handleCreate() {
+    if (!newName.trim()) return;
+    await createSequence(companyId, newName.trim());
+    setNewName("");
+    load();
+  }
+
+  return (
+    <Card>
+      <h2 className="text-[15px] font-semibold mb-3">Sequences</h2>
+      <div className="flex gap-2 mb-4">
+        <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Sequence name (e.g. Welcome Series)" className="flex-1 rounded-2xl border px-3 py-2 text-sm" />
+        <button onClick={handleCreate} disabled={!newName.trim()} className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50">
+          + New Sequence
+        </button>
+      </div>
+      <div className="space-y-2">
+        {sequences.map((s) => (
+          <div key={s.id}>
+            <button
+              onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+              className="w-full flex items-center justify-between rounded-2xl border p-3 bg-neutral-50 text-left"
+            >
+              <span className="text-sm font-medium text-neutral-700">{s.name}</span>
+              <span className="text-xs text-teal-700">{expanded === s.id ? "Collapse" : "Manage"}</span>
+            </button>
+            {expanded === s.id && (
+              <div className="mt-2">
+                <SequenceDetail sequence={s} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+function MarketingPage({ companies }: { companies: Company[] }) {
+  const [companyId, setCompanyId] = useState("");
+
+  useEffect(() => {
+    if (companies.length > 0 && !companyId) setCompanyId(companies[0].id);
+  }, [companies, companyId]);
+
+  if (!companyId) return null;
+
+  return (
+    <div className="space-y-6">
+      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="rounded-2xl border px-3 py-2 text-sm">
+        {companies.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+      <BroadcastsPanel companyId={companyId} />
+      <SequencesPanel companyId={companyId} />
     </div>
   );
 }
@@ -5590,6 +5842,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             </div>
           )}
           {page === "Leads" && <LeadsPage companies={allCompanies} />}
+          {page === "Marketing" && <MarketingPage companies={allCompanies} />}
           {page === "Companies" && (
             <CompaniesPage
               onCompanyClick={setSelectedCompany}

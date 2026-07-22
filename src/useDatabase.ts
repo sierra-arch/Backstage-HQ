@@ -1988,6 +1988,137 @@ export async function fetchComments(params: { taskId?: string; deliverableId?: s
   return data || [];
 }
 
+export interface EmailBroadcast {
+  id: string;
+  company_id: string;
+  subject: string;
+  body: string;
+  recipient_filter: "all_clients" | "active_clients" | "leads";
+  status: "draft" | "sent";
+  sent_count: number;
+  sent_at: string | null;
+  created_at: string;
+}
+
+export async function fetchBroadcasts(companyId: string): Promise<EmailBroadcast[]> {
+  const { data, error } = await supabase
+    .from("email_broadcasts")
+    .select("*")
+    .eq("company_id", companyId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching broadcasts:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createBroadcast(params: {
+  companyId: string;
+  subject: string;
+  body: string;
+  recipientFilter: EmailBroadcast["recipient_filter"];
+}): Promise<EmailBroadcast | null> {
+  const { data, error } = await supabase
+    .from("email_broadcasts")
+    .insert({ company_id: params.companyId, subject: params.subject, body: params.body, recipient_filter: params.recipientFilter })
+    .select()
+    .single();
+  if (error) {
+    console.error("Error creating broadcast:", error);
+    return null;
+  }
+  return data;
+}
+
+export interface EmailSequence {
+  id: string;
+  company_id: string;
+  name: string;
+  active: boolean;
+  created_at: string;
+}
+
+export interface EmailSequenceStep {
+  id: string;
+  sequence_id: string;
+  step_order: number;
+  delay_days: number;
+  subject: string;
+  body: string;
+}
+
+export async function fetchSequences(companyId: string): Promise<EmailSequence[]> {
+  const { data, error } = await supabase.from("email_sequences").select("*").eq("company_id", companyId).order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching sequences:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createSequence(companyId: string, name: string): Promise<EmailSequence | null> {
+  const { data, error } = await supabase.from("email_sequences").insert({ company_id: companyId, name }).select().single();
+  if (error) {
+    console.error("Error creating sequence:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function fetchSequenceSteps(sequenceId: string): Promise<EmailSequenceStep[]> {
+  const { data, error } = await supabase
+    .from("email_sequence_steps")
+    .select("*")
+    .eq("sequence_id", sequenceId)
+    .order("step_order", { ascending: true });
+  if (error) {
+    console.error("Error fetching sequence steps:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function addSequenceStep(params: {
+  sequenceId: string;
+  stepOrder: number;
+  delayDays: number;
+  subject: string;
+  body: string;
+}): Promise<boolean> {
+  const { error } = await supabase.from("email_sequence_steps").insert({
+    sequence_id: params.sequenceId,
+    step_order: params.stepOrder,
+    delay_days: params.delayDays,
+    subject: params.subject,
+    body: params.body,
+  });
+  if (error) {
+    console.error("Error adding sequence step:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function enrollInSequence(params: {
+  sequenceId: string;
+  email: string;
+  leadId?: string;
+  clientId?: string;
+}): Promise<boolean> {
+  const { error } = await supabase.from("email_sequence_enrollments").insert({
+    sequence_id: params.sequenceId,
+    email: params.email,
+    lead_id: params.leadId ?? null,
+    client_id: params.clientId ?? null,
+  });
+  if (error) {
+    console.error("Error enrolling in sequence:", error);
+    return false;
+  }
+  return true;
+}
+
 export interface Lead {
   id: string;
   company_id: string;
