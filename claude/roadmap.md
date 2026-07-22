@@ -74,6 +74,30 @@ environment variables, and the webhook endpoint (`/api/stripe-webhook`)
 registered in the Stripe dashboard, before a real checkout/webhook round
 trip can be verified end-to-end.
 
+**Post-acceptance onboarding form (2026-07-22, Client Portal Expansion
+Phase 4).** Extends the existing `document_templates` mechanism (same table
+the proposal engine uses) rather than building a parallel form system, and
+deliberately does not touch the pre-sale `IntakeWizard.tsx`/
+`api/submit-intake.ts` (`/intake/{slug}`) — that's a different moment in the
+journey (anonymous lead qualification) from this (an authenticated client
+with an active project). New template type `onboarding` (migration
+`0016_onboarding_templates`), structure shape `{ questions: [{ key, label,
+kind }], task_templates: [{ title, description }] }`. `projects` gets
+`onboarding_completed_at`/`onboarding_responses`. Client portal shows an
+`OnboardingForm` card on any project missing `onboarding_completed_at`;
+`api/submit-onboarding.ts` sanitizes answers down to only the template's own
+question keys (never trusts arbitrary client-sent keys), saves them, and
+auto-creates the template's `task_templates` as real tasks on the project —
+additive to (not a replacement for) the existing proposal-acceptance kickoff
+tasks (`api/_lib/projectAutomation.ts`), tagged with a distinct
+`metadata.trigger: 'onboarding_submitted'`. One default template seeded for
+Prose Florals by hand (event address, delivery window, day-of contact,
+allergy notes). **Deliberately out of scope**: a template *editor* UI for
+onboarding templates — teams create them the same way the first proposal
+template was seeded (direct insert), matching Milestone 5's precedent; a
+real editor is Client Portal Expansion Phase 11's job (template manager),
+not this one.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

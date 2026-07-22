@@ -39,6 +39,14 @@ interface PortalProject {
   name: string;
   status: string;
   target_delivery_date: string | null;
+  company_id: string | null;
+  onboarding_completed_at: string | null;
+}
+
+interface OnboardingQuestion {
+  key: string;
+  label: string;
+  kind: string;
 }
 
 interface PortalTask {
@@ -127,7 +135,7 @@ export function ClientPortalApp() {
 
       const { data: projects } = await supabase
         .from("projects")
-        .select("id, name, status, target_delivery_date")
+        .select("id, name, status, target_delivery_date, company_id, onboarding_completed_at")
         .eq("client_id", mapping.client_id)
         .order("created_at", { ascending: false });
 
@@ -235,6 +243,12 @@ export function ClientPortalApp() {
                 <p className="text-sm text-neutral-500 mb-4">
                   Target delivery: {new Date(project.target_delivery_date).toLocaleDateString()}
                 </p>
+              )}
+
+              {!project.onboarding_completed_at && (
+                <div className="mb-4">
+                  <OnboardingForm project={project} onSubmitted={refetchProposals} />
+                </div>
               )}
 
               <div className="space-y-2">
@@ -596,6 +610,116 @@ function ProposalCard({
         </div>
       )}
     </div>
+  );
+}
+
+function OnboardingForm({ project, onSubmitted }: { project: PortalProject; onSubmitted: () => void }) {
+  const [questions, setQuestions] = useState<OnboardingQuestion[] | null>(null);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!project.company_id) {
+      setQuestions([]);
+      return;
+    }
+    supabase
+      .from("document_templates")
+      .select("structure")
+      .eq("company_id", project.company_id)
+      .eq("type", "onboarding")
+      .eq("is_default", true)
+      .maybeSingle()
+      .then(({ data }) => setQuestions(data?.structure?.questions ?? []));
+  }, [project.company_id]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setError("Your session expired — please refresh the page.");
+      setSubmitting(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/submit-onboarding", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ project_id: project.id, responses: answers }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Something went wrong — please try again.");
+        setSubmitting(false);
+        return;
+      }
+      onSubmitted();
+    } catch {
+      setError("Something went wrong — please try again.");
+      setSubmitting(false);
+    }
+  }
+
+  if (questions === null) {
+    return null;
+  }
+  if (questions.length === 0) {
+    return null;
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-2xl border p-4 space-y-4"
+      style={{ borderColor: BRAND.forestGreen, backgroundColor: BRAND.sagePill }}
+    >
+      <div>
+        <p className="text-sm font-semibold" style={{ color: BRAND.forestGreen }}>
+          A few details to get started
+        </p>
+        <p className="text-xs text-neutral-600 mt-0.5">
+          Fill this out whenever you're ready — it helps us plan your project.
+        </p>
+      </div>
+      {questions.map((q) => (
+        <div key={q.key}>
+          <label className="text-xs font-medium text-neutral-700 block mb-1">{q.label}</label>
+          {q.kind === "textarea" ? (
+            <textarea
+              value={answers[q.key] || ""}
+              onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
+              rows={2}
+              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:outline-none bg-white"
+            />
+          ) : (
+            <input
+              type="text"
+              value={answers[q.key] || ""}
+              onChange={(e) => setAnswers((a) => ({ ...a, [q.key]: e.target.value }))}
+              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:outline-none bg-white"
+            />
+          )}
+        </div>
+      ))}
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="rounded-full px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+        style={{ backgroundColor: BRAND.forestGreen }}
+      >
+        {submitting ? "Submitting…" : "Submit"}
+      </button>
+    </form>
   );
 }
 
