@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: deliverable, error: deliverableError } = await admin
     .from("deliverables")
-    .select("id, status, client_visible, project_id, projects(client_id)")
+    .select("id, title, status, client_visible, project_id, projects(client_id, company_id, clients(name))")
     .eq("id", deliverable_id)
     .maybeSingle();
 
@@ -79,6 +79,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error("Error responding to deliverable:", updateError);
     res.status(500).json({ error: "Failed to save your response — please try again" });
     return;
+  }
+
+  // Automation: deliverable approved -> notify the team. Best-effort --
+  // the client's response has already saved successfully, so a notification
+  // failure must not roll it back or surface as an error to the client.
+  if (action === "approve") {
+    try {
+      const projectData = (deliverable as any).projects;
+      const companyId = projectData?.company_id;
+      const clientName = projectData?.clients?.name ?? "A client";
+      if (companyId) {
+        const { data: founders } = await admin
+          .from("company_members")
+          .select("profile_id")
+          .eq("company_id", companyId)
+          .eq("role", "founder");
+        if (founders && founders.length > 0) {
+          await admin.from("messages").insert(
+            founders.map((f) => ({
+              from_user_id: f.profile_id,
+              to_user_id: f.profile_id,
+              content: `✅ ${clientName} approved "${deliverable.title}"`,
+              message_type: "team",
+            }))
+          );
+        }
+      }
+    } catch (notifyError) {
+      console.error("Deliverable-approved notification failed (non-fatal):", notifyError);
+    }
   }
 
   res.status(200).json({ ok: true });

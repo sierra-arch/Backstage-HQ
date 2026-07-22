@@ -174,6 +174,34 @@ auto-created tasks (`projectAutomation.ts`, `submit-onboarding.ts`) are
 intentionally left at that default; the team decides per task, nothing was
 made client-visible automatically.
 
+**Automation engine (2026-07-22, Client Portal Expansion Phase 10).** Two
+new hardcoded automations, per the explicit instruction not to build a
+generic trigger/condition/action interpreter — the `automations` table
+(Phase 1) stays unused by these for now, a deliberate scope decision, not an
+oversight; it's there for Phase 11+ when a real on/off UI might use it.
+1. **Deliverable approved → notify**: `api/respond-deliverable.ts`'s
+   approve path now messages every founder of the deliverable's company.
+2. **Project completed → advance client stage + notify**: `ProjectModal`'s
+   status handler, on transition to `completed`, advances the linked
+   client's `stage` from `active` → `delivered` (the next Client Journey
+   stage — nothing previously did this; `active` was the last automated
+   stage transition, set on proposal acceptance) and notifies founders.
+
+Both share `notifyFounders()` (`useDatabase.ts`) — messages the existing
+messaging system's **unread badge** actually tracks
+(`getUnreadMessageCount()` only counts `to_user_id = auth.uid()`, never
+broadcast/`to_user_id: null` messages), so `from_user_id` is set to the same
+founder being notified rather than a broadcast that would silently never
+badge. **"Proposal signed → project + tasks" was already live** (built pre-
+Phase-10, in `submit-proposal-selections.ts`/`projectAutomation.ts`) — no
+changes needed there. **"Project completed → testimonial/referral"
+already fires reactively**, no explicit trigger code needed: Phase 7's
+`OffboardingCard` checks `project.status === 'completed'` on every portal
+load, so once this phase's stage-advance lands, the capture surfaces just
+appear next time the client visits — the founder-notify above is what's
+actually new here. Real email delivery (an actual "we'd love your
+testimonial" email) still waits on Phase 12 (Resend).
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

@@ -48,6 +48,7 @@ import {
   createLead,
   updateLeadStatus,
   convertLeadToClient,
+  notifyFounders,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
@@ -1367,6 +1368,25 @@ function ProjectModal({
   async function handleStatusChange(status: string) {
     if (!project) return;
     await updateProject(project.id, { status: status as Project["status"] });
+
+    // Automation: project completed -> advance the client to 'delivered'
+    // (the next Client Journey stage) and notify the team. Best-effort --
+    // the status change itself has already succeeded.
+    if (status === "completed") {
+      try {
+        await supabase
+          .from("clients")
+          .update({ stage: "delivered" })
+          .eq("id", project.client_id)
+          .eq("stage", "active");
+        if (project.company_id) {
+          await notifyFounders(project.company_id, `🎉 "${project.name}" was marked completed`);
+        }
+      } catch (automationError) {
+        console.error("Project-completed automation failed (non-fatal):", automationError);
+      }
+    }
+
     onUpdated();
   }
 

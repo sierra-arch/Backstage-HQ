@@ -2034,6 +2034,32 @@ export async function convertLeadToClient(lead: Lead): Promise<boolean> {
   return true;
 }
 
+// Automation engine (hardcoded triggers, not a generic builder -- per
+// Client Portal Expansion Phase 10). Notifies every founder of a company via
+// the existing messages/unread-badge system, since a broadcast
+// (to_user_id: null) message never increments unread counts (see
+// getUnreadMessageCount) and would go unnoticed. from_user_id is set to the
+// same founder being notified -- there's no dedicated "system" actor, and
+// the message content itself makes clear it's automated.
+export async function notifyFounders(companyId: string, content: string): Promise<void> {
+  const { data: founders } = await supabase
+    .from("company_members")
+    .select("profile_id")
+    .eq("company_id", companyId)
+    .eq("role", "founder");
+
+  if (!founders || founders.length === 0) return;
+
+  await supabase.from("messages").insert(
+    founders.map((f) => ({
+      from_user_id: f.profile_id,
+      to_user_id: f.profile_id,
+      content,
+      message_type: "team",
+    }))
+  );
+}
+
 export async function postTeamComment(params: {
   clientId: string;
   taskId?: string;
