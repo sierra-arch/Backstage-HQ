@@ -1851,3 +1851,72 @@ export async function fetchPaymentScheduleForProposal(
 
   return { schedule, installments: installments || [] };
 }
+
+export interface Deliverable {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  status: "pending" | "delivered" | "approved" | "revision_requested";
+  client_visible: boolean;
+  gdrive_file_id: string | null;
+  delivered_at: string | null;
+  approved_at: string | null;
+  revision_note: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchDeliverablesForProject(projectId: string): Promise<Deliverable[]> {
+  const { data, error } = await supabase
+    .from("deliverables")
+    .select("*")
+    .eq("project_id", projectId)
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching deliverables:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createDeliverable(params: {
+  projectId: string;
+  title: string;
+  description: string;
+}): Promise<Deliverable | null> {
+  const { data, error } = await supabase
+    .from("deliverables")
+    .insert({ project_id: params.projectId, title: params.title, description: params.description || null })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating deliverable:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function markDeliverableDelivered(id: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("deliverables")
+    .update({ status: "delivered", delivered_at: new Date().toISOString() })
+    .eq("id", id);
+  if (error) {
+    console.error("Error marking deliverable delivered:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function setDeliverableVisibility(id: string, clientVisible: boolean): Promise<boolean> {
+  const { error } = await supabase.from("deliverables").update({ client_visible: clientVisible }).eq("id", id);
+  if (error) {
+    console.error("Error updating deliverable visibility:", error);
+    return false;
+  }
+  return true;
+}

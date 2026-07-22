@@ -38,10 +38,15 @@ import {
   markProposalSent,
   useProposals,
   fetchPaymentScheduleForProposal,
+  fetchDeliverablesForProject,
+  createDeliverable,
+  markDeliverableDelivered,
+  setDeliverableVisibility,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
   type Company,
+  type Deliverable,
 } from "./useDatabase";
 import { OnboardingWizard } from "./OnboardingWizard";
 import {
@@ -1199,6 +1204,29 @@ function ProjectModal({
   const [linkedTasks, setLinkedTasks] = useState<{ id: string; title: string; status: string }[]>([]);
   const [linkableTasks, setLinkableTasks] = useState<{ id: string; title: string }[]>([]);
   const [taskToLink, setTaskToLink] = useState("");
+  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [newDeliverableTitle, setNewDeliverableTitle] = useState("");
+  const [newDeliverableDesc, setNewDeliverableDesc] = useState("");
+  const [addingDeliverable, setAddingDeliverable] = useState(false);
+
+  const loadDeliverables = useCallback(async () => {
+    if (!project) return;
+    setDeliverables(await fetchDeliverablesForProject(project.id));
+  }, [project]);
+
+  useEffect(() => {
+    if (isOpen) loadDeliverables();
+  }, [isOpen, loadDeliverables]);
+
+  async function handleAddDeliverable() {
+    if (!newDeliverableTitle.trim() || !project) return;
+    setAddingDeliverable(true);
+    await createDeliverable({ projectId: project.id, title: newDeliverableTitle.trim(), description: newDeliverableDesc.trim() });
+    setNewDeliverableTitle("");
+    setNewDeliverableDesc("");
+    setAddingDeliverable(false);
+    loadDeliverables();
+  }
 
   const loadTasks = useCallback(async () => {
     if (!project) return;
@@ -1275,7 +1303,79 @@ function ProjectModal({
           </div>
         </div>
 
-        <div>
+        <div className="border-t pt-4">
+          <label className="text-sm font-medium text-neutral-700">Deliverables</label>
+          <div className="space-y-2 mt-2">
+            {deliverables.length === 0 && (
+              <div className="text-sm text-neutral-400 text-center py-4">No deliverables yet</div>
+            )}
+            {deliverables.map((d) => (
+              <div key={d.id} className="rounded-2xl border p-3 bg-neutral-50 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-neutral-700">{d.title}</span>
+                  <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
+                    {d.status.replace("_", " ")}
+                  </span>
+                </div>
+                {d.description && <p className="text-xs text-neutral-500">{d.description}</p>}
+                {d.status === "revision_requested" && d.revision_note && (
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-2 py-1">
+                    Client requested changes: {d.revision_note}
+                  </p>
+                )}
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+                    <input
+                      type="checkbox"
+                      checked={d.client_visible}
+                      onChange={async (e) => {
+                        await setDeliverableVisibility(d.id, e.target.checked);
+                        loadDeliverables();
+                      }}
+                    />
+                    Client-visible
+                  </label>
+                  {d.status === "pending" && (
+                    <button
+                      onClick={async () => {
+                        await markDeliverableDelivered(d.id);
+                        loadDeliverables();
+                      }}
+                      className="text-xs font-medium text-teal-700 hover:underline"
+                    >
+                      Mark Delivered
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col gap-2 mt-3">
+            <input
+              value={newDeliverableTitle}
+              onChange={(e) => setNewDeliverableTitle(e.target.value)}
+              placeholder="New deliverable title"
+              className="rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            />
+            <div className="flex gap-2">
+              <input
+                value={newDeliverableDesc}
+                onChange={(e) => setNewDeliverableDesc(e.target.value)}
+                placeholder="Description (optional)"
+                className="flex-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              />
+              <button
+                onClick={handleAddDeliverable}
+                disabled={!newDeliverableTitle.trim() || addingDeliverable}
+                className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50 whitespace-nowrap"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t pt-4">
           <label className="text-sm font-medium text-neutral-700">Linked Tasks</label>
           <div className="space-y-2 mt-2">
             {linkedTasks.length === 0 && (

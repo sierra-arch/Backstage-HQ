@@ -12,6 +12,7 @@ import {
   type ProposalWithDocument,
   type DocumentTemplate,
   type PaymentInstallment,
+  type Deliverable,
 } from "./useDatabase";
 import {
   computeDocumentTotals,
@@ -74,6 +75,7 @@ type LoadState =
       projects: PortalProject[];
       tasks: PortalTask[];
       proposals: ProposalWithDocument[];
+      deliverables: Deliverable[];
     }
   | { kind: "error"; message: string };
 
@@ -141,6 +143,7 @@ export function ClientPortalApp() {
 
       const projectIds = (projects ?? []).map((p) => p.id);
       let tasks: PortalTask[] = [];
+      let deliverables: Deliverable[] = [];
       if (projectIds.length > 0) {
         const { data: taskRows } = await supabase
           .from("tasks")
@@ -148,12 +151,19 @@ export function ClientPortalApp() {
           .in("project_id", projectIds)
           .order("due_date", { ascending: true });
         tasks = taskRows ?? [];
+
+        const { data: deliverableRows } = await supabase
+          .from("deliverables")
+          .select("*")
+          .in("project_id", projectIds)
+          .order("sort_order", { ascending: true });
+        deliverables = deliverableRows ?? [];
       }
 
       const proposals = await fetchProposalsForClient(mapping.client_id).catch(() => []);
 
       if (mounted) {
-        setState({ kind: "ready", client, projects: projects ?? [], tasks, proposals });
+        setState({ kind: "ready", client, projects: projects ?? [], tasks, proposals, deliverables });
       }
     }
 
@@ -194,7 +204,7 @@ export function ClientPortalApp() {
     return <CenteredMessage>{state.message}</CenteredMessage>;
   }
 
-  const { client, projects, tasks, proposals } = state;
+  const { client, projects, tasks, proposals, deliverables } = state;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: BRAND.cream }}>
@@ -248,6 +258,19 @@ export function ClientPortalApp() {
               {!project.onboarding_completed_at && (
                 <div className="mb-4">
                   <OnboardingForm project={project} onSubmitted={refetchProposals} />
+                </div>
+              )}
+
+              {deliverables.filter((d) => d.project_id === project.id).length > 0 && (
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-neutral-700 mb-2">Deliverables</p>
+                  <div className="space-y-2">
+                    {deliverables
+                      .filter((d) => d.project_id === project.id)
+                      .map((d) => (
+                        <DeliverableRow key={d.id} deliverable={d} onResponded={refetchProposals} />
+                      ))}
+                  </div>
                 </div>
               )}
 
@@ -609,6 +632,117 @@ function ProposalCard({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+const DELIVERABLE_STATUS_LABELS: Record<string, string> = {
+  pending: "In progress",
+  delivered: "Ready for your review",
+  approved: "Approved",
+  revision_requested: "Changes requested",
+};
+
+function DeliverableRow({ deliverable, onResponded }: { deliverable: Deliverable; onResponded: () => void }) {
+  const [requestingChanges, setRequestingChanges] = useState(false);
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState<"approve" | "request" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function respond(action: "approve" | "request_changes") {
+    setSaving(action === "approve" ? "approve" : "request");
+    setError(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setError("Your session expired — please refresh the page.");
+      setSaving(null);
+      return;
+    }
+    try {
+      const res = await fetch("/api/respond-deliverable", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ deliverable_id: deliverable.id, action, revision_note: note.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Something went wrong — please try again.");
+        setSaving(null);
+        return;
+      }
+      onResponded();
+    } catch {
+      setError("Something went wrong — please try again.");
+      setSaving(null);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-neutral-700">{deliverable.title}</p>
+          {deliverable.description && <p className="text-xs text-neutral-400 mt-0.5">{deliverable.description}</p>}
+        </div>
+        <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 whitespace-nowrap">
+          {DELIVERABLE_STATUS_LABELS[deliverable.status] || deliverable.status}
+        </span>
+      </div>
+
+      {deliverable.status === "delivered" && !requestingChanges && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => respond("approve")}
+            disabled={saving !== null}
+            className="rounded-full px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+            style={{ backgroundColor: BRAND.forestGreen }}
+          >
+            {saving === "approve" ? "Approving…" : "Approve"}
+          </button>
+          <button
+            onClick={() => setRequestingChanges(true)}
+            disabled={saving !== null}
+            className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-neutral-100 disabled:opacity-50 transition-colors"
+          >
+            Request Changes
+          </button>
+        </div>
+      )}
+
+      {deliverable.status === "delivered" && requestingChanges && (
+        <div className="space-y-2">
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="What would you like changed?"
+            rows={2}
+            className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-xs focus:outline-none bg-white"
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={() => respond("request_changes")}
+              disabled={saving !== null || !note.trim()}
+              className="rounded-full px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+              style={{ backgroundColor: BRAND.ember }}
+            >
+              {saving === "request" ? "Sending…" : "Send Request"}
+            </button>
+            <button
+              onClick={() => setRequestingChanges(false)}
+              className="rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-neutral-100 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
   );
 }
