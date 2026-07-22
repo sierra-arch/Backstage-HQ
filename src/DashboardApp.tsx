@@ -33,7 +33,20 @@ import {
   type Project,
   useBrandKit,
   saveBrandKit,
+  fetchDocumentTemplates,
+  createProposal,
+  markProposalSent,
+  useProposals,
+  fetchPaymentScheduleForProposal,
+  type DocumentTemplate,
+  type PaymentInstallment,
+  type ProposalWithDocument,
 } from "./useDatabase";
+import {
+  computeDocumentTotals,
+  getDesignBriefSection,
+  getLineItemSections,
+} from "../api/_lib/proposalEngine";
 import { AssistantChat } from "./AssistantChat";
 
 /* ──────────────────────────────────────────────────────────────────
@@ -1307,6 +1320,260 @@ function ProjectModal({
   );
 }
 
+function CreateProposalModal({
+  isOpen,
+  onClose,
+  clientId,
+  companyId,
+  onCreated,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  clientId: string;
+  companyId: string | null;
+  onCreated: () => void;
+}) {
+  const [templates, setTemplates] = useState<DocumentTemplate[]>([]);
+  const [templateId, setTemplateId] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [authored, setAuthored] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen || !companyId) return;
+    setError(null);
+    setEventDate("");
+    setAuthored({});
+    fetchDocumentTemplates(companyId, "proposal").then((rows) => {
+      setTemplates(rows);
+      const defaultTemplate = rows.find((t) => t.is_default) || rows[0];
+      setTemplateId(defaultTemplate?.id || "");
+    });
+  }, [isOpen, companyId]);
+
+  const selectedTemplate = templates.find((t) => t.id === templateId);
+  const designBrief = selectedTemplate ? getDesignBriefSection(selectedTemplate.structure) : undefined;
+
+  async function handleCreate() {
+    if (!templateId || !companyId) return;
+    setSaving(true);
+    setError(null);
+    const result = await createProposal({
+      templateId,
+      clientId,
+      companyId,
+      eventDate: eventDate || null,
+      authored,
+    });
+    setSaving(false);
+    if (!result) {
+      setError("Something went wrong creating the proposal — please try again.");
+      return;
+    }
+    onCreated();
+    onClose();
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Create Proposal" size="medium">
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Template</label>
+          <select
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+          >
+            {templates.length === 0 && <option value="">No proposal templates yet</option>}
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Event Date</label>
+          <input
+            type="date"
+            value={eventDate}
+            onChange={(e) => setEventDate(e.target.value)}
+            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+          />
+          <p className="text-xs text-neutral-400 mt-1">
+            Needed to schedule the payment plan — the balance is due 4 weeks before this date.
+          </p>
+        </div>
+
+        {designBrief && (
+          <div className="border-t pt-4 space-y-3">
+            <p className="text-sm font-medium text-neutral-700">{designBrief.title}</p>
+            {designBrief.fields.map((field) => (
+              <div key={field.key}>
+                <label className="text-xs font-medium text-neutral-500">{field.label}</label>
+                {field.kind === "textarea" ? (
+                  <textarea
+                    value={authored[field.key] || ""}
+                    onChange={(e) => setAuthored((a) => ({ ...a, [field.key]: e.target.value }))}
+                    rows={3}
+                    className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                  />
+                ) : (
+                  <input
+                    value={authored[field.key] || ""}
+                    onChange={(e) => setAuthored((a) => ({ ...a, [field.key]: e.target.value }))}
+                    className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleCreate}
+            disabled={!templateId || saving}
+            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {saving ? "Creating…" : "Create Proposal"}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+const PROPOSAL_STATUS_LABELS: Record<string, string> = {
+  draft: "Draft",
+  sent: "Sent",
+  viewed: "Viewed by client",
+  accepted: "Accepted",
+  declined: "Declined",
+};
+
+function ProposalDetailModal({
+  proposal,
+  isOpen,
+  onClose,
+  onUpdated,
+}: {
+  proposal: ProposalWithDocument | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const [template, setTemplate] = useState<DocumentTemplate | null>(null);
+  const [installments, setInstallments] = useState<PaymentInstallment[]>([]);
+  const [marking, setMarking] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !proposal?.generated_documents) return;
+    supabase
+      .from("document_templates")
+      .select("*")
+      .eq("id", proposal.generated_documents.template_id)
+      .single()
+      .then(({ data }) => setTemplate(data));
+
+    if (proposal.status === "accepted") {
+      fetchPaymentScheduleForProposal(proposal.id).then((result) => {
+        setInstallments(result?.installments || []);
+      });
+    } else {
+      setInstallments([]);
+    }
+  }, [isOpen, proposal]);
+
+  if (!proposal) return null;
+
+  const totals = template
+    ? computeDocumentTotals(template.structure, proposal.generated_documents?.field_values.selections || {})
+    : null;
+
+  async function handleMarkSent() {
+    if (!proposal?.generated_documents) return;
+    setMarking(true);
+    await markProposalSent(proposal.generated_documents.id, proposal.id);
+    setMarking(false);
+    onUpdated();
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Proposal" size="medium">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-xs px-3 py-1 rounded-full font-medium bg-neutral-100 text-neutral-700">
+            {PROPOSAL_STATUS_LABELS[proposal.status] || proposal.status}
+          </span>
+          {proposal.status === "draft" && (
+            <button
+              onClick={handleMarkSent}
+              disabled={marking}
+              className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+            >
+              {marking ? "Sending…" : "Mark as Sent"}
+            </button>
+          )}
+        </div>
+
+        <div>
+          <label className="text-sm font-medium text-neutral-700">Event Date</label>
+          <p className="text-sm text-neutral-600 mt-1">
+            {proposal.event_date ? new Date(proposal.event_date + "T00:00:00").toLocaleDateString() : "Not set"}
+          </p>
+        </div>
+
+        {totals && (
+          <div className="border-t pt-4">
+            <label className="text-sm font-medium text-neutral-700">Current Total (at authored defaults)</label>
+            <p className="text-2xl font-semibold text-teal-700 mt-1">${totals.grand_total.toLocaleString()}</p>
+            <div className="space-y-1 mt-3">
+              {totals.sections.map((s) => (
+                <div key={s.key} className="flex justify-between text-sm text-neutral-600">
+                  <span>{s.name}</span>
+                  <span>${s.subtotal.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {proposal.status === "accepted" && installments.length > 0 && (
+          <div className="border-t pt-4">
+            <label className="text-sm font-medium text-neutral-700">Payment Schedule</label>
+            <div className="space-y-2 mt-2">
+              {installments.map((inst) => (
+                <div key={inst.id} className="flex items-center justify-between rounded-xl border p-3 bg-neutral-50">
+                  <div>
+                    <p className="text-sm font-medium">${inst.amount.toLocaleString()}</p>
+                    <p className="text-xs text-neutral-400">
+                      Due {inst.due_date ? new Date(inst.due_date + "T00:00:00").toLocaleDateString() : "—"}
+                    </p>
+                  </div>
+                  <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
+                    {inst.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
 function ClientModal({
   client,
   isOpen,
@@ -1322,6 +1589,9 @@ function ClientModal({
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { projects, refetch: refetchProjects } = useProjects(client?.id);
   const [savingStage, setSavingStage] = useState(false);
+  const [showCreateProposalModal, setShowCreateProposalModal] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState<ProposalWithDocument | null>(null);
+  const { proposals, refetch: refetchProposals } = useProposals(client?.id);
 
   if (!client) return null;
 
@@ -1422,6 +1692,39 @@ function ClientModal({
 
         <div>
           <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-neutral-700">Proposals</label>
+            <button
+              onClick={() => setShowCreateProposalModal(true)}
+              className="text-xs rounded-full border-2 border-teal-600 text-teal-600 px-3 py-1 hover:bg-teal-50 font-medium"
+            >
+              Create Proposal
+            </button>
+          </div>
+          <div className="space-y-2">
+            {proposals.length === 0 && (
+              <div className="text-sm text-neutral-400 text-center py-4 border rounded-xl">
+                No proposals yet
+              </div>
+            )}
+            {proposals.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setSelectedProposal(p)}
+                className="w-full flex items-center justify-between rounded-xl border p-3 hover:border-teal-300 transition-colors text-left"
+              >
+                <span className="text-sm font-medium">
+                  {p.event_date ? new Date(p.event_date + "T00:00:00").toLocaleDateString() : "No event date"}
+                </span>
+                <span className="text-xs px-2 py-1 rounded-full bg-neutral-100 text-neutral-600 capitalize">
+                  {PROPOSAL_STATUS_LABELS[p.status] || p.status}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
             <label className="text-sm font-medium text-neutral-700">Projects</label>
             <button
               onClick={() => setShowCreateProjectModal(true)}
@@ -1500,6 +1803,21 @@ function ClientModal({
       clientId={client.id}
       companyId={client.company_id}
       onCreated={refetchProjects}
+    />
+
+    <CreateProposalModal
+      isOpen={showCreateProposalModal}
+      onClose={() => setShowCreateProposalModal(false)}
+      clientId={client.id}
+      companyId={client.company_id}
+      onCreated={refetchProposals}
+    />
+
+    <ProposalDetailModal
+      proposal={selectedProposal}
+      isOpen={!!selectedProposal}
+      onClose={() => setSelectedProposal(null)}
+      onUpdated={refetchProposals}
     />
 
     <ProjectModal

@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
+import type { TemplateSection, Selections } from "../api/_lib/proposalEngine";
 
 // =====================================================
 // TYPES
@@ -1607,4 +1608,213 @@ export function useMessages() {
     unreadCount,
     refetch: loadMessages 
   };
+}
+
+// =====================================================
+// PROPOSAL ENGINE (document_templates / generated_documents /
+// proposals / payment_schedules / payment_installments)
+// =====================================================
+
+export interface DocumentTemplate {
+  id: string;
+  company_id: string;
+  type: string;
+  name: string;
+  structure: TemplateSection[];
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GeneratedDocument {
+  id: string;
+  template_id: string;
+  client_id: string | null;
+  field_values: { authored: Record<string, unknown>; selections: Selections };
+  status: "draft" | "finalized" | "sent" | "viewed";
+  gdrive_file_id: string | null;
+  gdrive_folder_id: string | null;
+  last_synced_at: string | null;
+  edit_locked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProposalRecord {
+  id: string;
+  client_id: string;
+  status: "draft" | "sent" | "viewed" | "accepted" | "declined";
+  generated_document_id: string | null;
+  event_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentSchedule {
+  id: string;
+  proposal_id: string | null;
+  client_id: string;
+  total_amount: number;
+  created_at: string;
+}
+
+export interface PaymentInstallment {
+  id: string;
+  payment_schedule_id: string;
+  sequence_number: number;
+  amount: number;
+  due_rule_type: "on_signing" | "days_after_signing" | "days_before_event";
+  due_rule_offset_days: number | null;
+  due_date: string | null;
+  invoice_id: string | null;
+  status: "pending" | "invoiced" | "paid" | "overdue";
+  created_at: string;
+}
+
+export async function fetchDocumentTemplates(
+  companyId: string,
+  type?: string
+): Promise<DocumentTemplate[]> {
+  let query = supabase.from("document_templates").select("*").eq("company_id", companyId);
+  if (type) query = query.eq("type", type);
+  const { data, error } = await query.order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching document templates:", error);
+    return [];
+  }
+  return data || [];
+}
+
+// Creates a generated_documents row from a template plus a linked
+// proposals row (needed so the payment engine has an event_date to work
+// from). Both inserts happen for every proposal we create — a
+// generated_document with no linked proposal row would have nowhere to
+// hang its event date or accept/decline lifecycle.
+export async function createProposal(params: {
+  templateId: string;
+  clientId: string;
+  companyId: string;
+  eventDate: string | null;
+  authored: Record<string, unknown>;
+}): Promise<{ generatedDocument: GeneratedDocument; proposal: ProposalRecord } | null> {
+  const { data: doc, error: docError } = await supabase
+    .from("generated_documents")
+    .insert({
+      template_id: params.templateId,
+      client_id: params.clientId,
+      field_values: { authored: params.authored, selections: {} },
+      status: "draft",
+    })
+    .select()
+    .single();
+
+  if (docError || !doc) {
+    console.error("Error creating generated document:", docError);
+    return null;
+  }
+
+  const { data: proposal, error: proposalError } = await supabase
+    .from("proposals")
+    .insert({
+      client_id: params.clientId,
+      generated_document_id: doc.id,
+      event_date: params.eventDate,
+      status: "draft",
+    })
+    .select()
+    .single();
+
+  if (proposalError || !proposal) {
+    console.error("Error creating proposal:", proposalError);
+    // Clean up the orphaned document rather than leaving a
+    // generated_document with no proposal wrapper around it.
+    await supabase.from("generated_documents").delete().eq("id", doc.id);
+    return null;
+  }
+
+  return { generatedDocument: doc, proposal };
+}
+
+export async function markProposalSent(generatedDocumentId: string, proposalId: string): Promise<boolean> {
+  const { error: docErr } = await supabase
+    .from("generated_documents")
+    .update({ status: "sent" })
+    .eq("id", generatedDocumentId);
+  const { error: propErr } = await supabase
+    .from("proposals")
+    .update({ status: "sent" })
+    .eq("id", proposalId);
+  if (docErr || propErr) {
+    console.error("Error marking proposal sent:", docErr || propErr);
+    return false;
+  }
+  return true;
+}
+
+export type ProposalWithDocument = ProposalRecord & { generated_documents: GeneratedDocument | null };
+
+export async function fetchProposalsForClient(clientId: string): Promise<ProposalWithDocument[]> {
+  const { data, error } = await supabase
+    .from("proposals")
+    .select("*, generated_documents(*)")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching proposals:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export function useProposals(clientId?: string) {
+  const [proposals, setProposals] = useState<ProposalWithDocument[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadProposals = useCallback(async () => {
+    if (!clientId) {
+      setProposals([]);
+      setLoading(false);
+      return;
+    }
+    const data = await fetchProposalsForClient(clientId);
+    setProposals(data);
+    setLoading(false);
+  }, [clientId]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (mounted) loadProposals();
+    return () => {
+      mounted = false;
+    };
+  }, [loadProposals]);
+
+  return { proposals, loading, refetch: loadProposals };
+}
+
+export async function fetchPaymentScheduleForProposal(
+  proposalId: string
+): Promise<{ schedule: PaymentSchedule; installments: PaymentInstallment[] } | null> {
+  const { data: schedule, error: scheduleError } = await supabase
+    .from("payment_schedules")
+    .select("*")
+    .eq("proposal_id", proposalId)
+    .maybeSingle();
+
+  if (scheduleError || !schedule) return null;
+
+  const { data: installments, error: installmentsError } = await supabase
+    .from("payment_installments")
+    .select("*")
+    .eq("payment_schedule_id", schedule.id)
+    .order("sequence_number", { ascending: true });
+
+  if (installmentsError) {
+    console.error("Error fetching payment installments:", installmentsError);
+    return { schedule, installments: [] };
+  }
+
+  return { schedule, installments: installments || [] };
 }
