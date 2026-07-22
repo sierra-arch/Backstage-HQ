@@ -95,13 +95,13 @@ export function TaskModal({
               onComplete();
               onClose();
             }}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
+            className="flex-1 bg-teal-600 text-white rounded-2xl px-4 py-2 hover:bg-teal-700 font-medium"
           >
             {buttonText}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-xl hover:bg-neutral-50"
+            className="px-4 py-2 border rounded-2xl hover:bg-neutral-50"
           >
             Close
           </button>
@@ -171,7 +171,7 @@ export function TaskCreateModal({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="Enter task title..."
           />
         </div>
@@ -183,7 +183,7 @@ export function TaskCreateModal({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="Add details..."
           />
         </div>
@@ -196,7 +196,7 @@ export function TaskCreateModal({
             <select
               value={company}
               onChange={(e) => setCompany(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               {COMPANIES.map((c) => (
                 <option key={c} value={c}>
@@ -212,7 +212,7 @@ export function TaskCreateModal({
             <select
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="">Unassigned</option>
               {assignOptions.map((t) => (
@@ -232,7 +232,7 @@ export function TaskCreateModal({
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="small">Small (~{TIME_BY_LEVEL.small} min)</option>
               <option value="medium">Medium (~{TIME_BY_LEVEL.medium} min)</option>
@@ -247,7 +247,7 @@ export function TaskCreateModal({
               type="date"
               value={deadline}
               onChange={(e) => setDeadline(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
           </div>
         </div>
@@ -256,13 +256,13 @@ export function TaskCreateModal({
           <button
             onClick={handleCreate}
             disabled={!title || !description}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-teal-600 text-white rounded-2xl px-4 py-2 hover:bg-teal-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Create Task
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-xl hover:bg-neutral-50"
+            className="px-4 py-2 border rounded-2xl hover:bg-neutral-50"
           >
             Cancel
           </button>

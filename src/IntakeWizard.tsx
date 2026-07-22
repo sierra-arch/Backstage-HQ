@@ -115,7 +115,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
           {STEPS.map((label, i) => (
             <div
               key={label}
-              className={`text-sm px-3 py-2 rounded-xl ${
+              className={`text-sm px-3 py-2 rounded-2xl ${
                 i === step
                   ? "bg-teal-50 text-teal-900 font-medium"
                   : i < step
@@ -143,7 +143,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
                 <input
                   value={form.name}
                   onChange={(e) => set("name", e.target.value)}
-                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                  className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                 />
               </div>
               <div>
@@ -151,7 +151,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
                 <input
                   value={form.business_name}
                   onChange={(e) => set("business_name", e.target.value)}
-                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                  className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                 />
               </div>
               <div>
@@ -160,7 +160,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
                   type="email"
                   value={form.contact_email}
                   onChange={(e) => set("contact_email", e.target.value)}
-                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                  className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                 />
               </div>
               <div>
@@ -168,7 +168,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
                 <input
                   value={form.contact_phone}
                   onChange={(e) => set("contact_phone", e.target.value)}
-                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                  className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                 />
               </div>
             </div>
@@ -312,7 +312,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
             {step > 0 && (
               <button
                 onClick={() => setStep((s) => s - 1)}
-                className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+                className="flex-1 rounded-2xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
               >
                 Back
               </button>
@@ -321,7 +321,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
               <button
                 onClick={() => setStep((s) => s + 1)}
                 disabled={!canContinue}
-                className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
               >
                 Continue
               </button>
@@ -329,7 +329,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
               >
                 {submitting ? "Submitting…" : "Submit"}
               </button>

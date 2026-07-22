@@ -99,7 +99,7 @@ export default function EditTaskModal({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="Enter task title..."
           />
         </div>
@@ -112,7 +112,7 @@ export default function EditTaskModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
             placeholder="Describe the task..."
           />
         </div>
@@ -125,7 +125,7 @@ export default function EditTaskModal({
             <select
               value={company}
               onChange={(e) => setCompany(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               {COMPANIES.map((c) => (
                 <option key={c} value={c}>
@@ -142,7 +142,7 @@ export default function EditTaskModal({
             <select
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="">Unassigned</option>
               {assignOptions.map((t) => (
@@ -162,7 +162,7 @@ export default function EditTaskModal({
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="small">Small (~{TIME_BY_LEVEL.small} min)</option>
               <option value="medium">Medium (~{TIME_BY_LEVEL.medium} min)</option>
@@ -177,7 +177,7 @@ export default function EditTaskModal({
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -192,7 +192,7 @@ export default function EditTaskModal({
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="focus">Focus</option>
               <option value="active">Active</option>
@@ -211,21 +211,21 @@ export default function EditTaskModal({
             type="date"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
           />
         </div>
 
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+            className="flex-1 rounded-2xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!title.trim() || !description.trim()}
-            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Save Changes
           </button>

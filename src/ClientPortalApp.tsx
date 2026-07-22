@@ -22,9 +22,10 @@ import {
 } from "../api/_lib/proposalEngine";
 
 const BRAND = {
-  forestGreen: "#1B4332",
+  forestGreen: "#123D2C",
   ember: "#EA580C",
-  cream: "#FAF3E8",
+  cream: "#F3F7F1",
+  sagePill: "#DCEEDA",
 };
 
 interface PortalClient {
@@ -175,7 +176,7 @@ export function ClientPortalApp() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: BRAND.cream }}>
       <section
-        className="px-6 py-16 md:px-16 text-white"
+        className="px-6 py-16 md:px-16 text-white rounded-b-[2.5rem]"
         style={{ backgroundColor: BRAND.forestGreen }}
       >
         <h1 className="text-3xl md:text-4xl font-semibold text-white">Welcome back, {client.name}</h1>
@@ -200,12 +201,12 @@ export function ClientPortalApp() {
         )}
 
         {projects.length === 0 ? (
-          <div className="rounded-2xl bg-white border p-6 text-neutral-500">
+          <div className="rounded-3xl bg-white border border-neutral-200/70 p-6 text-neutral-500">
             No active project yet — check back soon.
           </div>
         ) : (
           projects.map((project) => (
-            <div key={project.id} className="rounded-2xl bg-white border shadow-sm p-6">
+            <div key={project.id} className="rounded-3xl bg-white border border-neutral-200/70 shadow-sm p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-semibold">{project.name}</h2>
                 <span
@@ -232,7 +233,7 @@ export function ClientPortalApp() {
                   .map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between rounded-xl border p-3 bg-neutral-50"
+                    className="flex items-center justify-between rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50"
                   >
                     <span className="text-sm text-neutral-700">{task.title}</span>
                     <div className="flex items-center gap-3">
@@ -294,7 +295,7 @@ function ProposalCard({
 
   if (!doc || !template) {
     return (
-      <div className="rounded-2xl bg-white border shadow-sm p-6 text-neutral-400 text-sm">
+      <div className="rounded-3xl bg-white border border-neutral-200/70 shadow-sm p-6 text-neutral-400 text-sm">
         Loading your proposal…
       </div>
     );
@@ -352,7 +353,7 @@ function ProposalCard({
   }
 
   return (
-    <div className="rounded-2xl bg-white border shadow-sm p-6 space-y-6">
+    <div className="rounded-3xl bg-white border border-neutral-200/70 shadow-sm p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Your Floral Proposal</h2>
         <span
@@ -396,7 +397,7 @@ function ProposalCard({
                 return (
                   <div
                     key={item.key}
-                    className="flex items-start justify-between gap-4 rounded-xl border p-3 bg-neutral-50"
+                    className="flex items-start justify-between gap-4 rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50"
                   >
                     <div className="flex items-start gap-3 flex-1">
                       {item.is_optional && !locked && (
@@ -455,7 +456,7 @@ function ProposalCard({
         <div className="border-t pt-4 space-y-4">
           <div>
             <p className="text-sm font-semibold text-neutral-700 mb-2">Your Agreement</p>
-            <div className="flex items-center justify-between rounded-xl border border-dashed border-neutral-300 p-3 bg-neutral-50">
+            <div className="flex items-center justify-between rounded-2xl border border-dashed border-neutral-300 p-3 bg-neutral-50">
               <div>
                 <p className="text-sm text-neutral-600">Signature status: Not sent yet</p>
                 <p className="text-xs text-neutral-400 mt-0.5">We'll email you when it's ready to review and sign.</p>
@@ -477,7 +478,7 @@ function ProposalCard({
                 {installments.map((inst) => (
                   <div
                     key={inst.id}
-                    className="flex items-center justify-between rounded-xl border p-3 bg-neutral-50"
+                    className="flex items-center justify-between rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50"
                   >
                     <p className="text-sm text-neutral-700">
                       ${inst.amount.toLocaleString()}{" "}

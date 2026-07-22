@@ -163,7 +163,7 @@ export function CompaniesPage({
                         ? onProductClick(item as Product)
                         : onClientClick(item as Client);
                     }}
-                    className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
+                    className={`relative rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
                       companyName === "Mairé" ? "aspect-[3/4]" : "aspect-[4/3]"
                     }`}
                     style={{

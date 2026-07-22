@@ -31,7 +31,7 @@ function ClientCard({ client, onEdit, isFounder }: ClientCardProps) {
         <img
           src={client.photo_url}
           alt={client.name}
-          className="w-full h-32 object-cover rounded-xl mb-3"
+          className="w-full h-32 object-cover rounded-2xl mb-3"
         />
       )}
       <div className="flex items-start justify-between mb-2">
@@ -169,7 +169,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
             placeholder="Client name..."
           />
         </div>
@@ -180,7 +180,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
             type="text"
             value={photoUrl}
             onChange={(e) => setPhotoUrl(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
             placeholder="https://..."
           />
         </div>
@@ -191,7 +191,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm resize-none"
             placeholder="Brief description..."
           />
         </div>
@@ -203,7 +203,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
               placeholder="email@example.com"
             />
           </div>
@@ -213,7 +213,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
               type="tel"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
               placeholder="(555) 123-4567"
             />
           </div>
@@ -225,7 +225,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
             value={scope}
             onChange={(e) => setScope(e.target.value)}
             rows={2}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm resize-none"
             placeholder="Project scope..."
           />
         </div>
@@ -236,7 +236,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
             type="date"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
           />
         </div>
 
@@ -258,14 +258,14 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
                   value={link.name}
                   onChange={(e) => updateLink(idx, "name", e.target.value)}
                   placeholder="Link name"
-                  className="flex-1 rounded-xl border px-3 py-2 text-sm"
+                  className="flex-1 rounded-2xl border px-3 py-2 text-sm"
                 />
                 <input
                   type="text"
                   value={link.url}
                   onChange={(e) => updateLink(idx, "url", e.target.value)}
                   placeholder="URL"
-                  className="flex-1 rounded-xl border px-3 py-2 text-sm"
+                  className="flex-1 rounded-2xl border px-3 py-2 text-sm"
                 />
                 <button
                   onClick={() => removeLink(idx)}
@@ -281,14 +281,14 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
         <div className="flex gap-3 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+            className="flex-1 rounded-2xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+            className="flex-1 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : isFounder ? "Save" : "Submit for Approval"}
           </button>
@@ -325,7 +325,7 @@ function ProductCard({ product, onEdit, onSync, isFounder }: ProductCardProps) {
         <img
           src={product.photo_url}
           alt={product.name}
-          className="w-full h-48 object-cover rounded-xl mb-3"
+          className="w-full h-48 object-cover rounded-2xl mb-3"
         />
       )}
       <div className="flex items-start justify-between mb-2">
@@ -455,7 +455,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
             placeholder="Product name..."
           />
         </div>
@@ -466,7 +466,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
             type="text"
             value={photoUrl}
             onChange={(e) => setPhotoUrl(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
             placeholder="https://..."
           />
         </div>
@@ -477,7 +477,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm resize-none"
             placeholder="Product description..."
           />
         </div>
@@ -489,7 +489,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
               type="text"
               value={sku}
               onChange={(e) => setSku(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
               placeholder="SKU-001"
             />
           </div>
@@ -500,7 +500,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
               step="0.01"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
               placeholder="0.00"
             />
           </div>
@@ -510,7 +510,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
               type="number"
               value={inventory}
               onChange={(e) => setInventory(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
               placeholder="0"
             />
           </div>
@@ -525,7 +525,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
                 type="text"
                 value={etsyListingId}
                 onChange={(e) => setEtsyListingId(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+                className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
                 placeholder="1234567890"
               />
             </div>
@@ -535,7 +535,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
                 type="text"
                 value={etsyUrl}
                 onChange={(e) => setEtsyUrl(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+                className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
                 placeholder="https://etsy.com/listing/..."
               />
             </div>
@@ -545,14 +545,14 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
         <div className="flex gap-3 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+            className="flex-1 rounded-2xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!name.trim() || !price || saving}
-            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+            className="flex-1 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : isFounder ? "Save" : "Submit for Approval"}
           </button>
@@ -755,7 +755,7 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
             placeholder="e.g., Weekly Client Check-in Process"
           />
         </div>
@@ -766,7 +766,7 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
             value={shortDesc}
             onChange={(e) => setShortDesc(e.target.value)}
             rows={2}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm resize-none"
             placeholder="Brief summary visible on the card..."
           />
         </div>
@@ -777,7 +777,7 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
             value={fullDesc}
             onChange={(e) => setFullDesc(e.target.value)}
             rows={4}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm resize-none"
             placeholder="Detailed description shown when expanded..."
           />
         </div>
@@ -788,7 +788,7 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
             <select
               value={roleContext}
               onChange={(e) => setRoleContext(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
             >
               <option value="all">All Roles</option>
               <option value="founder">Founder Only</option>
@@ -801,7 +801,7 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
               type="number"
               value={taskCount}
               onChange={(e) => setTaskCount(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm"
               placeholder="0"
             />
           </div>
@@ -826,12 +826,12 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
               value={newTag}
               onChange={(e) => setNewTag(e.target.value)}
               onKeyPress={(e) => e.key === "Enter" && addTag()}
-              className="flex-1 rounded-xl border px-3 py-2 text-sm"
+              className="flex-1 rounded-2xl border px-3 py-2 text-sm"
               placeholder="Add tag..."
             />
             <button
               onClick={addTag}
-              className="px-4 py-2 rounded-xl bg-purple-50 text-purple-700 text-sm hover:bg-purple-100"
+              className="px-4 py-2 rounded-2xl bg-purple-50 text-purple-700 text-sm hover:bg-purple-100"
             >
               Add
             </button>
@@ -858,7 +858,7 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
                   value={instruction.text}
                   onChange={(e) => updateInstruction(idx, e.target.value)}
                   rows={2}
-                  className="flex-1 rounded-xl border px-3 py-2 text-sm resize-none"
+                  className="flex-1 rounded-2xl border px-3 py-2 text-sm resize-none"
                   placeholder="Instruction text..."
                 />
                 <button
@@ -875,14 +875,14 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
         <div className="flex gap-3 pt-4">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+            className="flex-1 rounded-2xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={!title.trim() || !shortDesc.trim() || saving}
-            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+            className="flex-1 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : isFounder ? "Save SOP" : "Submit for Approval"}
           </button>

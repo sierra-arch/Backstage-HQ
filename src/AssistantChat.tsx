@@ -84,7 +84,7 @@ export function AssistantChat() {
               className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] rounded-xl p-3 text-sm ${
+                className={`max-w-[85%] rounded-2xl p-3 text-sm ${
                   msg.role === "user"
                     ? "bg-teal-600 text-white"
                     : msg.isError
@@ -99,7 +99,7 @@ export function AssistantChat() {
         )}
         {isSending && (
           <div className="flex justify-start">
-            <div className="rounded-xl p-3 text-sm bg-neutral-50 text-neutral-400">
+            <div className="rounded-2xl p-3 text-sm bg-neutral-50 text-neutral-400">
               Claude is thinking…
             </div>
           </div>
@@ -114,12 +114,12 @@ export function AssistantChat() {
           onKeyDown={(e) => e.key === "Enter" && send()}
           placeholder="Ask Claude..."
           disabled={isSending}
-          className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+          className="flex-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
         />
         <button
           onClick={send}
           disabled={isSending}
-          className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium disabled:opacity-50"
+          className="bg-teal-600 text-white rounded-2xl px-4 py-2 hover:bg-teal-700 text-sm font-medium disabled:opacity-50"
         >
           Send
         </button>

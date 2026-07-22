@@ -270,7 +270,7 @@ function Card({
   return (
     <section
       onClick={onClick}
-      className={`rounded-2xl border border-neutral-200 bg-white ${
+      className={`rounded-3xl border border-neutral-200/80 bg-white ${
         variant === "compact" ? "p-4 md:p-5" : "p-5 md:p-6"
       } shadow-sm ${className} ${
         onClick ? "cursor-pointer hover:border-teal-300 transition-colors" : ""
@@ -610,13 +610,13 @@ function TaskModal({
               onComplete();
               onClose();
             }}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
+            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium"
           >
             {buttonText}
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-xl hover:bg-neutral-50"
+            className="px-4 py-2 border rounded-full hover:bg-neutral-50"
           >
             Close
           </button>
@@ -713,7 +713,7 @@ function TaskCreateModal({
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="Enter task title..."
           />
         </div>
@@ -725,7 +725,7 @@ function TaskCreateModal({
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="Add details..."
           />
         </div>
@@ -738,7 +738,7 @@ function TaskCreateModal({
             <select
               value={company}
               onChange={(e) => setCompany(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               {COMPANIES.map((c) => (
                 <option key={c} value={c}>
@@ -754,7 +754,7 @@ function TaskCreateModal({
             <select
               value={assignee}
               onChange={(e) => setAssignee(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="">Unassigned</option>
               {assignOptions.map((t) => (
@@ -774,7 +774,7 @@ function TaskCreateModal({
             <select
               value={level}
               onChange={(e) => setLevel(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="small">Small (~{TIME_BY_LEVEL.small} min)</option>
               <option value="medium">
@@ -790,7 +790,7 @@ function TaskCreateModal({
             <select
               value={recurring}
               onChange={(e) => setRecurring(e.target.value as any)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="none">None</option>
               <option value="daily">Daily</option>
@@ -810,7 +810,7 @@ function TaskCreateModal({
             type="date"
             value={deadline}
             onChange={(e) => setDeadline(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
           />
         </div>
 
@@ -821,7 +821,7 @@ function TaskCreateModal({
           <select
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
           >
             <option value="">No project</option>
             {projects.map((p) => (
@@ -848,13 +848,13 @@ function TaskCreateModal({
           <button
             onClick={handleCreate}
             disabled={!title || !description}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Create Task
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-xl hover:bg-neutral-50"
+            className="px-4 py-2 border rounded-full hover:bg-neutral-50"
           >
             Cancel
           </button>
@@ -933,7 +933,7 @@ function CreateClientModal({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="e.g. Sarah Wedding"
           />
         </div>
@@ -944,7 +944,7 @@ function CreateClientModal({
             <input
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
               placeholder="email@client.com"
             />
           </div>
@@ -953,7 +953,7 @@ function CreateClientModal({
             <input
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
               placeholder="(555) 555-5555"
             />
           </div>
@@ -964,7 +964,7 @@ function CreateClientModal({
           <input
             value={photoUrl}
             onChange={(e) => setPhotoUrl(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="https://..."
           />
         </div>
@@ -975,7 +975,7 @@ function CreateClientModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
             placeholder="Optional notes…"
           />
         </div>
@@ -983,14 +983,14 @@ function CreateClientModal({
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+            className="flex-1 rounded-full border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
             disabled={!companyName || !name.trim()}
-            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Add
           </button>
@@ -1059,7 +1059,7 @@ function CreateProductModal({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="e.g. Pressed Bouquet Frame"
           />
         </div>
@@ -1069,7 +1069,7 @@ function CreateProductModal({
           <input
             value={photoUrl}
             onChange={(e) => setPhotoUrl(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="https://..."
           />
         </div>
@@ -1080,7 +1080,7 @@ function CreateProductModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
             placeholder="Optional notes…"
           />
         </div>
@@ -1088,14 +1088,14 @@ function CreateProductModal({
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+            className="flex-1 rounded-full border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
             disabled={!companyName || !name.trim()}
-            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Add
           </button>
@@ -1152,7 +1152,7 @@ function CreateProjectModal({
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             placeholder="e.g. Sarah & James Wedding"
           />
         </div>
@@ -1162,20 +1162,20 @@ function CreateProjectModal({
             type="date"
             value={targetDate}
             onChange={(e) => setTargetDate(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
           />
         </div>
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+            className="flex-1 rounded-full border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleCreate}
             disabled={!name.trim()}
-            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Create
           </button>
@@ -1256,7 +1256,7 @@ function ProjectModal({
             <select
               value={project.status}
               onChange={(e) => handleStatusChange(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="active">Active</option>
               <option value="on_hold">On Hold</option>
@@ -1270,7 +1270,7 @@ function ProjectModal({
               type="date"
               value={project.target_delivery_date || ""}
               onChange={(e) => handleDateChange(e.target.value)}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
           </div>
         </div>
@@ -1284,7 +1284,7 @@ function ProjectModal({
               </div>
             )}
             {linkedTasks.map((t) => (
-              <div key={t.id} className="flex items-center justify-between rounded-xl border p-3 bg-neutral-50">
+              <div key={t.id} className="flex items-center justify-between rounded-2xl border p-3 bg-neutral-50">
                 <span className="text-sm text-neutral-700">{t.title}</span>
                 <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600">
                   {t.status}
@@ -1300,7 +1300,7 @@ function ProjectModal({
             <select
               value={taskToLink}
               onChange={(e) => setTaskToLink(e.target.value)}
-              className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="flex-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="">Select a task…</option>
               {linkableTasks.map((t) => (
@@ -1312,7 +1312,7 @@ function ProjectModal({
             <button
               onClick={handleLinkTask}
               disabled={!taskToLink}
-              className="rounded-xl bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+              className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
             >
               Link
             </button>
@@ -1386,7 +1386,7 @@ function CreateProposalModal({
           <select
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
           >
             {templates.length === 0 && <option value="">No proposal templates yet</option>}
             {templates.map((t) => (
@@ -1403,7 +1403,7 @@ function CreateProposalModal({
             type="date"
             value={eventDate}
             onChange={(e) => setEventDate(e.target.value)}
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
           />
           <p className="text-xs text-neutral-400 mt-1">
             Needed to schedule the payment plan — the balance is due 4 weeks before this date.
@@ -1421,13 +1421,13 @@ function CreateProposalModal({
                     value={authored[field.key] || ""}
                     onChange={(e) => setAuthored((a) => ({ ...a, [field.key]: e.target.value }))}
                     rows={3}
-                    className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                    className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                   />
                 ) : (
                   <input
                     value={authored[field.key] || ""}
                     onChange={(e) => setAuthored((a) => ({ ...a, [field.key]: e.target.value }))}
-                    className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                    className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                   />
                 )}
               </div>
@@ -1440,7 +1440,7 @@ function CreateProposalModal({
         <div className="flex gap-3 pt-2">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+            className="flex-1 rounded-full border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
           >
             Cancel
           </button>
@@ -1555,7 +1555,7 @@ function ProposalDetailModal({
         {(proposal.status === "sent" || proposal.status === "viewed" || proposal.status === "accepted") && (
           <div className="border-t pt-4">
             <label className="text-sm font-medium text-neutral-700">Agreement</label>
-            <div className="flex items-center justify-between rounded-xl border border-dashed border-neutral-300 p-3 bg-neutral-50 mt-2">
+            <div className="flex items-center justify-between rounded-2xl border border-dashed border-neutral-300 p-3 bg-neutral-50 mt-2">
               <div>
                 <p className="text-sm text-neutral-600">Signature status: Not sent</p>
                 <p className="text-xs text-neutral-400 mt-0.5">DocuSign integration — coming soon</p>
@@ -1576,7 +1576,7 @@ function ProposalDetailModal({
             <label className="text-sm font-medium text-neutral-700">Payment Schedule</label>
             <div className="space-y-2 mt-2">
               {installments.map((inst) => (
-                <div key={inst.id} className="flex items-center justify-between rounded-xl border p-3 bg-neutral-50">
+                <div key={inst.id} className="flex items-center justify-between rounded-2xl border p-3 bg-neutral-50">
                   <div>
                     <p className="text-sm font-medium">${inst.amount.toLocaleString()}</p>
                     <p className="text-xs text-neutral-400">
@@ -1682,7 +1682,7 @@ function ClientModal({
           <button
             onClick={inviteToPortal}
             disabled={inviting}
-            className="rounded-xl bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+            className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
           >
             {inviting ? "Sending…" : "Invite to Portal"}
           </button>
@@ -1696,7 +1696,7 @@ function ClientModal({
               value={client.stage}
               onChange={(e) => handleStageChange(e.target.value)}
               disabled={savingStage}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="lead">Lead</option>
               <option value="proposal_sent">Proposal Sent</option>
@@ -1711,7 +1711,7 @@ function ClientModal({
               value={client.track || ""}
               onChange={(e) => handleTrackChange(e.target.value)}
               disabled={savingStage}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             >
               <option value="">Not set</option>
               <option value="freelancer">Freelancer</option>
@@ -1734,7 +1734,7 @@ function ClientModal({
           </div>
           <div className="space-y-2">
             {proposals.length === 0 && (
-              <div className="text-sm text-neutral-400 text-center py-4 border rounded-xl">
+              <div className="text-sm text-neutral-400 text-center py-4 border rounded-2xl">
                 No proposals yet
               </div>
             )}
@@ -1742,7 +1742,7 @@ function ClientModal({
               <button
                 key={p.id}
                 onClick={() => setSelectedProposal(p)}
-                className="w-full flex items-center justify-between rounded-xl border p-3 hover:border-teal-300 transition-colors text-left"
+                className="w-full flex items-center justify-between rounded-2xl border p-3 hover:border-teal-300 transition-colors text-left"
               >
                 <span className="text-sm font-medium">
                   {p.event_date ? new Date(p.event_date + "T00:00:00").toLocaleDateString() : "No event date"}
@@ -1767,7 +1767,7 @@ function ClientModal({
           </div>
           <div className="space-y-2">
             {projects.length === 0 && (
-              <div className="text-sm text-neutral-400 text-center py-4 border rounded-xl">
+              <div className="text-sm text-neutral-400 text-center py-4 border rounded-2xl">
                 No projects yet
               </div>
             )}
@@ -1775,7 +1775,7 @@ function ClientModal({
               <button
                 key={p.id}
                 onClick={() => setSelectedProject(p)}
-                className="w-full flex items-center justify-between rounded-xl border p-3 hover:border-teal-300 transition-colors text-left"
+                className="w-full flex items-center justify-between rounded-2xl border p-3 hover:border-teal-300 transition-colors text-left"
               >
                 <span className="text-sm font-medium">{p.name}</span>
                 <span className="text-xs px-2 py-1 rounded-full bg-neutral-100 text-neutral-600 capitalize">
@@ -2038,7 +2038,7 @@ function BrandKitEditModal({
       ) : (
         <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
           {shareSlug && (
-            <div className="rounded-xl bg-teal-50 border border-teal-200 p-3 text-sm text-teal-900">
+            <div className="rounded-2xl bg-teal-50 border border-teal-200 p-3 text-sm text-teal-900">
               Share link: <span className="font-mono">/brand/{shareSlug}</span>
             </div>
           )}
@@ -2052,7 +2052,7 @@ function BrandKitEditModal({
                   <input
                     value={logoVariants[f.key] || ""}
                     onChange={(e) => setLogoVariants({ ...logoVariants, [f.key]: e.target.value })}
-                    className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                    className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                     placeholder="https://..."
                   />
                 </div>
@@ -2080,7 +2080,7 @@ function BrandKitEditModal({
                     <input
                       value={c.value}
                       onChange={(e) => c.set(e.target.value)}
-                      className="flex-1 rounded-xl border px-2 py-2 text-sm font-mono focus:ring-2 focus:ring-teal-200 outline-none"
+                      className="flex-1 rounded-2xl border px-2 py-2 text-sm font-mono focus:ring-2 focus:ring-teal-200 outline-none"
                     />
                   </div>
                 </div>
@@ -2094,7 +2094,7 @@ function BrandKitEditModal({
               <input
                 value={fontHeading}
                 onChange={(e) => setFontHeading(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                 placeholder="e.g. Playfair Display"
               />
             </div>
@@ -2103,7 +2103,7 @@ function BrandKitEditModal({
               <input
                 value={fontBody}
                 onChange={(e) => setFontBody(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                 placeholder="e.g. Inter"
               />
             </div>
@@ -2115,7 +2115,7 @@ function BrandKitEditModal({
               value={brandDescription}
               onChange={(e) => setBrandDescription(e.target.value)}
               rows={3}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
               placeholder="Who this brand is..."
             />
           </div>
@@ -2126,7 +2126,7 @@ function BrandKitEditModal({
               value={toneNotes}
               onChange={(e) => setToneNotes(e.target.value)}
               rows={3}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none resize-none"
               placeholder="Voice and imagery guidelines..."
             />
           </div>
@@ -2140,7 +2140,7 @@ function BrandKitEditModal({
                   <input
                     value={policyDefaults[f.key] || ""}
                     onChange={(e) => setPolicyDefaults({ ...policyDefaults, [f.key]: e.target.value })}
-                    className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                    className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                     placeholder={f.placeholder}
                   />
                 </div>
@@ -2158,7 +2158,7 @@ function BrandKitEditModal({
                     type="number"
                     value={cashflowBands[f.key] || ""}
                     onChange={(e) => setCashflowBands({ ...cashflowBands, [f.key]: e.target.value })}
-                    className="w-full mt-1 rounded-xl border px-2 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+                    className="w-full mt-1 rounded-2xl border px-2 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
                   />
                 </div>
               ))}
@@ -2168,14 +2168,14 @@ function BrandKitEditModal({
           <div className="flex gap-3 pt-2 border-t">
             <button
               onClick={onClose}
-              className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+              className="flex-1 rounded-full border px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
             >
               Close
             </button>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+              className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving…" : "Save Brand Kit"}
             </button>
@@ -2288,7 +2288,7 @@ function CompanyModal({
         <div className="flex gap-2">
           <button
             onClick={() => setShowBrandKitModal(true)}
-            className="rounded-xl border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
+            className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
           >
             Brand Kit
           </button>
@@ -2298,13 +2298,13 @@ function CompanyModal({
   <div className="flex gap-2">
     <button
       onClick={() => onAddClient(companyName)}
-      className="rounded-xl border px-3 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+      className="rounded-full border px-3 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
     >
       + Add Client / Project
     </button>
     <button
       onClick={() => onAddProduct(companyName)}
-      className="rounded-xl border px-3 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
+      className="rounded-full border px-3 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors"
     >
       + Add Product
     </button>
@@ -2325,7 +2325,7 @@ function CompanyModal({
                   onClientClick(client);
                   onClose();
                 }}
-                className="relative aspect-[4/3] rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                className="relative aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   backgroundImage: `url(${client.photo_url})`,
                   backgroundSize: "cover",
@@ -2347,7 +2347,7 @@ function CompanyModal({
                   onProductClick(product);
                   onClose();
                 }}
-                className="relative aspect-[3/4] rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                className="relative aspect-[3/4] rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
                 style={{
                   backgroundImage: `url(${product.photo_url})`,
                   backgroundSize: "cover",
@@ -2545,7 +2545,7 @@ function ChatPanel({
             filteredMessages.map((msg) => (
               <div
                 key={msg.id}
-                className={`rounded-xl p-3 ${
+                className={`rounded-2xl p-3 ${
                   msg.is_kudos
                     ? "bg-yellow-50 border border-yellow-200"
                     : "bg-neutral-50"
@@ -2593,11 +2593,11 @@ function ChatPanel({
                   ? "Message team..."
                   : `Message ${activeChannel}...`
               }
-              className="flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="flex-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
             <button
               onClick={sendMessage}
-              className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium"
+              className="bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 text-sm font-medium"
             >
               Send
             </button>
@@ -2657,24 +2657,26 @@ function Sidebar({
   const nav = isFounder(role) ? founderNav : teamNav;
 
   return (
-    <aside className="w-72 shrink-0 border-r bg-white/90 backdrop-blur-sm sticky top-0 h-screen p-4 flex flex-col">
-      <div className="text-[26px] font-semibold leading-none mb-6 tracking-tight">
+    <aside className="w-72 shrink-0 border-r border-neutral-200/70 bg-white sticky top-0 h-screen p-4 flex flex-col">
+      <div className="text-[24px] font-semibold leading-none mb-6 tracking-tight px-1">
         Backstage Headquarters
       </div>
-      <nav className="space-y-1 text-[15px]">
+      <nav className="space-y-1.5 text-[15px]">
         {nav.map((item) => {
           const isActive = active === item;
           return (
             <button
               key={item}
               onClick={() => onSelect(item)}
-              className={`w-full text-left flex items-center justify-between rounded-xl px-3 py-2 hover:bg-teal-50 ${
-                isActive ? "bg-teal-50 text-teal-900 font-medium" : ""
+              className={`w-full text-left flex items-center justify-between rounded-2xl px-3.5 py-2.5 transition-colors ${
+                isActive
+                  ? "bg-sage-100 text-teal-800 font-semibold"
+                  : "text-neutral-600 hover:bg-sage-50"
               }`}
             >
               <span>{item}</span>
               {item === "Today" && isActive && (
-                <span className="text-[10px] rounded-full bg-teal-100 text-teal-800 px-2 py-0.5">
+                <span className="text-[10px] rounded-full bg-white text-teal-700 px-2 py-0.5 font-medium">
                   Now
                 </span>
               )}
@@ -2683,12 +2685,12 @@ function Sidebar({
         })}
       </nav>
       <div className="mt-auto pt-6">
-        <div className="text-xs uppercase tracking-wide text-neutral-500 mb-1">
+        <div className="text-xs uppercase tracking-wide text-neutral-400 mb-1 px-1">
           Signed in
         </div>
         <button
           onClick={() => onSelect("Settings" as Page)}
-          className="text-sm font-medium hover:text-teal-600 transition-colors text-left"
+          className="text-sm font-medium hover:text-teal-700 transition-colors text-left px-1"
         >
           {userName}
         </button>
@@ -2720,13 +2722,13 @@ function TopHeader({
 
   return (
     <div className="sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
-      <div className="h-12 md:h-14 bg-white flex items-center justify-between px-3 md:px-4 border-b">
+      <div className="h-14 md:h-16 bg-white flex items-center justify-between px-3 md:px-4 border-b border-neutral-200/70">
         <div className="flex items-center gap-3 md:gap-4">
           <div className="text-[13px] md:text-[14px] text-neutral-900 font-medium">
             Welcome, {name}
           </div>
-          <div className="hidden md:block w-[180px] h-1.5 rounded-full bg-teal-100 overflow-hidden">
-            <div className="h-full bg-teal-600" style={{ width: `${pct}%` }} />
+          <div className="hidden md:block w-[180px] h-1.5 rounded-full bg-sage-100 overflow-hidden">
+            <div className="h-full bg-teal-600 rounded-full" style={{ width: `${pct}%` }} />
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -2738,12 +2740,12 @@ function TopHeader({
                 setSearchQuery(e.target.value);
                 onSearch(e.target.value);
               }}
-              className="w-full rounded-full border px-2.5 py-0.5 text-[12px] outline-none focus:ring-2 focus:ring-teal-200"
+              className="w-full rounded-full border border-neutral-200 bg-neutral-50 px-4 py-1.5 text-[12px] outline-none focus:ring-2 focus:ring-teal-200 focus:bg-white transition-colors"
             />
           </div>
           <button
             onClick={onOpenChat}
-            className="relative rounded-xl border border-teal-200 bg-teal-50 px-3 py-2 text-sm hover:bg-teal-100 transition-colors font-medium text-teal-900"
+            className="relative rounded-full border border-teal-200 bg-sage-50 px-4 py-2 text-sm hover:bg-sage-100 transition-colors font-medium text-teal-900"
           >
             Inbox
             {unreadCount > 0 && (
@@ -2764,7 +2766,7 @@ function TaskRow({ task, onClick }: { task: DBTask; onClick: () => void }) {
     <motion.div
       layout
       onClick={onClick}
-      className="group flex items-center gap-3 rounded-xl border p-3 hover:border-teal-200 transition-colors bg-white cursor-pointer"
+      className="group flex items-center gap-3 rounded-2xl border p-3 hover:border-teal-200 transition-colors bg-white cursor-pointer"
     >
       {task.photo_url && (
         <div
@@ -2925,7 +2927,7 @@ function BusinessSnapshot({
         {stats.map((s) => (
           <div
             key={s.label}
-            className="rounded-xl border p-3 bg-white flex items-center gap-3"
+            className="rounded-2xl border p-3 bg-white flex items-center gap-3"
           >
             <div className="text-xl leading-none">{s.icon}</div>
             <div className="min-w-0">
@@ -3141,7 +3143,7 @@ function CompaniesPage({
                         ? onProductClick(item)
                         : onClientClick(item);
                     }}
-                    className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
+                    className={`relative rounded-2xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
                       companyName === "Mairé" ? "aspect-[3/4]" : "aspect-[4/3]"
                     }`}
                     style={{
@@ -3286,7 +3288,7 @@ function MyTeamPage({
                 {selectedMemberData.completedTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="rounded-xl border p-3 bg-neutral-50"
+                    className="rounded-2xl border p-3 bg-neutral-50"
                   >
                     <div className="font-medium text-sm">{task.title}</div>
                     <div className="text-xs text-neutral-500 mt-1">
@@ -3316,25 +3318,25 @@ function MeetingsPage() {
     <div className="space-y-6">
       <Card title="Upcoming Meetings" subtitle="Next 7 days">
         <div className="space-y-2">
-          <div className="rounded-xl border p-3 bg-white flex items-center justify-between">
+          <div className="rounded-2xl border p-3 bg-white flex items-center justify-between">
             <div>
               <div className="text-sm font-medium">Ops Standup</div>
               <div className="text-xs text-neutral-500">
                 Tue 11:30 AM • Backstage
               </div>
             </div>
-            <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">
+            <button className="text-xs rounded-full border px-2 py-1 hover:border-teal-300">
               Open agenda
             </button>
           </div>
-          <div className="rounded-xl border p-3 bg-white flex items-center justify-between">
+          <div className="rounded-2xl border p-3 bg-white flex items-center justify-between">
             <div>
               <div className="text-sm font-medium">Client Onboarding</div>
               <div className="text-xs text-neutral-500">
                 Thu 2:00 PM • Prose Florals
               </div>
             </div>
-            <button className="text-xs rounded-xl border px-2 py-1 hover:border-teal-300">
+            <button className="text-xs rounded-full border px-2 py-1 hover:border-teal-300">
               Checklist
             </button>
           </div>
@@ -3343,7 +3345,7 @@ function MeetingsPage() {
 
       <Card title="Meeting Agenda & Notes">
         <textarea
-          className="w-full min-h-[200px] rounded-xl border p-3 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+          className="w-full min-h-[200px] rounded-2xl border p-3 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
           placeholder="Add meeting notes and agenda items here...
 
 • Topic 1
@@ -3352,7 +3354,7 @@ function MeetingsPage() {
           value={agenda}
           onChange={(e) => setAgenda(e.target.value)}
         />
-        <button className="mt-3 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium">
+        <button className="mt-3 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 text-sm font-medium">
           Save to Google Doc
         </button>
       </Card>
@@ -3391,7 +3393,7 @@ function SettingsPage({
             <select
               value={replayCompanyId}
               onChange={(e) => setReplayCompanyId(e.target.value)}
-              className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-200"
+              className="rounded-2xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-200"
             >
               {companies.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -3408,7 +3410,7 @@ function SettingsPage({
             </button>
           </div>
           {confirmingReplay && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-3">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-3">
               <div>
                 This will create a new real client (and its automated
                 project + tasks) under{" "}
@@ -3447,7 +3449,7 @@ function SettingsPage({
             <input
               type="text"
               defaultValue={userName}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
           </div>
           <div>
@@ -3457,10 +3459,10 @@ function SettingsPage({
             <input
               type="email"
               defaultValue={email}
-              className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+              className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
           </div>
-          <button className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium">
+          <button className="bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 text-sm font-medium">
             Save Changes
           </button>
         </div>
@@ -3496,7 +3498,7 @@ function SettingsPage({
       </Card>
 
       <Card title="Danger Zone">
-        <button className="text-red-600 border border-red-200 rounded-xl px-4 py-2 hover:bg-red-50 text-sm font-medium">
+        <button className="text-red-600 border border-red-200 rounded-full px-4 py-2 hover:bg-red-50 text-sm font-medium">
           Sign Out
         </button>
       </Card>
@@ -3545,7 +3547,7 @@ function AddAccomplishmentModal({
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Shipped Q3 client presentation..."
-            className="w-full mt-1 rounded-xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full mt-1 rounded-2xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
           />
         </div>
 
@@ -3562,14 +3564,14 @@ function AddAccomplishmentModal({
         <div className="flex gap-3 pt-4 border-t">
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm"
+            className="px-4 py-2 border rounded-full hover:bg-neutral-50 text-sm"
           >
             Cancel
           </button>
           <button
             onClick={handleAdd}
             disabled={!text.trim()}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
+            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
           >
             Add
           </button>
@@ -3611,7 +3613,7 @@ function KudosModal({
       size="medium"
     >
       <div className="space-y-4">
-        <div className="bg-teal-50 rounded-xl p-4 border border-teal-200">
+        <div className="bg-sage-100 rounded-2xl p-4 border border-teal-200">
           <div className="text-sm font-medium text-teal-900">{task.title}</div>
           <div className="text-xs text-teal-700 mt-1">
             Completed by {task.assignee_name}
@@ -3626,7 +3628,7 @@ function KudosModal({
             value={kudosText}
             onChange={(e) => setKudosText(e.target.value)}
             placeholder="Great work on... (this will be sent as a direct message)"
-            className="w-full rounded-xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
+            className="w-full rounded-2xl border px-3 py-2 text-sm min-h-[100px] focus:ring-2 focus:ring-teal-200 outline-none"
           />
         </div>
 
@@ -3636,13 +3638,13 @@ function KudosModal({
               onSend("");
               onClose();
             }}
-            className="px-4 py-2 border rounded-xl hover:bg-neutral-50 text-sm"
+            className="px-4 py-2 border rounded-full hover:bg-neutral-50 text-sm"
           >
             Skip
           </button>
           <button
             onClick={handleSend}
-            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm"
+            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium text-sm"
           >
             {kudosText ? "Send Kudos & Approve" : "Approve Without Message"}
           </button>
@@ -3772,7 +3774,7 @@ function CareerPathPage({
             </div>
           )}
           {kudosReceived.map((m) => (
-            <div key={m.id} className="rounded-xl bg-cream-50 border border-cream-200 p-3">
+            <div key={m.id} className="rounded-2xl bg-cream-50 border border-cream-200 p-3">
               <div className="text-sm text-neutral-800">{m.content}</div>
               <div className="text-xs text-neutral-400 mt-1">
                 {m.from_name ?? "A teammate"} · {new Date(m.created_at).toLocaleDateString([], { month: "short", day: "numeric" })}
@@ -3788,7 +3790,7 @@ function CareerPathPage({
         </h3>
         <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
           {myCompleted.length === 0 && (
-            <div className="rounded-xl bg-white border border-cream-200 p-6 text-sm text-neutral-400 text-center">
+            <div className="rounded-2xl bg-white border border-cream-200 p-6 text-sm text-neutral-400 text-center">
               No completed tasks yet — finish your first one to earn points!
             </div>
           )}
@@ -3799,7 +3801,7 @@ function CareerPathPage({
               return db - da;
             })
             .map((t) => (
-              <div key={t.id} className="rounded-xl bg-white border border-cream-200 p-3 flex items-center justify-between gap-3">
+              <div key={t.id} className="rounded-2xl bg-white border border-cream-200 p-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium truncate">{t.title}</div>
                   <div className="text-xs text-neutral-500 mt-0.5 flex items-center gap-2">
@@ -4136,7 +4138,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                   {submittedTasks.map((t) => (
                     <div
                       key={t.id}
-                      className="rounded-xl border p-3 flex items-center justify-between gap-3 bg-white"
+                      className="rounded-2xl border p-3 flex items-center justify-between gap-3 bg-white"
                     >
                       <div
                         className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer"
@@ -4158,7 +4160,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                       </div>
                       <div className="text-xs flex gap-2">
                         <button
-                          className="rounded-xl border px-2 py-1 hover:border-teal-300"
+                          className="rounded-full border px-2 py-1 hover:border-teal-300"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleApprove(t);
@@ -4167,7 +4169,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                           Approve
                         </button>
                         <button
-                          className="rounded-xl border px-2 py-1 hover:border-teal-300"
+                          className="rounded-full border px-2 py-1 hover:border-teal-300"
                           onClick={(e) => {
                             e.stopPropagation();
                             const note = prompt(
@@ -4266,7 +4268,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                   .map((acc) => (
                     <div
                       key={acc.id}
-                      className="rounded-xl border p-3 bg-white"
+                      className="rounded-2xl border p-3 bg-white"
                     >
                       <div className="text-sm font-medium">{acc.text}</div>
                       <div className="text-xs text-neutral-500 mt-1">
@@ -4277,7 +4279,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                     </div>
                   ))}
                 {accomplishments.length === 0 && (
-                  <div className="rounded-xl border p-3 bg-white">
+                  <div className="rounded-2xl border p-3 bg-white">
                     <div className="text-sm text-neutral-500 text-center py-4">
                       No accomplishments yet - add your first one!
                     </div>
@@ -4359,7 +4361,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
               <div className="mb-3">
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
+                  className="text-xs bg-teal-600 text-white rounded-full px-3 py-1.5 hover:bg-teal-700 font-medium"
                 >
                   ➕ Add Task
                 </button>
@@ -4393,7 +4395,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                       <div
                         key={t.id}
                         onClick={() => openTaskModal(t)}
-                        className="rounded-xl border p-3 flex items-center justify-between gap-3 bg-white cursor-pointer hover:border-teal-300"
+                        className="rounded-2xl border p-3 flex items-center justify-between gap-3 bg-white cursor-pointer hover:border-teal-300"
                       >
                         <div className="flex items-center gap-2">
                           <Avatar name={t.assignee_name || "You"} size={22} />
@@ -4473,7 +4475,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                   .map((acc) => (
                     <div
                       key={acc.id}
-                      className="rounded-xl border p-3 bg-white"
+                      className="rounded-2xl border p-3 bg-white"
                     >
                       <div className="text-sm font-medium">{acc.text}</div>
                       <div className="text-xs text-neutral-500 mt-1">
@@ -4483,7 +4485,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                     </div>
                   ))}
                 {accomplishments.length === 0 && (
-                  <div className="rounded-xl border p-3 bg-white">
+                  <div className="rounded-2xl border p-3 bg-white">
                     <div className="text-sm text-neutral-500 text-center py-4">
                       No accomplishments yet - add your first one!
                     </div>
@@ -4560,7 +4562,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                         company: e.target.value,
                       })
                     }
-                    className="rounded-xl border px-3 py-2 text-sm"
+                    className="rounded-2xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Companies</option>
                     {COMPANIES.map((c) => (
@@ -4575,7 +4577,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                     onChange={(e) =>
                       setTaskFilters({ ...taskFilters, impact: e.target.value })
                     }
-                    className="rounded-xl border px-3 py-2 text-sm"
+                    className="rounded-2xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Levels</option>
                     <option value="small">Small</option>
@@ -4591,7 +4593,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                         priority: e.target.value,
                       })
                     }
-                    className="rounded-xl border px-3 py-2 text-sm"
+                    className="rounded-2xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Priorities</option>
                     <option value="low">Low</option>
@@ -4604,7 +4606,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                     onChange={(e) =>
                       setTaskFilters({ ...taskFilters, status: e.target.value })
                     }
-                    className="rounded-xl border px-3 py-2 text-sm"
+                    className="rounded-2xl border px-3 py-2 text-sm"
                   >
                     <option value="all">All Statuses</option>
                     <option value="focus">Focus</option>
@@ -4622,7 +4624,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                           assignee: e.target.value,
                         })
                       }
-                      className="rounded-xl border px-3 py-2 text-sm"
+                      className="rounded-2xl border px-3 py-2 text-sm"
                     >
                       <option value="all">All Team Members</option>
                       {teamMembers.map((tm) => (

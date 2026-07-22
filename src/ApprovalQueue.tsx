@@ -89,7 +89,7 @@ function ApprovalQueue({ isOpen, onClose }: ApprovalQueueProps) {
             {approvals.map((approval) => (
               <div
                 key={approval.id}
-                className="border rounded-xl p-4 hover:shadow-md transition-shadow bg-white"
+                className="border rounded-2xl p-4 hover:shadow-md transition-shadow bg-white"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
@@ -151,7 +151,7 @@ function ApprovalQueue({ isOpen, onClose }: ApprovalQueueProps) {
       >
         {selectedApproval && (
           <div className="space-y-4">
-            <div className="border rounded-xl p-4 bg-neutral-50">
+            <div className="border rounded-2xl p-4 bg-neutral-50">
               <h4 className="font-semibold mb-2">Proposed Changes</h4>
               <pre className="text-xs overflow-auto max-h-60 p-3 bg-white rounded border">
                 {JSON.stringify(selectedApproval.change_data, null, 2)}
@@ -166,7 +166,7 @@ function ApprovalQueue({ isOpen, onClose }: ApprovalQueueProps) {
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={3}
-                className="w-full rounded-xl border px-3 py-2 text-sm resize-none"
+                className="w-full rounded-2xl border px-3 py-2 text-sm resize-none"
                 placeholder="Explain why this change is being rejected..."
               />
             </div>
@@ -177,21 +177,21 @@ function ApprovalQueue({ isOpen, onClose }: ApprovalQueueProps) {
                   setSelectedApproval(null);
                   setRejectionReason("");
                 }}
-                className="flex-1 rounded-xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
+                className="flex-1 rounded-2xl border px-4 py-2 text-sm font-medium hover:bg-neutral-50"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleApprove(selectedApproval.id)}
                 disabled={processing}
-                className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+                className="flex-1 rounded-2xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
               >
                 {processing ? "Processing..." : "Approve"}
               </button>
               <button
                 onClick={handleReject}
                 disabled={processing}
-                className="flex-1 rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                className="flex-1 rounded-2xl bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
               >
                 {processing ? "Processing..." : "Reject"}
               </button>
