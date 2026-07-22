@@ -60,6 +60,7 @@ Career Path · Settings
 - **Milestone 2, Phase A: Brand Kit** — migration 0008, `BrandKitEditModal` (opened from `CompanyModal`), and the first fully public no-login page in this app: `/brand/{share_slug}` (`src/BrandKitShareView.tsx`). Google Drive OAuth (Phase B) is not started — blocked on the user creating credentials in their Google Cloud project; see `claude/roadmap.md` for the exact steps and the ready-to-execute build design.
 - `api/chat.ts` — AI task assistant (separate feature, unrelated to the client lifecycle work)
 - `mcp-server/` — separate MCP integration for Claude Code, not part of the web app
+- **Client Portal Expansion, Phase 1: Multi-tenant foundation** — `company_members` join table (profile ↔ company, many-to-role membership) layered on top of `companies` as the real tenant table; `is_company_member()`/`is_company_member_via_client()`/`is_company_member_via_project()`/`is_company_member_via_generated_document()` helper functions; `team_full_access` RLS rewritten from blanket `is_team_member()` to company-scoped across every client/business-data table. New tables: `leads`, `deliverables`, `comments` (client-facing, distinct from internal `messages`), `automations`, `testimonials`. New `tasks.client_visible` column (default `false`), gating the client task-read policy (internal toggle UI still open — Phase 9). Full design rationale and the empirical isolation-test result in `claude/roadmap.md`'s "Schema decisions resolved" section. Migrations `0012`–`0014`.
 
 ## Current Priority
 

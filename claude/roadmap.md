@@ -14,6 +14,44 @@ questions raised during review, and fills gaps found in the spec.
 
 ## Schema decisions resolved
 
+**Multi-tenant foundation (2026-07-22, Client Portal Expansion Phase 1).**
+`companies` is the real tenant table, per `CLAUDE.md`. Resolved gap: Sierra's
+team currently works across all 3 of her companies (Prose Florals, Backstage,
+Mairë) from one login with no company scoping at all (`is_team_member()` had
+zero tenant awareness). Rather than making each company a hard isolation
+boundary (which would've broken that unified cross-company workflow), added
+`company_members` (profile ↔ company, many-to-many, with role) as the
+membership layer on top of `companies` — not a parallel `organizations`
+table. All 4 existing profiles were backfilled into all 3 existing companies,
+preserving current behavior exactly. A new tenant/founder signing up in the
+future gets membership in just their own company, giving genuine isolation
+between different founders' accounts while Sierra keeps her unified view.
+New helper functions: `is_company_member(company_id)`,
+`is_company_member_via_client(client_id)`, `is_company_member_via_project
+(project_id)`, `is_company_member_via_generated_document(client_id,
+template_id)`. `team_full_access` policies were rewritten from
+`is_team_member()` to these across every table holding client/business data
+(companies, tasks, notes, meetings, products, goals, sops, company_goals,
+projects, document_templates, brand_kits, clients, proposals, agreements,
+invoices, payment_schedules, payment_installments, intake_responses,
+client_users, generated_documents). Deliberately left out of company scoping
+for this phase: `profiles`, `messages`, `points_log`, `activity_log`,
+`goal_updates`, `accomplishments`, `sop_categories` — none carry client/
+business data, so they're person-level or shared-taxonomy tables, not tenant
+isolation risk surface. Revisit if real second-tenant usage ever exercises
+them. Isolation verified empirically (per `CLAUDE.md`'s non-negotiable) with
+a temporary second `companies` row inside a rolled-back transaction —
+confirmed a real profile's membership functions correctly grant access to
+its own 3 companies and deny the test company. New tables added (reconciled
+gaps from `client-portal-expansion-spec.md`): `leads`, `deliverables`,
+`comments` (client-facing threaded, distinct from internal `messages`),
+`automations`, `testimonials`. Also added `tasks.client_visible` (default
+`false`) and gated the existing (previously unrestricted) client task-read
+policy behind it, since that policy was already being touched in this pass —
+the internal toggle UI for it is still open (Client Portal Expansion Phase
+9). Migrations: `0012_company_members_and_new_tables`,
+`0013_company_scoped_rls`, `0014_company_members_rls`.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`
