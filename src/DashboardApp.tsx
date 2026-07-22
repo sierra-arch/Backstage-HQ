@@ -62,6 +62,11 @@ import {
   type EmailBroadcast,
   type EmailSequence,
   type EmailSequenceStep,
+  fetchSocialPosts,
+  createSocialPost,
+  updateSocialPost,
+  deleteSocialPost,
+  type SocialPost,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
@@ -4148,6 +4153,195 @@ function SequencesPanel({ companyId }: { companyId: string }) {
   );
 }
 
+const PLATFORM_COLORS: Record<string, string> = {
+  instagram: "#C13584",
+  facebook: "#1877F2",
+  tiktok: "#000000",
+  pinterest: "#E60023",
+  twitter: "#1DA1F2",
+  linkedin: "#0A66C2",
+  other: "#6B7280",
+};
+
+function SocialPostForm({
+  companyId,
+  scheduledDate,
+  onSaved,
+  onCancel,
+}: {
+  companyId: string;
+  scheduledDate: string | null;
+  onSaved: () => void;
+  onCancel: () => void;
+}) {
+  const [platform, setPlatform] = useState<SocialPost["platform"]>("instagram");
+  const [content, setContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function handleSave() {
+    if (!content.trim()) return;
+    setSaving(true);
+    await createSocialPost({ companyId, platform, content: content.trim(), scheduledDate });
+    setSaving(false);
+    onSaved();
+  }
+
+  return (
+    <div className="rounded-xl border p-2 bg-white space-y-2">
+      <select value={platform} onChange={(e) => setPlatform(e.target.value as SocialPost["platform"])} className="w-full rounded-lg border px-2 py-1 text-xs">
+        {Object.keys(PLATFORM_COLORS).map((p) => (
+          <option key={p} value={p}>{p}</option>
+        ))}
+      </select>
+      <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="Post content…" rows={2} className="w-full rounded-lg border px-2 py-1 text-xs" />
+      <div className="flex gap-2">
+        <button onClick={handleSave} disabled={!content.trim() || saving} className="rounded-full bg-teal-600 text-white px-2.5 py-1 text-xs font-medium hover:bg-teal-700 disabled:opacity-50">
+          Save
+        </button>
+        <button onClick={onCancel} className="rounded-full border px-2.5 py-1 text-xs font-medium hover:bg-neutral-50">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SocialPlannerPanel({ companyId }: { companyId: string }) {
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [addingDate, setAddingDate] = useState<string | null>(null);
+  const [editingPost, setEditingPost] = useState<SocialPost | null>(null);
+
+  const load = useCallback(async () => {
+    setPosts(await fetchSocialPosts(companyId));
+  }, [companyId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const viewDate = new Date();
+  viewDate.setMonth(viewDate.getMonth() + monthOffset, 1);
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startWeekday = firstDay.getDay();
+
+  const cells: (string | null)[] = [
+    ...Array(startWeekday).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => {
+      const d = new Date(year, month, i + 1);
+      return d.toISOString().slice(0, 10);
+    }),
+  ];
+
+  const postsByDate: Record<string, SocialPost[]> = {};
+  const unscheduled: SocialPost[] = [];
+  for (const p of posts) {
+    if (p.scheduled_date) {
+      (postsByDate[p.scheduled_date] ??= []).push(p);
+    } else {
+      unscheduled.push(p);
+    }
+  }
+
+  async function handleDelete(id: string) {
+    await deleteSocialPost(id);
+    setEditingPost(null);
+    load();
+  }
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[15px] font-semibold">Social Media Calendar</h2>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setMonthOffset((m) => m - 1)} className="rounded-full border px-2 py-1 text-xs hover:bg-neutral-50">←</button>
+          <span className="text-sm font-medium text-neutral-600 w-32 text-center">
+            {viewDate.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+          </span>
+          <button onClick={() => setMonthOffset((m) => m + 1)} className="rounded-full border px-2 py-1 text-xs hover:bg-neutral-50">→</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-neutral-400 mb-1">
+        {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((date, i) => (
+          <div key={i} className="min-h-[80px] rounded-lg border border-neutral-100 p-1 bg-neutral-50/50">
+            {date && (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-neutral-400">{date.slice(8, 10)}</span>
+                  <button onClick={() => setAddingDate(addingDate === date ? null : date)} className="text-[10px] text-teal-700">+</button>
+                </div>
+                <div className="space-y-0.5 mt-0.5">
+                  {(postsByDate[date] || []).map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setEditingPost(p)}
+                      className="w-full text-left rounded px-1 py-0.5 text-[10px] text-white truncate"
+                      style={{ backgroundColor: PLATFORM_COLORS[p.platform] }}
+                    >
+                      {p.content || p.platform}
+                    </button>
+                  ))}
+                </div>
+                {addingDate === date && (
+                  <div className="mt-1">
+                    <SocialPostForm companyId={companyId} scheduledDate={date} onSaved={() => { setAddingDate(null); load(); }} onCancel={() => setAddingDate(null)} />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {editingPost && (
+        <div className="mt-4 rounded-xl border p-3 bg-neutral-50 space-y-2">
+          <p className="text-sm font-medium text-neutral-700 capitalize">{editingPost.platform} · {editingPost.status}</p>
+          <p className="text-sm text-neutral-600">{editingPost.content}</p>
+          <div className="flex gap-2">
+            {editingPost.status !== "posted" && (
+              <button
+                onClick={async () => { await updateSocialPost(editingPost.id, { status: "posted" }); setEditingPost(null); load(); }}
+                className="text-xs font-medium text-teal-700"
+              >
+                Mark Posted
+              </button>
+            )}
+            <button onClick={() => handleDelete(editingPost.id)} className="text-xs font-medium text-red-500">Delete</button>
+            <button onClick={() => setEditingPost(null)} className="text-xs font-medium text-neutral-400">Close</button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 border-t pt-3">
+        <p className="text-sm font-semibold text-neutral-700 mb-2">Unscheduled Drafts</p>
+        <div className="space-y-1">
+          {unscheduled.length === 0 && <p className="text-xs text-neutral-400">No drafts</p>}
+          {unscheduled.map((p) => (
+            <button key={p.id} onClick={() => setEditingPost(p)} className="w-full flex items-center justify-between rounded-lg border px-2 py-1.5 bg-white text-left">
+              <span className="text-xs text-neutral-600 truncate">{p.content}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full text-white capitalize" style={{ backgroundColor: PLATFORM_COLORS[p.platform] }}>{p.platform}</span>
+            </button>
+          ))}
+        </div>
+        <div className="mt-2">
+          {addingDate === "unscheduled" ? (
+            <SocialPostForm companyId={companyId} scheduledDate={null} onSaved={() => { setAddingDate(null); load(); }} onCancel={() => setAddingDate(null)} />
+          ) : (
+            <button onClick={() => setAddingDate("unscheduled")} className="text-xs font-medium text-teal-700">+ Add Draft</button>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
 function MarketingPage({ companies }: { companies: Company[] }) {
   const [companyId, setCompanyId] = useState("");
 
@@ -4166,6 +4360,7 @@ function MarketingPage({ companies }: { companies: Company[] }) {
       </select>
       <BroadcastsPanel companyId={companyId} />
       <SequencesPanel companyId={companyId} />
+      <SocialPlannerPanel companyId={companyId} />
     </div>
   );
 }

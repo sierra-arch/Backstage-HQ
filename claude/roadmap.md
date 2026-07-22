@@ -251,6 +251,19 @@ endpoints: `submit-testimonial.ts` + `submit-referral.ts` →
 next new endpoint (Phase 13 onward) needs either another merge or confirming
 the plan has been upgraded before assuming a new file is free.
 
+**Social media planner (2026-07-22, Client Portal Expansion Phase 13).**
+Calendar + drafts only, no third-party posting API, per instruction. New
+`social_posts` table, team-RLS-only (`is_company_member`) — this needed
+**no new serverless function** at all, since the team writes directly via
+their own session, same as tasks/notes/goals/etc. Given the function count
+is pinned at exactly 12 (see the hotfix note above), that matters: any
+future internal-only feature should default to this same direct-RLS
+pattern rather than an API route, to avoid immediately re-hitting the cap.
+UI lives as a third panel in the "Marketing" page (`SocialPlannerPanel`) —
+a real month-grid calendar (prev/next navigation, click a day to add a
+post, click a post to mark it posted or delete it) plus an "Unscheduled
+Drafts" list for posts with no date yet.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

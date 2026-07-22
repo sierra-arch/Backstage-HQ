@@ -1988,6 +1988,69 @@ export async function fetchComments(params: { taskId?: string; deliverableId?: s
   return data || [];
 }
 
+export interface SocialPost {
+  id: string;
+  company_id: string;
+  platform: "instagram" | "facebook" | "tiktok" | "pinterest" | "twitter" | "linkedin" | "other";
+  content: string;
+  image_url: string | null;
+  scheduled_date: string | null;
+  status: "draft" | "scheduled" | "posted";
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchSocialPosts(companyId: string): Promise<SocialPost[]> {
+  const { data, error } = await supabase.from("social_posts").select("*").eq("company_id", companyId).order("scheduled_date", { ascending: true });
+  if (error) {
+    console.error("Error fetching social posts:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createSocialPost(params: {
+  companyId: string;
+  platform: SocialPost["platform"];
+  content: string;
+  scheduledDate: string | null;
+}): Promise<SocialPost | null> {
+  const { data, error } = await supabase
+    .from("social_posts")
+    .insert({
+      company_id: params.companyId,
+      platform: params.platform,
+      content: params.content,
+      scheduled_date: params.scheduledDate,
+      status: params.scheduledDate ? "scheduled" : "draft",
+    })
+    .select()
+    .single();
+  if (error) {
+    console.error("Error creating social post:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function updateSocialPost(id: string, updates: Partial<SocialPost>): Promise<boolean> {
+  const { error } = await supabase.from("social_posts").update(updates).eq("id", id);
+  if (error) {
+    console.error("Error updating social post:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteSocialPost(id: string): Promise<boolean> {
+  const { error } = await supabase.from("social_posts").delete().eq("id", id);
+  if (error) {
+    console.error("Error deleting social post:", error);
+    return false;
+  }
+  return true;
+}
+
 export interface EmailBroadcast {
   id: string;
   company_id: string;
