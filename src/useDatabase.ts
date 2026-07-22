@@ -528,6 +528,61 @@ export async function updateTask(
   return data;
 }
 
+// Points awarded per task impact level — mirrors the Career Path XP scale
+// (small = 5, medium = 10, large = 20). Level rolls over every 200 pts.
+export const XP_BY_IMPACT: Record<string, number> = { small: 5, medium: 10, large: 20 };
+export const LEVEL_XP_THRESHOLD = 200;
+
+// Logs a points_log row for the task and bumps the assignee's profiles.xp/
+// level, rolling over into new levels as the threshold is crossed. Safe to
+// call multiple times for the same task in principle, but callers should
+// only invoke this once per completion (see completeTask's status guard).
+export async function awardPoints(
+  userId: string,
+  taskId: string,
+  impact: string
+): Promise<void> {
+  const points = XP_BY_IMPACT[impact] ?? 0;
+  if (points <= 0) return;
+
+  const { error: logError } = await supabase.from("points_log").insert({
+    user_id: userId,
+    task_id: taskId,
+    impact,
+    points,
+  });
+  if (logError) {
+    console.error("Error logging points:", logError);
+    // Still try to update the profile total even if the log insert failed —
+    // the log is an audit trail, not the source of truth for current xp.
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("xp, level")
+    .eq("id", userId)
+    .single();
+  if (profileError || !profile) {
+    console.error("Error fetching profile for xp update:", profileError);
+    return;
+  }
+
+  let newXp = (profile.xp || 0) + points;
+  let newLevel = profile.level || 1;
+  while (newXp >= LEVEL_XP_THRESHOLD) {
+    newXp -= LEVEL_XP_THRESHOLD;
+    newLevel += 1;
+  }
+
+  const { error: updateProfileError } = await supabase
+    .from("profiles")
+    .update({ xp: newXp, level: newLevel })
+    .eq("id", userId);
+  if (updateProfileError) {
+    console.error("Error updating profile xp/level:", updateProfileError);
+  }
+}
+
 export async function completeTask(taskId: string): Promise<boolean> {
   const {
     data: { user },
@@ -536,7 +591,7 @@ export async function completeTask(taskId: string): Promise<boolean> {
 
   const { data: task, error: fetchError } = await supabase
     .from("tasks")
-    .select("impact, estimate_minutes")
+    .select("status, impact, estimate_minutes, assigned_to")
     .eq("id", taskId)
     .single();
 
@@ -544,6 +599,10 @@ export async function completeTask(taskId: string): Promise<boolean> {
     console.error("Error fetching task:", fetchError);
     return false;
   }
+
+  // Idempotency guard — don't re-award points if this task was already
+  // marked completed (e.g. a duplicate click or race between two handlers).
+  const alreadyCompleted = task.status === "completed";
 
   const { error: updateError } = await supabase
     .from("tasks")
@@ -556,6 +615,10 @@ export async function completeTask(taskId: string): Promise<boolean> {
   if (updateError) {
     console.error("Error completing task:", updateError);
     return false;
+  }
+
+  if (!alreadyCompleted && task.assigned_to) {
+    await awardPoints(task.assigned_to, taskId, task.impact);
   }
 
   return true;

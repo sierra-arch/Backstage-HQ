@@ -78,6 +78,7 @@ type DBTask = {
   assignee_name?: string;
   due_date?: string | null;
   photo_url?: string | null;
+  completed_at?: string | null;
   // recurring?: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly'; // TODO: Add to DB schema
 };
 
@@ -2798,26 +2799,31 @@ function CompaniesPage({
    ────────────────────────────────────────────────────────────────── */
 function MyTeamPage({ 
   tasks, 
+  completedTasks = [],
   teamMembers = [] 
 }: { 
   tasks: DBTask[];
-  teamMembers?: { id: string; display_name: string | null }[];
+  completedTasks?: DBTask[];
+  teamMembers?: { id: string; display_name: string | null; xp?: number; level?: number }[];
 }) {
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
 
   const teamMemberStats = teamMembers.map((member) => {
     const name = member.display_name || "Unknown";
-    const memberTasks = tasks.filter((t) => t.assignee_name === name);
-    const completed = memberTasks.filter((t) => t.status === "completed");
-    const level = Math.floor((completed.length * 5) / LEVEL_XP_THRESHOLD) + 1;
-    const xp = (completed.length * 5) % LEVEL_XP_THRESHOLD;
+    const activeTasks = tasks.filter((t) => t.assignee_name === name);
+    const completed = completedTasks.filter((t) => t.assignee_name === name);
+    // Real xp/level now come straight from profiles.xp/level, which
+    // useDatabase.ts's awardPoints keeps in sync on every task completion
+    // — not recomputed from a task count on the fly.
+    const level = member.level ?? 1;
+    const xp = member.xp ?? 0;
 
     return {
       name,
       level,
       xp,
       completedTasks: completed,
-      totalTasks: memberTasks.length,
+      totalTasks: activeTasks.length + completed.length,
     };
   });
 
@@ -3186,6 +3192,177 @@ function KudosModal({
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Career Path — real gamification: points_log-backed XP/level (via
+   awardPoints in useDatabase.ts), a daily streak computed from completed
+   tasks, and kudos received pulled from the existing messages table.
+   Scoped to this page only, per the "keep Today calm" rule.
+   ────────────────────────────────────────────────────────────────── */
+function computeStreak(dates: Date[]): number {
+  if (dates.length === 0) return 0;
+  const dayKey = (d: Date) => d.toISOString().slice(0, 10);
+  const daySet = new Set(dates.map(dayKey));
+
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+
+  // A streak isn't broken just because you haven't finished anything *yet*
+  // today — if today has nothing logged, start counting from yesterday.
+  if (!daySet.has(dayKey(cursor))) {
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  let streak = 0;
+  while (daySet.has(dayKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function CareerPathPage({
+  level,
+  xp,
+  tasks,
+  messages,
+  userName,
+  userId,
+}: {
+  level: number;
+  xp: number;
+  tasks: DBTask[];
+  messages: Message[];
+  userName: string;
+  userId?: string;
+}) {
+  const myCompleted = tasks.filter(
+    (t) => t.status === "completed" && (t.assigned_to === userId || t.assignee_name === userName)
+  );
+
+  const startOfWeek = new Date();
+  startOfWeek.setDate(startOfWeek.getDate() - ((startOfWeek.getDay() + 6) % 7));
+  startOfWeek.setHours(0, 0, 0, 0);
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+  const completedThisWeek = myCompleted.filter(
+    (t) => t.completed_at && new Date(t.completed_at) >= startOfWeek
+  );
+  const completedThisMonth = myCompleted.filter(
+    (t) => t.completed_at && new Date(t.completed_at) >= startOfMonth
+  );
+  const totalXPEarned = myCompleted.reduce((sum, t) => sum + (XP_BY_IMPACT[t.impact] ?? 0), 0);
+  const pct = Math.min(100, Math.round((xp / LEVEL_XP_THRESHOLD) * 100));
+
+  const streak = computeStreak(
+    myCompleted.filter((t) => t.completed_at).map((t) => new Date(t.completed_at as string))
+  );
+
+  const kudosReceived = messages
+    .filter((m) => m.is_kudos && (m.to_user_id === userId || !m.to_user_id))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 8);
+
+  return (
+    <div className="space-y-6">
+      <Card title="Career Path" subtitle="Your progress">
+        <div className="flex flex-col md:flex-row md:items-center gap-6">
+          <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} />
+          <div className="flex-1 space-y-3">
+            <div>
+              <div className="text-sm text-neutral-600">
+                {xp} / {LEVEL_XP_THRESHOLD} pts &nbsp;·&nbsp; {LEVEL_XP_THRESHOLD - xp} pts to Level {level + 1}
+              </div>
+              <div className="mt-2 h-2.5 w-full max-w-xs rounded-full bg-teal-100 overflow-hidden">
+                <div className="h-full bg-teal-600 transition-all rounded-full" style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <span className="text-[11px] px-2 py-1 rounded-full bg-cream-50 border border-teal-200 text-teal-800 whitespace-nowrap">Small = 5 pts</span>
+              <span className="text-[11px] px-2 py-1 rounded-full bg-cream-50 border border-teal-200 text-teal-800 whitespace-nowrap">Medium = 10 pts</span>
+              <span className="text-[11px] px-2 py-1 rounded-full bg-cream-50 border border-teal-200 text-teal-800 whitespace-nowrap">Large = 20 pts</span>
+            </div>
+          </div>
+          <div className="flex-shrink-0 rounded-2xl bg-forest-900 text-cream-50 px-5 py-4 text-center min-w-[110px]">
+            <div className="text-3xl font-bold">{streak}</div>
+            <div className="text-xs mt-0.5 opacity-80">day streak {streak > 0 ? "\ud83d\udd25" : ""}</div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "This Week", value: completedThisWeek.length, sub: "completed" },
+          { label: "This Month", value: completedThisMonth.length, sub: "completed" },
+          { label: "All Time", value: myCompleted.length, sub: "completed" },
+          { label: "Total Points", value: totalXPEarned, sub: "earned" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-2xl bg-white border border-cream-200 p-4 text-center">
+            <div className="text-2xl font-bold text-teal-700">{s.value}</div>
+            <div className="text-xs font-medium text-neutral-700 mt-0.5">{s.label}</div>
+            <div className="text-[11px] text-neutral-400">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <Card title="Kudos received" subtitle="Shoutouts from the team">
+        <div className="space-y-2">
+          {kudosReceived.length === 0 && (
+            <div className="text-sm text-neutral-400 text-center py-4">
+              No kudos yet — they'll show up here when teammates cheer you on.
+            </div>
+          )}
+          {kudosReceived.map((m) => (
+            <div key={m.id} className="rounded-xl bg-cream-50 border border-cream-200 p-3">
+              <div className="text-sm text-neutral-800">{m.content}</div>
+              <div className="text-xs text-neutral-400 mt-1">
+                {m.from_name ?? "A teammate"} · {new Date(m.created_at).toLocaleDateString([], { month: "short", day: "numeric" })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div>
+        <h3 className="text-sm font-semibold text-neutral-700 mb-3">
+          Completed Tasks <span className="font-normal text-neutral-400">({myCompleted.length})</span>
+        </h3>
+        <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
+          {myCompleted.length === 0 && (
+            <div className="rounded-xl bg-white border border-cream-200 p-6 text-sm text-neutral-400 text-center">
+              No completed tasks yet — finish your first one to earn points!
+            </div>
+          )}
+          {[...myCompleted]
+            .sort((a, b) => {
+              const da = a.completed_at ? new Date(a.completed_at).getTime() : 0;
+              const db = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+              return db - da;
+            })
+            .map((t) => (
+              <div key={t.id} className="rounded-xl bg-white border border-cream-200 p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium truncate">{t.title}</div>
+                  <div className="text-xs text-neutral-500 mt-0.5 flex items-center gap-2">
+                    <span>{t.company_name ?? "\u2014"}</span>
+                    {t.completed_at && (
+                      <>
+                        <span className="text-neutral-300">·</span>
+                        <span>{new Date(t.completed_at).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-teal-800 flex-shrink-0 font-medium">
+                  +{XP_BY_IMPACT[t.impact] ?? 0} pts
+                </span>
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Main App Component
    ────────────────────────────────────────────────────────────────── */
 export default function DashboardApp() {
@@ -3197,6 +3374,12 @@ export default function DashboardApp() {
     loading: tasksLoading,
     refetch,
   } = useTasks({ status: ["focus", "active", "submitted"] });
+  // Separate fetch for completed tasks — the active-only query above never
+  // includes them, so Career Path (and any future "completed history" view)
+  // needs its own source rather than silently showing zero data.
+  const { tasks: completedTasks, refetch: refetchCompletedTasks } = useTasks({
+    status: "completed",
+  });
 
 
 // Clients & Products (real DB data)
@@ -3339,8 +3522,10 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
   async function handleSendKudos(kudosText: string) {
     if (!kudosTask) return;
 
-    // Complete the task
-    await dbUpdateTask(kudosTask.id, { status: "completed" });
+    // Complete the task through the shared completion path so points get
+    // awarded (points_log insert + profiles.xp/level bump) the same way
+    // self-completion does.
+    await dbCompleteTask(kudosTask.id);
 
     // Send kudos message if provided
     if (kudosText && kudosTask.assigned_to) {
@@ -3990,15 +4175,20 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             />
           )}
           {page === "My Team" && isFounder(role) && (
-            <MyTeamPage tasks={tasks} teamMembers={teamMembers} />
+            <MyTeamPage tasks={tasks} completedTasks={completedTasks} teamMembers={teamMembers} />
           )}
           {page === "Settings" && (
             <SettingsPage userName={userName} email={session?.user?.email ?? ""} />
           )}
           {page === "Career Path" && !isFounder(role) && (
-            <Card title="Career Path" subtitle="Your progress">
-              <LevelRing level={level} value={xp} max={LEVEL_XP_THRESHOLD} />
-            </Card>
+            <CareerPathPage
+              level={level}
+              xp={xp}
+              tasks={completedTasks}
+              messages={messages}
+              userName={userName}
+              userId={profile?.id}
+            />
           )}
           {page === "Playbook" && (
             <Card title="Playbook" subtitle="SOPs and guides">

@@ -27,6 +27,7 @@ export type DBTask = {
   assignee_name?: string;
   due_date?: string | null;
   photo_url?: string | null;
+  completed_at?: string | null;
 };
 
 export type Client = {

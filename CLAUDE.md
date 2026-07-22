@@ -82,21 +82,33 @@ order without checking that doc's dependency notes first.
   Drive; we store only a reference (`gdrive_file_id`). This is intentional
   — a founder who stops using the platform must still walk away with
   everything. Do not "simplify" this by moving file storage into our own DB.
-- **⚠️ RESOLVED (2026-07-22) — supersedes the line below:** the founder
-  confirmed she *does* want team gamification (XP/points, levels, streaks,
-  kudos, a Career Path view) for the 2-person internal team. A separate,
-  independently-evolved branch of this codebase (`legacy-gamified-internal-ui`
-  on GitHub) already built this against an older, since-diverged internal
-  schema/UI (separate `TodayPage`/`MeetingsPage`/`MyTeamPage`/
-  `CareerPathPage`/`PlaybookPage`/`Navigation` files, `points_log` table).
-  That branch predates the client-lifecycle work in this codebase and can't
-  be merged as-is (both sides heavily rewrote `DashboardApp.tsx`
-  independently). Next step: re-implement gamification as a scoped feature
-  on top of *this* codebase (reference the legacy branch for design/logic,
-  don't copy-paste wholesale), and decide deliberately where it surfaces
-  (e.g. Settings/My Team page, not necessarily the main Today view) so it
-  doesn't conflict with the calm-dashboard principle below for the primary
-  landing view.
+- **✅ IMPLEMENTED (2026-07-22) — supersedes the line below:** gamification
+  (XP/points, levels, streaks, kudos, a real Career Path view) is built and
+  live, scoped to the Career Path and My Team pages only — never the Today/
+  home dashboard. `useDatabase.ts` exports `XP_BY_IMPACT`
+  (`small:5, medium:10, large:20`) and `LEVEL_XP_THRESHOLD` (`200`), plus a
+  new `awardPoints(userId, taskId, impact)` helper that inserts a
+  `points_log` row and rolls `profiles.xp`/`profiles.level` forward
+  (subtracting 200 and incrementing level per threshold crossed).
+  `completeTask()` calls `awardPoints()` automatically on completion
+  (idempotent — won't double-award if a task is already completed), and the
+  founder-approval completion path (`handleSendKudos`) now routes through
+  the same `completeTask()` call so points are awarded consistently
+  regardless of which completion flow is used. `CareerPathPage` in
+  `DashboardApp.tsx` renders a level ring, XP progress bar, a computed
+  day-streak badge (`computeStreak()`, consecutive-day calc off
+  `completed_at` dates), This Week/Month/All-Time/Total-Points stat cards,
+  a kudos-received feed (kudos messaging already existed via `messages`
+  rows with `is_kudos: true` — no new work needed there beyond surfacing
+  it), and a completed-task history list. `MyTeamPage` was also fixed to
+  read real `profiles.xp`/`level` per member (was previously faked from
+  `(completed.length * 5) % 200`) and to source completed tasks from a
+  dedicated `useTasks({ status: "completed" })` fetch, since the main
+  `useTasks()` call only ever fetches `focus`/`active`/`submitted` tasks
+  and always excluded completed ones (pre-existing bug, now fixed).
+  Reference `legacy-gamified-internal-ui` on GitHub for the original
+  design inspiration, but the current implementation is a from-scratch
+  rebuild against this codebase's schema — not a merge or port.
 - ~~The home dashboard must stay calm, not gamified. No streaks, badges,
   or red notification counts — ever.~~ **Superseded above** — gamification
   is wanted, just scoped thoughtfully rather than dominating the main Today
@@ -147,6 +159,15 @@ orange + deep forest green, editorial serif headlines, pill buttons.
   per-company from that record instead of hardcoded in `index.html`. Not
   scoped or estimated yet; flagged here so a future session doesn't have
   to rediscover the idea from scratch.
+- **Not yet integrated:** Sierra's real brand display font is "Spicy
+  Margarita" (hand-script/display style), not Cormorant Garamond. The
+  .woff file is saved at `public/fonts/SpicyMargarita-Regular.woff` in the
+  repo, ready to wire in via `@font-face` + a Tailwind font token whenever
+  design work resumes (currently deprioritized in favor of finishing
+  features per Sierra's explicit ask). Likely candidate: the "Backstage"
+  wordmark / headline moments, not body text — confirm with Sierra before
+  swapping it in broadly, since Cormorant Garamond is currently cascading
+  through all `h1/h2/h3` via `src/styles.css`.
 
 ## Reference Docs (in `claude/` — read before big features)
 
