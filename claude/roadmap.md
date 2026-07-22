@@ -60,7 +60,7 @@ single sitting. Ordered by dependency, not by pillar.
 
 5. **Proposal Generator** (absorbs "Vision Map" — see detailed plan below) — ✅ **done.** Migration `0007_proposal_engine.sql` (document_templates/generated_documents/proposals additions/payment_schedules/payment_installments) plus `0009_document_templates_client_read.sql` (client read policy for linked templates) applied live. Prose Florals' real Honeybook proposal seeded as the first template (10 sections, verified field-for-field and clause-for-clause against the source PDF; default grand total from the seeded line items is **$3,660**, not $4,615 as an earlier note claimed — recomputed directly from the live `structure` and double-checked against `proposalEngine.computeDocumentTotals`'s own logic). Shared calc engine in `api/_lib/proposalEngine.ts`; server-validated submission endpoint `api/submit-proposal-selections.ts` (never trusts client-sent `authored` values or above-default quantities). Internal "Create Proposal"/`ProposalDetailModal` flow added to `ClientModal` in `src/DashboardApp.tsx`; client-facing `ProposalCard` (design brief, line-item toggles/quantities, live totals, payment schedule, save/accept/decline) added to `src/ClientPortalApp.tsx`. Verified end-to-end live: created a real test proposal, simulated a client declining one line item and reducing another's quantity, confirmed the recomputed total ($3,540) and the resulting 25%/75% payment installments ($885 + $2,655) sum exactly to the grand total, then cleaned up the test rows. Confirmed via policy/function review that `client_owns()` structurally prevents cross-client reads (a client's `client_users.id` maps to exactly one fixed `client_id`, so no request can pass a different one and match). Pushed to `main` at commit `214187d`.
 
-6. **DocuSign integration** — agreement send/embedded-sign/webhook, tied to proposal acceptance from milestone 5. `agreements.status = signed` → `clients.stage = active` → auto-create `projects` row (uses milestone 1's UI/data shape). **UI placeholder added** (2026-07-22, at user's request to fine-tune layout/structure before wiring the real integration): once a proposal is sent/viewed/accepted, `ProposalDetailModal` (internal, `src/DashboardApp.tsx`) shows an "Agreement" card ("Signature status: Not sent" + disabled "Send for Signature" button), and once accepted, the client portal's `ProposalCard` (`src/ClientPortalApp.tsx`) shows a matching "Your Agreement" card with a disabled "Review & Sign" button. No DocuSign API/webhook/schema work has been done — purely visual scaffolding to react against.
+6. **DocuSign integration** — agreement send/embedded-sign/webhook, tied to proposal acceptance from milestone 5. `agreements.status = signed` → `clients.stage = active` → auto-create `projects` row (uses milestone 1's UI/data shape). **UI placeholder added** (2026-07-22, at user's request to fine-tune layout/structure before wiring the real integration): once a proposal is sent/viewed/accepted, `ProposalDetailModal` (internal, `src/DashboardApp.tsx`) shows an "Agreement" card ("Signature status: Not sent" + disabled "Send for Signature" button), and once accepted, the client portal's `ProposalCard` (`src/ClientPortalApp.tsx`) shows a matching "Your Agreement" card with a disabled "Review & Sign" button. No DocuSign API/webhook/schema work has been done — purely visual scaffolding to react against. **Interim change (2026-07-22, see Milestone 14 below): the project/kickoff-task half of this milestone's automation now fires on proposal acceptance itself** (`clients.stage → active` + `projects` row + seeded kickoff tasks, one pre-completed), rather than waiting on DocuSign — since real signing isn't built yet and the founder wanted a real, live "first automation" now. Once DocuSign lands, re-evaluate whether project creation should instead gate on `agreements.status = signed`, or stay on proposal acceptance with signing layered on top.
 
 7. **Stripe integration** — invoicing + payment webhook, consuming the invoice totals computed in milestone 5's line-item mechanic. **UI placeholder added** (same pass as above): each payment installment row in both `ProposalDetailModal` (internal, disabled "Send Invoice" button) and the client portal's `ProposalCard` (disabled "Pay Now" button) now renders next to its existing amount/due-date/status, with a "Stripe integration — coming soon" note. No Stripe API/webhook/schema work has been done.
 
@@ -74,7 +74,7 @@ single sitting. Ordered by dependency, not by pillar.
 
 12. **Infrastructure Engine hardening** — per-company credential storage, broken-Drive-reference detection/re-link UX, manual-fallback paths for when Stripe/DocuSign/Drive are down. Not a standalone milestone so much as a cross-cutting concern to revisit once 6/7 are live and there's real integration surface to harden.
 
-13. **Home Dashboard (the front door)** — last to build, first in intent. A read-and-suggest layer over everything above (`clients.stage` counts, `invoices.status`, `brand_kits` completeness, one pluggable "little win" suggestion at a time). Every milestone from 2 onward should expose its state in a way this can query cleanly — worth a quick sanity check at the *end* of each milestone ("what would the dashboard want to read from this?") rather than retrofitting all of it here.
+13. **Home Dashboard (the front door)** — last to build, first in intent. A read-and-suggest layer over everything above (`clients.stage` counts, `invoices.status`, `brand_kits` completeness, one pluggable "little win" suggestion at a time). Every milestone from 2 onward should expose its state in a way this can query cleanly — worth a quick sanity check at the *end* of each milestone ("what would the dashboard want to read from this?") rather than retrofitting all of it here. **Partial progress (2026-07-22, see Milestone 14):** the old hardcoded "Company Goals" fake-percentage card on the founder/team Today views was replaced with a real `BusinessSnapshot` component (live counts only, no scores) — first real step toward this milestone, not the full front-door redesign.
 
 ## What's still open
 
@@ -282,3 +282,107 @@ into — not this milestone's concern, just the connection itself.
 updates rather than duplicates (the `unique (company_id, provider)`
 constraint); confirm the connect/callback endpoints reject non-team-member
 callers (same auth pattern as `api/invite-client.ts`).
+
+---
+
+# Milestone 14 — Done: Real Client Journey Automation + Backstage OS Philosophy + Getting Started Wizard + Founder Dashboard Cleanup
+
+**Context.** The founder shared a full personal business-philosophy/spec
+document ("Backstage OS") to hard-bake into the product, then asked for two
+things on top of it: (1) the Client Journey's "proposal accepted" step
+should actually *do* something automatically instead of just changing a
+status, and (2) a step-by-step Getting Started wizard (styled after Bloom's
+onboarding) that ends in a real quick win, on a HoneyBook-simple founder
+dashboard (not HighLevel-overwhelming). On reviewing the philosophy doc's
+Values Charter ("no unrestricted actions," "no silent automation") against
+the "first thing forever checked off your to-do list" request, the founder
+was asked directly which one wins when they're in tension — she confirmed
+automation may fire instantly (no pre-click approval gate) as long as it is
+never silent: it's always shown happening live, with a plain-language
+"why." That reconciliation is now the locked pattern for all future
+automation UI in this app, not just this feature.
+
+**1. Governing spec.** `claude/backstage-os-philosophy.md` — the founder's
+document verbatim, plus an appended reconciliation-notes section. Captures
+the Values Charter, Onboarding Philosophy (founder-heart questions,
+Progressive Reveal order, Witness Statement template, confetti ending),
+Dashboard Guardrail (no urgency/scoring language — orientation, not
+evaluation), and the Build Pack "Preview → Explain → Decide" constraint (as
+reconciled above for internal/reversible actions). Read this before any
+future feature decision that touches automation or onboarding.
+
+**2. Schema.** Migration `0010_onboarding_and_project_automation.sql` —
+`companies.onboarding_completed_at`, `tasks.metadata jsonb` (used to tag
+automation-created tasks). Migration `0011_business_identity.sql` —
+`companies.purpose`, `who_they_serve`, `how_they_serve`, `boundaries`,
+`vision`, `witness_statement` (all nullable text; populated by the wizard's
+founder-heart questions and Witness Statement step). Both applied live.
+Existing companies (Backstage, Mairë, Prose Florals) were backfilled with
+`onboarding_completed_at = now()` in 0010 so the wizard doesn't retroactively
+force itself on real, already-running companies — it only auto-triggers for
+a company that has never completed it (i.e., a new company created going
+forward).
+
+**3. Real automation.** `api/_lib/projectAutomation.ts` is the single
+source of truth for what happens the moment a proposal is accepted:
+`buildKickoffTasks(clientName)` returns three starter tasks, one of which
+(payment schedule setup) is created **already completed** — this is the
+literal "first thing forever checked off your to-do list" moment.
+`kickoffProjectName` / `KICKOFF_TASK_METADATA` are shared helpers.
+`api/submit-proposal-selections.ts` calls this on real proposal acceptance:
+creates a `projects` row, inserts the kickoff tasks (tagged
+`metadata: { auto_created: true, trigger: "proposal_accepted" }`), and
+flips `clients.stage` to `active`. Nothing here is staged or simulated —
+it's the same code path a real client triggers by accepting a real
+proposal. A new "⚡ Automated" badge on `TaskRow` (`src/DashboardApp.tsx`)
+reads that same `metadata.auto_created` flag, so any automatically-created
+task is visibly marked as such wherever it shows up in the app, not just
+inside the wizard.
+
+**4. Getting Started Wizard.** New `src/OnboardingWizard.tsx`, steps:
+`welcome → purpose → who → how → boundaries → vision → brand → client →
+automation → witness → done`. Founder-heart questions save straight to the
+new `companies` columns. The "automation" step creates a **real** client
+row, then calls the exact same `buildKickoffTasks`/`kickoffProjectName`
+logic used by the live proposal-accept flow — tasks appear on screen, then
+the auto-completed one visually checks itself off with an inline "⚡
+Automated — {why}" explanation, so the wizard's demo is honestly the same
+automation a real client triggers, not a fake animation. The wizard ends
+with a read-only Witness Statement (template: "This system was shaped
+around serving {who}, in a way that honors {boundaries}, with capacity for
+{vision}.") and a confetti "Your space is ready" screen. It auto-triggers
+for any company with `onboarding_completed_at IS NULL`, and can otherwise
+be re-run any time from Settings → "Getting Started Wizard" (company
+picker + an explicit warning that replaying it creates a new real client
+and project, since it isn't a sandbox demo).
+
+**5. Founder dashboard cleanup.** Removed the old hardcoded "Company
+Goals" card (`Q1 MRR 62% / Ops SLAs 78% / VA playbook 40%` — numbers that
+never moved because nothing fed them). Replaced with a new `BusinessSnapshot`
+component built for both the founder and team-member Today views, showing
+only real, live counts pulled straight from the database (companies count,
+active clients, tasks in motion, tasks completed in the last 7 days for the
+founder view; personal task/company/completed counts for team members) —
+per the Dashboard Guardrail: plain numbers, no percentages, no colored
+progress bars, no scoring, no "you should" language. No gamification was
+added here — gamification stays scoped to Career Path/Settings, never
+Today/home, per the founder's standing constraint.
+
+**Verification.** `npx tsc --noEmit` and `npm run build` both run clean
+after every change in this milestone — the pre-existing ~37 type errors in
+`ApprovalQueue.tsx`/`CompanyManagement_Components.tsx`/`supabase.ts` (all
+unrelated legacy issues, confirmed identical before and after this
+milestone's changes via a `git stash` diff) are untouched; nothing new was
+introduced by `OnboardingWizard.tsx`, the `useDatabase.ts` type additions,
+or the `DashboardApp.tsx` wiring.
+
+**Files.** `claude/backstage-os-philosophy.md` (new),
+`supabase/migrations/0010_onboarding_and_project_automation.sql` (new,
+applied), `supabase/migrations/0011_business_identity.sql` (new, applied),
+`api/_lib/projectAutomation.ts` (new), `api/submit-proposal-selections.ts`
+(modified — kickoff automation wired into acceptance flow),
+`src/OnboardingWizard.tsx` (new), `src/DashboardApp.tsx` (modified —
+`DBTask.metadata` + Automated badge, wizard state/auto-trigger/render,
+`SettingsPage` replay entry point, `BusinessSnapshot` component replacing
+Company Goals in both Today views), `src/useDatabase.ts` (modified —
+`Company` interface business-identity fields, `useCompanies().refetch`).

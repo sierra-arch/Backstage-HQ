@@ -41,7 +41,9 @@ import {
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
+  type Company,
 } from "./useDatabase";
+import { OnboardingWizard } from "./OnboardingWizard";
 import {
   computeDocumentTotals,
   getDesignBriefSection,
@@ -92,6 +94,7 @@ type DBTask = {
   due_date?: string | null;
   photo_url?: string | null;
   completed_at?: string | null;
+  metadata?: { auto_created?: boolean; trigger?: string } | null;
   // recurring?: 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly'; // TODO: Add to DB schema
 };
 
@@ -2788,6 +2791,14 @@ function TaskRow({ task, onClick }: { task: DBTask; onClick: () => void }) {
             <Avatar name={task.assignee_name || "Unassigned"} size={14} />
             {task.assignee_name || "Unassigned"}
           </span>
+          {task.metadata?.auto_created && (
+            <span
+              className="text-[10px] px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-800 inline-flex items-center gap-1"
+              title="Created automatically by Backstage"
+            >
+              ⚡ Automated
+            </span>
+          )}
         </div>
       </div>
     </motion.div>
@@ -2898,6 +2909,37 @@ function calculateCompanyProgress(companyTasks: DBTask[]) {
   return totalPoints > 0
     ? Math.round((completedPoints / totalPoints) * 100)
     : 0;
+}
+
+// Business Snapshot — replaces the old hardcoded "Company Goals" card
+// (Q1 MRR / Ops SLAs / VA playbook were fake numbers that never moved).
+// Per the Dashboard Guardrail (claude/backstage-os-philosophy.md): plain
+// counts, no scores, no colored progress bars, no judgment language —
+// orientation, not evaluation. Every number here comes straight from the
+// database.
+function BusinessSnapshot({
+  stats,
+}: {
+  stats: { icon: string; label: string; value: number | string }[];
+}) {
+  return (
+    <Card title="Business Snapshot" subtitle="Here's what's present today">
+      <div className="grid grid-cols-2 gap-3">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="rounded-xl border p-3 bg-white flex items-center gap-3"
+          >
+            <div className="text-xl leading-none">{s.icon}</div>
+            <div className="min-w-0">
+              <div className="text-lg font-semibold leading-tight">{s.value}</div>
+              <div className="text-xs text-neutral-500 truncate">{s.label}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
 }
 
 function BrandSnapshot({
@@ -3321,9 +3363,84 @@ function MeetingsPage() {
   );
 }
 
-function SettingsPage({ userName, email }: { userName: string; email: string }) {
+function SettingsPage({
+  userName,
+  email,
+  companies,
+  onReplayWizard,
+}: {
+  userName: string;
+  email: string;
+  companies: Company[];
+  onReplayWizard: (company: Company) => void;
+}) {
+  const [replayCompanyId, setReplayCompanyId] = useState(companies[0]?.id ?? "");
+  const [confirmingReplay, setConfirmingReplay] = useState(false);
+
   return (
     <div className="space-y-6">
+      <Card
+        title="Getting Started Wizard"
+        subtitle="The founder-heart questions, brand basics, and first-automation walkthrough"
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-neutral-500">
+            Replaying this will add a real client to the company you choose
+            below and run the real kickoff automation against it (a project +
+            starter tasks, one already checked off). It isn't a sandbox —
+            pick a company you're comfortable adding a test client to.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={replayCompanyId}
+              onChange={(e) => setReplayCompanyId(e.target.value)}
+              className="rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-200"
+            >
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setConfirmingReplay(true)}
+              disabled={!replayCompanyId}
+              className="bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 text-sm font-medium disabled:opacity-50"
+            >
+              Replay Getting Started Wizard
+            </button>
+          </div>
+          {confirmingReplay && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-3">
+              <div>
+                This will create a new real client (and its automated
+                project + tasks) under{" "}
+                <strong>{companies.find((c) => c.id === replayCompanyId)?.name}</strong>.
+                Continue?
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const company = companies.find((c) => c.id === replayCompanyId);
+                    if (company) onReplayWizard(company);
+                    setConfirmingReplay(false);
+                  }}
+                  className="bg-amber-600 text-white rounded-full px-4 py-1.5 text-sm font-medium hover:bg-amber-700"
+                >
+                  Yes, replay it
+                </button>
+                <button
+                  onClick={() => setConfirmingReplay(false)}
+                  className="text-amber-800 px-4 py-1.5 text-sm font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Card>
+
       <Card title="Account Settings">
         <div className="space-y-4">
           <div>
@@ -3788,6 +3905,20 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
   // NEW: Approval queue (founders only)
   const [showApprovalQueue, setShowApprovalQueue] = useState(false);
 
+  // Getting Started wizard (claude/backstage-os-philosophy.md — Onboarding
+  // Philosophy). Auto-shows once for any company that hasn't completed it;
+  // can also be replayed manually from Settings.
+  const { companies: allCompanies, loading: companiesLoading, refetch: refetchCompanies } = useCompanies();
+  const [wizardCompany, setWizardCompany] = useState<Company | null>(null);
+  const [wizardIsManualReplay, setWizardIsManualReplay] = useState(false);
+  const [autoWizardDismissed, setAutoWizardDismissed] = useState(false);
+
+  useEffect(() => {
+    if (companiesLoading || autoWizardDismissed || wizardCompany) return;
+    const needsOnboarding = allCompanies.find((c) => !c.onboarding_completed_at);
+    if (needsOnboarding) setWizardCompany(needsOnboarding);
+  }, [allCompanies, companiesLoading, autoWizardDismissed, wizardCompany]);
+
   const role: Role = profile?.role
     ? fromDbToUi[profile.role as AppRole]
     : "Founder";
@@ -4076,35 +4207,38 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             </div>
           </div>
           <div className="col-span-12 md:col-span-4">
-            <Card
-              title="Company Goals"
-              subtitle="Company & Role"
-              className={equalCardH}
-            >
-              <div className="space-y-3">
-                {[
-                  { label: "Q1 MRR", value: 62 },
-                  { label: "Ops SLAs", value: 78 },
-                  { label: "VA playbook", value: 40 },
-                ].map((g) => (
-                  <div
-                    key={g.label}
-                    className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium">{g.label}</div>
-                      <div className="text-xs text-neutral-500">{g.value}%</div>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                      <div
-                        className="h-full bg-teal-600"
-                        style={{ width: `${g.value}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <div className={equalCardH}>
+              <BusinessSnapshot
+                stats={[
+                  {
+                    icon: "\uD83C\uDFE2",
+                    label: allCompanies.length === 1 ? "Company" : "Companies",
+                    value: allCompanies.length,
+                  },
+                  {
+                    icon: "\uD83E\uDD1D",
+                    label: "Active clients",
+                    value: dbClients.filter((c) => c.stage === "active").length,
+                  },
+                  {
+                    icon: "\uD83D\uDCCB",
+                    label: "Tasks in motion",
+                    value: allActiveTasks.length,
+                  },
+                  {
+                    icon: "\u2705",
+                    label: "Completed this week",
+                    value: completedTasks.filter((t) => {
+                      if (!t.completed_at) return false;
+                      const days =
+                        (Date.now() - new Date(t.completed_at).getTime()) /
+                        86400000;
+                      return days <= 7;
+                    }).length,
+                  },
+                ]}
+              />
+            </div>
           </div>
           <div className="col-span-12 md:col-span-4">
             <Card className={`${equalCardH} flex flex-col`}>
@@ -4280,35 +4414,38 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             </Card>
           </div>
           <div className="col-span-12 md:col-span-4">
-            <Card
-              title="Company Goals"
-              subtitle="Company & Role"
-              className={equalCardH}
-            >
-              <div className="space-y-3">
-                {[
-                  { label: "Q1 MRR", value: 62 },
-                  { label: "Ops SLAs", value: 78 },
-                  { label: "VA playbook", value: 40 },
-                ].map((g) => (
-                  <div
-                    key={g.label}
-                    className="rounded-xl border p-4 hover:border-teal-200 transition-colors bg-white"
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium">{g.label}</div>
-                      <div className="text-xs text-neutral-500">{g.value}%</div>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-teal-100 overflow-hidden">
-                      <div
-                        className="h-full bg-teal-600"
-                        style={{ width: `${g.value}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <div className={equalCardH}>
+              <BusinessSnapshot
+                stats={[
+                  {
+                    icon: "📋",
+                    label: "My tasks in motion",
+                    value: myTasks.length,
+                  },
+                  {
+                    icon: "⏳",
+                    label: "Waiting on founder",
+                    value: submittedTasks.filter((t) => t.assignee_name === userName).length,
+                  },
+                  {
+                    icon: "🏢",
+                    label: "Companies you touch",
+                    value: new Set(myTasks.map((t) => t.company_name)).size,
+                  },
+                  {
+                    icon: "✅",
+                    label: "Completed this week",
+                    value: completedTasks.filter((t) => {
+                      if (t.assignee_name !== userName || !t.completed_at) return false;
+                      const days =
+                        (Date.now() - new Date(t.completed_at).getTime()) /
+                        86400000;
+                      return days <= 7;
+                    }).length,
+                  },
+                ]}
+              />
+            </div>
           </div>
           <div className="col-span-12 md:col-span-4">
             <Card className={`${equalCardH} flex flex-col`}>
@@ -4374,6 +4511,23 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
   return (
     <div className="min-h-screen bg-cream-100 text-neutral-900 relative text-[15px]">
       <Confetti fire={celebrate} />
+      {wizardCompany && (
+        <OnboardingWizard
+          company={wizardCompany}
+          onSkip={() => {
+            setWizardCompany(null);
+            setWizardIsManualReplay(false);
+            if (!wizardIsManualReplay) setAutoWizardDismissed(true);
+          }}
+          onComplete={() => {
+            setWizardCompany(null);
+            setWizardIsManualReplay(false);
+            refetchCompanies();
+            (clientsHook as any)?.refetch?.();
+            refetch();
+          }}
+        />
+      )}
       <div className="flex">
         <Sidebar
           role={role}
@@ -4525,7 +4679,15 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             <MyTeamPage tasks={tasks} completedTasks={completedTasks} teamMembers={teamMembers} />
           )}
           {page === "Settings" && (
-            <SettingsPage userName={userName} email={session?.user?.email ?? ""} />
+            <SettingsPage
+              userName={userName}
+              email={session?.user?.email ?? ""}
+              companies={allCompanies}
+              onReplayWizard={(c) => {
+                setWizardIsManualReplay(true);
+                setWizardCompany(c);
+              }}
+            />
           )}
           {page === "Career Path" && !isFounder(role) && (
             <CareerPathPage

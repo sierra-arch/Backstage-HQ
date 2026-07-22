@@ -37,6 +37,13 @@ export interface Company {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  onboarding_completed_at?: string | null;
+  purpose?: string | null;
+  who_they_serve?: string | null;
+  how_they_serve?: string | null;
+  boundaries?: string | null;
+  vision?: string | null;
+  witness_statement?: string | null;
 }
 
 export interface Task {
@@ -357,25 +364,27 @@ export function useCompanies() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadCompanies = useCallback(async () => {
+    const data = await fetchCompanies();
+    setCompanies(data);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     let mounted = true;
-
-    async function loadCompanies() {
+    (async () => {
       const data = await fetchCompanies();
       if (mounted) {
         setCompanies(data);
         setLoading(false);
       }
-    }
-
-    loadCompanies();
-
+    })();
     return () => {
       mounted = false;
     };
   }, []);
 
-  return { companies, loading };
+  return { companies, loading, refetch: loadCompanies };
 }
 
 export async function getCompanyByName(name: string): Promise<Company | null> {
