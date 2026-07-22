@@ -102,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const fieldValues = (doc.field_values ?? { authored: {}, selections: {} }) as FieldValues;
 
   const validation = validateSelections(structure, rawSelections ?? fieldValues.selections);
-  if (!validation.ok) {
+  if (validation.ok === false) {
     res.status(400).json({ error: validation.error });
     return;
   }
