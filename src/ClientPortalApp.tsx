@@ -178,7 +178,7 @@ export function ClientPortalApp() {
         className="px-6 py-16 md:px-16 text-white"
         style={{ backgroundColor: BRAND.forestGreen }}
       >
-        <h1 className="text-3xl md:text-4xl font-semibold">Welcome back, {client.name}</h1>
+        <h1 className="text-3xl md:text-4xl font-semibold text-white">Welcome back, {client.name}</h1>
         <p className="mt-2 text-white/80">
           {STAGE_LABELS[client.stage] ?? client.stage}
         </p>
