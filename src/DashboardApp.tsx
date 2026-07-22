@@ -44,12 +44,17 @@ import {
   setDeliverableVisibility,
   fetchComments,
   postTeamComment,
+  fetchLeads,
+  createLead,
+  updateLeadStatus,
+  convertLeadToClient,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
   type Company,
   type Deliverable,
   type Comment,
+  type Lead,
 } from "./useDatabase";
 import { OnboardingWizard } from "./OnboardingWizard";
 import {
@@ -2852,6 +2857,7 @@ type FounderPage =
   | "Today"
   | "Meetings"
   | "Tasks"
+  | "Leads"
   | "Companies"
   | "Playbook"
   | "My Team"
@@ -2859,6 +2865,7 @@ type FounderPage =
 type TeamPage =
   | "Today"
   | "Tasks"
+  | "Leads"
   | "Companies"
   | "Playbook"
   | "Career Path"
@@ -2880,6 +2887,7 @@ function Sidebar({
     "Today",
     "Meetings",
     "Tasks",
+    "Leads",
     "Companies",
     "Playbook",
     "My Team",
@@ -2887,6 +2895,7 @@ function Sidebar({
   const teamNav: TeamPage[] = [
     "Today",
     "Tasks",
+    "Leads",
     "Companies",
     "Playbook",
     "Career Path",
@@ -3227,6 +3236,236 @@ function BrandSnapshot({
         ))}
       </div>
     </Card>
+  );
+}
+
+const LEAD_STATUS_COLUMNS: { key: Lead["status"]; label: string }[] = [
+  { key: "new", label: "New" },
+  { key: "contacted", label: "Contacted" },
+  { key: "proposal_sent", label: "Proposal Sent" },
+  { key: "won", label: "Won" },
+  { key: "lost", label: "Lost" },
+];
+
+function LeadCard({ lead, companyName, onAdvance, onConvert }: {
+  lead: Lead;
+  companyName: string;
+  onAdvance: (id: string, status: Lead["status"]) => void;
+  onConvert: (lead: Lead) => void;
+}) {
+  const currentIndex = LEAD_STATUS_COLUMNS.findIndex((c) => c.key === lead.status);
+  const next = LEAD_STATUS_COLUMNS[currentIndex + 1];
+
+  return (
+    <div className="rounded-2xl border bg-white p-3 space-y-2 shadow-sm">
+      <div>
+        <p className="text-sm font-medium text-neutral-700">{lead.name}</p>
+        <p className="text-xs text-neutral-400">{companyName}</p>
+      </div>
+      {lead.email && <p className="text-xs text-neutral-500">{lead.email}</p>}
+      {lead.message && <p className="text-xs text-neutral-500 line-clamp-2">{lead.message}</p>}
+      <div className="flex flex-wrap gap-2 pt-1">
+        {lead.status !== "won" && lead.status !== "lost" && next && (
+          <button
+            onClick={() => onAdvance(lead.id, next.key)}
+            className="text-xs font-medium text-teal-700 hover:underline"
+          >
+            Move to {next.label} →
+          </button>
+        )}
+        {lead.status === "proposal_sent" && !lead.converted_client_id && (
+          <button
+            onClick={() => onConvert(lead)}
+            className="text-xs font-medium hover:underline"
+            style={{ color: "#EA580C" }}
+          >
+            Convert to Client
+          </button>
+        )}
+        {lead.status !== "lost" && lead.status !== "won" && (
+          <button
+            onClick={() => onAdvance(lead.id, "lost")}
+            className="text-xs text-neutral-400 hover:underline"
+          >
+            Mark Lost
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function projectHealth(project: Project): { label: string; color: string } | null {
+  if (project.status === "on_hold") return { label: "On hold", color: "#B45309" };
+  if (project.status !== "active") return null;
+  if (project.target_delivery_date) {
+    const days = (new Date(project.target_delivery_date).getTime() - Date.now()) / 86400000;
+    if (days >= 0 && days <= 14) return { label: "Delivery approaching", color: "#B45309" };
+  }
+  return { label: "On track", color: "#15803D" };
+}
+
+function LeadsPage({ companies }: { companies: Company[] }) {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const { projects } = useProjects();
+  const { clients: allClients } = useClients();
+  const [showAddLead, setShowAddLead] = useState(false);
+  const [newLeadName, setNewLeadName] = useState("");
+  const [newLeadEmail, setNewLeadEmail] = useState("");
+  const [newLeadPhone, setNewLeadPhone] = useState("");
+  const [newLeadCompanyId, setNewLeadCompanyId] = useState("");
+
+  const loadLeads = useCallback(async () => {
+    setLeads(await fetchLeads());
+  }, []);
+
+  useEffect(() => {
+    loadLeads();
+  }, [loadLeads]);
+
+  useEffect(() => {
+    if (companies.length > 0 && !newLeadCompanyId) setNewLeadCompanyId(companies[0].id);
+  }, [companies, newLeadCompanyId]);
+
+  function companyName(id: string) {
+    return companies.find((c) => c.id === id)?.name || "Unknown";
+  }
+
+  async function handleAdvance(id: string, status: Lead["status"]) {
+    await updateLeadStatus(id, status);
+    loadLeads();
+  }
+
+  async function handleConvert(lead: Lead) {
+    await convertLeadToClient(lead);
+    loadLeads();
+  }
+
+  async function handleAddLead() {
+    if (!newLeadName.trim() || !newLeadCompanyId) return;
+    await createLead({ companyId: newLeadCompanyId, name: newLeadName.trim(), email: newLeadEmail.trim(), phone: newLeadPhone.trim() });
+    setNewLeadName("");
+    setNewLeadEmail("");
+    setNewLeadPhone("");
+    setShowAddLead(false);
+    loadLeads();
+  }
+
+  return (
+    <div className="space-y-8">
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-[15px] font-semibold">Pipeline</h2>
+          <button
+            onClick={() => setShowAddLead((s) => !s)}
+            className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-1.5 text-sm font-medium hover:bg-teal-50 transition-colors"
+          >
+            + Add Lead
+          </button>
+        </div>
+        {showAddLead && (
+          <div className="mb-4 rounded-2xl border p-3 bg-neutral-50 space-y-2">
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                value={newLeadName}
+                onChange={(e) => setNewLeadName(e.target.value)}
+                placeholder="Name"
+                className="rounded-xl border px-3 py-2 text-sm"
+              />
+              <select
+                value={newLeadCompanyId}
+                onChange={(e) => setNewLeadCompanyId(e.target.value)}
+                className="rounded-xl border px-3 py-2 text-sm"
+              >
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={newLeadEmail}
+                onChange={(e) => setNewLeadEmail(e.target.value)}
+                placeholder="Email"
+                className="rounded-xl border px-3 py-2 text-sm"
+              />
+              <input
+                value={newLeadPhone}
+                onChange={(e) => setNewLeadPhone(e.target.value)}
+                placeholder="Phone"
+                className="rounded-xl border px-3 py-2 text-sm"
+              />
+            </div>
+            <button
+              onClick={handleAddLead}
+              disabled={!newLeadName.trim()}
+              className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+            >
+              Add
+            </button>
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {LEAD_STATUS_COLUMNS.map((col) => (
+            <div key={col.key}>
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-400 mb-2">
+                {col.label} ({leads.filter((l) => l.status === col.key).length})
+              </p>
+              <div className="space-y-2">
+                {leads
+                  .filter((l) => l.status === col.key)
+                  .map((lead) => (
+                    <LeadCard
+                      key={lead.id}
+                      lead={lead}
+                      companyName={companyName(lead.company_id)}
+                      onAdvance={handleAdvance}
+                      onConvert={handleConvert}
+                    />
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card title="Client Roster">
+        <div className="space-y-2">
+          {allClients
+            .filter((c: any) => c.stage === "active" || c.stage === "delivered")
+            .map((client: any) => {
+              const clientProjects = projects.filter((p) => p.client_id === client.id);
+              const healths = clientProjects.map(projectHealth).filter(Boolean) as { label: string; color: string }[];
+              return (
+                <div key={client.id} className="flex items-center justify-between rounded-2xl border p-3 bg-neutral-50">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-700">{client.name}</p>
+                    <p className="text-xs text-neutral-400">{companyName(client.company_id)}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    {healths.length === 0 ? (
+                      <span className="text-xs text-neutral-400">No active project</span>
+                    ) : (
+                      healths.map((h, i) => (
+                        <span
+                          key={i}
+                          className="text-xs px-2 py-1 rounded-full font-medium"
+                          style={{ backgroundColor: `${h.color}1A`, color: h.color }}
+                        >
+                          {h.label}
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          {allClients.filter((c: any) => c.stage === "active" || c.stage === "delivered").length === 0 && (
+            <p className="text-sm text-neutral-400 text-center py-4">No active clients yet</p>
+          )}
+        </div>
+      </Card>
+    </div>
   );
 }
 
@@ -4901,6 +5140,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
               </Card>
             </div>
           )}
+          {page === "Leads" && <LeadsPage companies={allCompanies} />}
           {page === "Companies" && (
             <CompaniesPage
               onCompanyClick={setSelectedCompany}

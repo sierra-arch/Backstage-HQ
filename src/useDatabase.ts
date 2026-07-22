@@ -1948,6 +1948,90 @@ export async function fetchComments(params: { taskId?: string; deliverableId?: s
   return data || [];
 }
 
+export interface Lead {
+  id: string;
+  company_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  service_type: string | null;
+  message: string | null;
+  source: string | null;
+  status: "new" | "contacted" | "proposal_sent" | "won" | "lost";
+  converted_client_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchLeads(): Promise<Lead[]> {
+  const { data, error } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+  if (error) {
+    console.error("Error fetching leads:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function createLead(params: { companyId: string; name: string; email: string; phone: string }): Promise<boolean> {
+  const { error } = await supabase.from("leads").insert({
+    company_id: params.companyId,
+    name: params.name,
+    email: params.email || null,
+    phone: params.phone || null,
+    source: "manual",
+    status: "new",
+  });
+  if (error) {
+    console.error("Error creating lead:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function updateLeadStatus(id: string, status: Lead["status"]): Promise<boolean> {
+  const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+  if (error) {
+    console.error("Error updating lead status:", error);
+    return false;
+  }
+  return true;
+}
+
+// Converting a lead to a client is the pipeline's "Won" moment -- creates a
+// real clients row (stage='lead', the first stage of the Client Journey)
+// and marks the lead won + linked, rather than leaving two disconnected
+// records once someone actually books.
+export async function convertLeadToClient(lead: Lead): Promise<boolean> {
+  const { data: client, error: clientError } = await supabase
+    .from("clients")
+    .insert({
+      company_id: lead.company_id,
+      name: lead.name,
+      contact_email: lead.email,
+      contact_phone: lead.phone,
+      stage: "lead",
+      source: lead.source,
+    })
+    .select("id")
+    .single();
+
+  if (clientError || !client) {
+    console.error("Error converting lead to client:", clientError);
+    return false;
+  }
+
+  const { error: updateError } = await supabase
+    .from("leads")
+    .update({ status: "won", converted_client_id: client.id })
+    .eq("id", lead.id);
+
+  if (updateError) {
+    console.error("Error marking lead converted:", updateError);
+    return false;
+  }
+  return true;
+}
+
 export async function postTeamComment(params: {
   clientId: string;
   taskId?: string;

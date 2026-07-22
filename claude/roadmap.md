@@ -137,6 +137,26 @@ flips to `completed`, and any email send around it — this phase only builds
 the capture surfaces and storage, since email delivery isn't wired until
 Phase 12 (Resend).
 
+**CRM pipeline + client roster (2026-07-22, Client Portal Expansion
+Phase 8).** New internal nav item "Leads" (both founder and team — sales
+nurturing isn't founder-only) rendering a `LeadsPage` local component (same
+"defined locally in DashboardApp.tsx, not the separate-file version"
+pattern flagged in Phase 6 — confirmed `src/CompaniesPage.tsx` is *also*
+dead code, same as `TaskModals.tsx`; DashboardApp.tsx has its own local
+`CompaniesPage`). No drag-and-drop — `dnd-kit` is a listed dependency but
+genuinely unused anywhere in `src/`, so rather than being the first thing to
+wire it up mid-build, the kanban uses simple "Move to X →" buttons per
+column transition, consistent with this codebase's existing `<select>`
+-based status-change pattern (e.g. `ProjectModal`). Converting a lead to a
+client (`convertLeadToClient`) creates a real `clients` row at `stage:
+'lead'` and links `leads.converted_client_id` — one record flow, not two
+disconnected ones. Client roster shows active/delivered clients with a
+gentle two-state health badge (`projectHealth()`: "On hold" or "Delivery
+approaching" in amber, "On track" in green — deliberately no red, per the
+mission's affirmative-not-alarming principle) computed from `projects.status`
++ `target_delivery_date` proximity only (no per-task overdue query, to keep
+this cheap).
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`
