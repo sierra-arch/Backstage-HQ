@@ -451,27 +451,58 @@ function ProposalCard({
         </span>
       </div>
 
-      {proposal.status === "accepted" && installments.length > 0 && (
-        <div className="border-t pt-4">
-          <p className="text-sm font-semibold text-neutral-700 mb-2">Payment Schedule</p>
-          <div className="space-y-2">
-            {installments.map((inst) => (
-              <div
-                key={inst.id}
-                className="flex items-center justify-between rounded-xl border p-3 bg-neutral-50"
-              >
-                <p className="text-sm text-neutral-700">
-                  ${inst.amount.toLocaleString()}{" "}
-                  <span className="text-xs text-neutral-400">
-                    due {inst.due_date ? new Date(inst.due_date + "T00:00:00").toLocaleDateString() : "—"}
-                  </span>
-                </p>
-                <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
-                  {inst.status}
-                </span>
+      {proposal.status === "accepted" && (
+        <div className="border-t pt-4 space-y-4">
+          <div>
+            <p className="text-sm font-semibold text-neutral-700 mb-2">Your Agreement</p>
+            <div className="flex items-center justify-between rounded-xl border border-dashed border-neutral-300 p-3 bg-neutral-50">
+              <div>
+                <p className="text-sm text-neutral-600">Signature status: Not sent yet</p>
+                <p className="text-xs text-neutral-400 mt-0.5">We'll email you when it's ready to review and sign.</p>
               </div>
-            ))}
+              <button
+                disabled
+                title="Coming soon"
+                className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
+              >
+                Review & Sign
+              </button>
+            </div>
           </div>
+
+          {installments.length > 0 && (
+            <div>
+              <p className="text-sm font-semibold text-neutral-700 mb-2">Payment Schedule</p>
+              <div className="space-y-2">
+                {installments.map((inst) => (
+                  <div
+                    key={inst.id}
+                    className="flex items-center justify-between rounded-xl border p-3 bg-neutral-50"
+                  >
+                    <p className="text-sm text-neutral-700">
+                      ${inst.amount.toLocaleString()}{" "}
+                      <span className="text-xs text-neutral-400">
+                        due {inst.due_date ? new Date(inst.due_date + "T00:00:00").toLocaleDateString() : "—"}
+                      </span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
+                        {inst.status}
+                      </span>
+                      <button
+                        disabled
+                        title="Online payments coming soon"
+                        className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
+                      >
+                        Pay Now
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-neutral-400 mt-2">Online payments are coming soon — we'll follow up with instructions in the meantime.</p>
+            </div>
+          )}
         </div>
       )}
 

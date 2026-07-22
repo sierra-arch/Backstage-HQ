@@ -1549,6 +1549,25 @@ function ProposalDetailModal({
           </div>
         )}
 
+        {(proposal.status === "sent" || proposal.status === "viewed" || proposal.status === "accepted") && (
+          <div className="border-t pt-4">
+            <label className="text-sm font-medium text-neutral-700">Agreement</label>
+            <div className="flex items-center justify-between rounded-xl border border-dashed border-neutral-300 p-3 bg-neutral-50 mt-2">
+              <div>
+                <p className="text-sm text-neutral-600">Signature status: Not sent</p>
+                <p className="text-xs text-neutral-400 mt-0.5">DocuSign integration — coming soon</p>
+              </div>
+              <button
+                disabled
+                title="Coming soon"
+                className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
+              >
+                Send for Signature
+              </button>
+            </div>
+          </div>
+        )}
+
         {proposal.status === "accepted" && installments.length > 0 && (
           <div className="border-t pt-4">
             <label className="text-sm font-medium text-neutral-700">Payment Schedule</label>
@@ -1561,12 +1580,22 @@ function ProposalDetailModal({
                       Due {inst.due_date ? new Date(inst.due_date + "T00:00:00").toLocaleDateString() : "—"}
                     </p>
                   </div>
-                  <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
-                    {inst.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
+                      {inst.status}
+                    </span>
+                    <button
+                      disabled
+                      title="Stripe integration coming soon"
+                      className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
+                    >
+                      Send Invoice
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
+            <p className="text-xs text-neutral-400 mt-2">Stripe integration — coming soon.</p>
           </div>
         )}
       </div>
