@@ -156,15 +156,23 @@ export function ClientPortalApp() {
   }
 
   if (state.kind === "signed_out") {
-    return (
-      <CenteredMessage>
-        Please use the invite link sent to your email to access your portal.
-      </CenteredMessage>
-    );
+    return <ClientLoginForm />;
   }
 
   if (state.kind === "not_authorized") {
-    return <CenteredMessage>This account isn't authorized to view a client portal.</CenteredMessage>;
+    return (
+      <CenteredMessage>
+        This account isn't authorized to view a client portal.
+        <br />
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="mt-4 text-sm underline"
+          style={{ color: BRAND.forestGreen }}
+        >
+          Sign out and try a different email
+        </button>
+      </CenteredMessage>
+    );
   }
 
   if (state.kind === "error") {
@@ -536,6 +544,76 @@ function ProposalCard({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function ClientLoginForm() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || status === "sending") return;
+    setStatus("sending");
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        emailRedirectTo: `${import.meta.env.VITE_SITE_URL}/portal`,
+        shouldCreateUser: false,
+      },
+    });
+    // Only surface real failures (rate limits, outages). An email that isn't
+    // registered for portal access still shows the same "sent" message, so
+    // this form never reveals which emails have portal access.
+    if (error && (error.status ?? 0) >= 500) {
+      setStatus("error");
+      setErrorMessage("Something went wrong sending your link. Please try again.");
+      return;
+    }
+    setStatus("sent");
+  }
+
+  if (status === "sent") {
+    return (
+      <CenteredMessage>
+        If that email has portal access, a login link is on its way — check your inbox.
+      </CenteredMessage>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-6" style={{ backgroundColor: BRAND.cream }}>
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-sm bg-white rounded-2xl shadow-sm p-8 text-center"
+      >
+        <h1 className="text-xl font-semibold" style={{ color: BRAND.forestGreen }}>
+          Client Portal
+        </h1>
+        <p className="mt-2 text-sm text-neutral-500">
+          Enter your email and we'll send you a login link.
+        </p>
+        <input
+          type="email"
+          required
+          autoFocus
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className="mt-6 w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm focus:outline-none"
+        />
+        {status === "error" && <p className="mt-2 text-sm text-red-600">{errorMessage}</p>}
+        <button
+          type="submit"
+          disabled={status === "sending"}
+          className="mt-4 w-full rounded-xl py-3 text-sm font-medium text-white disabled:opacity-60"
+          style={{ backgroundColor: BRAND.forestGreen }}
+        >
+          {status === "sending" ? "Sending…" : "Send login link"}
+        </button>
+      </form>
     </div>
   );
 }

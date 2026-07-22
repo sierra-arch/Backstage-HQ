@@ -5,7 +5,20 @@
       "mcp__supabase__apply_migration",
       "mcp__supabase__get_advisors",
       "mcp__supabase__list_tables",
-      "mcp__supabase__list_migrations"
+      "mcp__supabase__list_migrations",
+      "Bash(npx tsc *)",
+      "Bash(npm run build)",
+      "Bash(npm run *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push origin main)",
+      "Bash(git log *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(grep *)",
+      "Bash(cat *)"
     ]
   }
 }
