@@ -86,6 +86,7 @@ type LoadState =
       proposals: ProposalWithDocument[];
       deliverables: Deliverable[];
       invoices: PortalInvoice[];
+      hasTestimonial: boolean;
     }
   | { kind: "error"; message: string };
 
@@ -178,6 +179,11 @@ export function ClientPortalApp() {
         .eq("client_id", mapping.client_id)
         .order("created_at", { ascending: false });
 
+      const { count: testimonialCount } = await supabase
+        .from("testimonials")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", mapping.client_id);
+
       if (mounted) {
         setState({
           kind: "ready",
@@ -187,6 +193,7 @@ export function ClientPortalApp() {
           proposals,
           deliverables,
           invoices: invoiceRows ?? [],
+          hasTestimonial: (testimonialCount ?? 0) > 0,
         });
       }
     }
@@ -228,7 +235,8 @@ export function ClientPortalApp() {
     return <CenteredMessage>{state.message}</CenteredMessage>;
   }
 
-  const { client, projects, tasks, proposals, deliverables, invoices } = state;
+  const { client, projects, tasks, proposals, deliverables, invoices, hasTestimonial } = state;
+  const hasCompletedProject = projects.some((p) => p.status === "completed");
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: BRAND.cream }}>
@@ -312,6 +320,10 @@ export function ClientPortalApp() {
               </div>
             </div>
           ))
+        )}
+
+        {hasCompletedProject && (
+          <OffboardingCard clientName={client.name} hasTestimonial={hasTestimonial} onTestimonialSubmitted={refetchProposals} />
         )}
 
         {(() => {
@@ -1133,6 +1145,158 @@ function AgreementCard({ agreement, onSigned }: { agreement: PortalAgreement; on
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}
     </form>
+  );
+}
+
+function OffboardingCard({
+  clientName,
+  hasTestimonial,
+  onTestimonialSubmitted,
+}: {
+  clientName: string;
+  hasTestimonial: boolean;
+  onTestimonialSubmitted: () => void;
+}) {
+  const [quote, setQuote] = useState("");
+  const [authorName, setAuthorName] = useState(clientName);
+  const [submittingTestimonial, setSubmittingTestimonial] = useState(false);
+  const [testimonialError, setTestimonialError] = useState<string | null>(null);
+  const [testimonialSent, setTestimonialSent] = useState(false);
+
+  const [referredName, setReferredName] = useState("");
+  const [referredEmail, setReferredEmail] = useState("");
+  const [submittingReferral, setSubmittingReferral] = useState(false);
+  const [referralError, setReferralError] = useState<string | null>(null);
+  const [referralSent, setReferralSent] = useState(false);
+
+  async function authedFetch(url: string, body: unknown) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error("Your session expired — please refresh the page.");
+    }
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Something went wrong — please try again.");
+    return data;
+  }
+
+  async function handleTestimonialSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!quote.trim() || !authorName.trim() || submittingTestimonial) return;
+    setSubmittingTestimonial(true);
+    setTestimonialError(null);
+    try {
+      await authedFetch("/api/submit-testimonial", { quote, author_name: authorName });
+      setTestimonialSent(true);
+      onTestimonialSubmitted();
+    } catch (err: any) {
+      setTestimonialError(err.message);
+    } finally {
+      setSubmittingTestimonial(false);
+    }
+  }
+
+  async function handleReferralSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!referredName.trim() || submittingReferral) return;
+    setSubmittingReferral(true);
+    setReferralError(null);
+    try {
+      await authedFetch("/api/submit-referral", { referred_name: referredName, referred_email: referredEmail });
+      setReferralSent(true);
+      setReferredName("");
+      setReferredEmail("");
+    } catch (err: any) {
+      setReferralError(err.message);
+    } finally {
+      setSubmittingReferral(false);
+    }
+  }
+
+  return (
+    <div className="rounded-3xl border shadow-sm p-6 space-y-6" style={{ backgroundColor: BRAND.sagePill, borderColor: BRAND.forestGreen }}>
+      <div>
+        <h2 className="text-lg font-semibold" style={{ color: BRAND.forestGreen }}>
+          It's been a pleasure working with you
+        </h2>
+        <p className="text-sm text-neutral-600 mt-1">
+          Your project is complete. We'd love to hear how it went — and if you know anyone else who
+          might need us, we'd be grateful for the introduction.
+        </p>
+      </div>
+
+      <div className="border-t pt-4">
+        <p className="text-sm font-semibold text-neutral-700 mb-2">Leave a testimonial</p>
+        {hasTestimonial || testimonialSent ? (
+          <p className="text-sm text-neutral-600">Thank you for sharing your experience!</p>
+        ) : (
+          <form onSubmit={handleTestimonialSubmit} className="space-y-2">
+            <textarea
+              value={quote}
+              onChange={(e) => setQuote(e.target.value)}
+              placeholder="Tell us about your experience…"
+              rows={3}
+              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:outline-none bg-white"
+            />
+            <input
+              value={authorName}
+              onChange={(e) => setAuthorName(e.target.value)}
+              placeholder="Your name"
+              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:outline-none bg-white"
+            />
+            {testimonialError && <p className="text-xs text-red-600">{testimonialError}</p>}
+            <button
+              type="submit"
+              disabled={submittingTestimonial || !quote.trim() || !authorName.trim()}
+              className="rounded-full px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+              style={{ backgroundColor: BRAND.forestGreen }}
+            >
+              {submittingTestimonial ? "Submitting…" : "Submit"}
+            </button>
+          </form>
+        )}
+      </div>
+
+      <div className="border-t pt-4">
+        <p className="text-sm font-semibold text-neutral-700 mb-2">Refer a friend</p>
+        {referralSent ? (
+          <p className="text-sm text-neutral-600">Thanks for the introduction!</p>
+        ) : (
+          <form onSubmit={handleReferralSubmit} className="space-y-2">
+            <input
+              value={referredName}
+              onChange={(e) => setReferredName(e.target.value)}
+              placeholder="Friend's name"
+              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:outline-none bg-white"
+            />
+            <input
+              value={referredEmail}
+              onChange={(e) => setReferredEmail(e.target.value)}
+              placeholder="Friend's email (optional)"
+              className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm focus:outline-none bg-white"
+            />
+            {referralError && <p className="text-xs text-red-600">{referralError}</p>}
+            <button
+              type="submit"
+              disabled={submittingReferral || !referredName.trim()}
+              className="rounded-full px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity"
+              style={{ backgroundColor: BRAND.ember }}
+            >
+              {submittingReferral ? "Sending…" : "Send Introduction"}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
   );
 }
 

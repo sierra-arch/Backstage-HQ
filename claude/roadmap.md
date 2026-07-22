@@ -118,6 +118,25 @@ still not built, so this is a read-only links list — any `deliverables` or
 `generated_documents` row with a `gdrive_file_id` renders as a link to
 `https://drive.google.com/file/d/{id}/view`, no upload/embed UI yet.
 
+**Offboarding: testimonial + referral capture (2026-07-22, Client Portal
+Expansion Phase 7).** `OffboardingCard` in the client portal appears once a
+client has any project with `status = 'completed'`. Testimonials:
+`api/submit-testimonial.ts` always inserts `is_approved: false` — the team
+reviews/approves in a new `TestimonialsSection` inside `CompanyModal`
+(approve + feature checkboxes), which is what flips a testimonial into
+`PublicSite.tsx`'s `TestimonialWall` (public, `is_approved = true` only).
+Added migration `0017_testimonials_client_read_own` (client read RLS was
+missing — a client couldn't see their own pending submission before
+approval, so the portal had no way to show "thanks, awaiting review" instead
+of re-prompting for a second one). Referrals: `api/submit-referral.ts`
+writes into the same `leads` table the public inquiry form and Phase 8's CRM
+pipeline use (`source: 'referral'`), not a separate referrals system — one
+CRM entry point. **Deliberately deferred to Phase 10** (automation engine):
+auto-triggering the testimonial/referral request itself when a project
+flips to `completed`, and any email send around it — this phase only builds
+the capture surfaces and storage, since email delivery isn't wired until
+Phase 12 (Resend).
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

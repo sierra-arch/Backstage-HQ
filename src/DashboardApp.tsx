@@ -2355,6 +2355,72 @@ function BrandKitEditModal({
   );
 }
 
+interface TestimonialRow {
+  id: string;
+  quote: string;
+  author_name: string;
+  is_approved: boolean;
+  is_featured: boolean;
+}
+
+function TestimonialsSection({ companyId }: { companyId: string }) {
+  const [testimonials, setTestimonials] = useState<TestimonialRow[]>([]);
+
+  const load = useCallback(async () => {
+    const { data } = await supabase
+      .from("testimonials")
+      .select("id, quote, author_name, is_approved, is_featured")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false });
+    setTestimonials(data || []);
+  }, [companyId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function toggle(id: string, field: "is_approved" | "is_featured", value: boolean) {
+    await supabase.from("testimonials").update({ [field]: value }).eq("id", id);
+    load();
+  }
+
+  if (testimonials.length === 0) return null;
+
+  return (
+    <div>
+      <label className="text-sm font-medium text-neutral-700 block mb-3">Testimonials</label>
+      <div className="space-y-2">
+        {testimonials.map((t) => (
+          <div key={t.id} className="rounded-2xl border p-3 bg-neutral-50 space-y-2">
+            <p className="text-sm text-neutral-700">"{t.quote}"</p>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-neutral-500">{t.author_name}</span>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  <input
+                    type="checkbox"
+                    checked={t.is_approved}
+                    onChange={(e) => toggle(t.id, "is_approved", e.target.checked)}
+                  />
+                  Approved (public)
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  <input
+                    type="checkbox"
+                    checked={t.is_featured}
+                    onChange={(e) => toggle(t.id, "is_featured", e.target.checked)}
+                  />
+                  Featured
+                </label>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function CompanyModal({
   companyName,
   isOpen,
@@ -2533,6 +2599,8 @@ function CompanyModal({
             ))}
           </div>
         </div>
+
+        {companyId && <TestimonialsSection companyId={companyId} />}
       </div>
     </Modal>
 
