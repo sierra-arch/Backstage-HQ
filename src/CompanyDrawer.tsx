@@ -146,7 +146,7 @@ export function CompanyDrawer({
                   {founder && (
                     <button
                       onClick={() => setShowAddClient(true)}
-                      className="text-xs bg-teal-600 text-white rounded-full px-3 py-1.5 hover:bg-teal-700 font-medium"
+                      className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
                     >
                       ➕ Add Client
                     </button>
@@ -178,7 +178,7 @@ export function CompanyDrawer({
                   {founder && (
                     <button
                       onClick={() => setShowAddProduct(true)}
-                      className="text-xs bg-teal-600 text-white rounded-full px-3 py-1.5 hover:bg-teal-700 font-medium"
+                      className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
                     >
                       ➕ Add Product
                     </button>
@@ -251,7 +251,7 @@ export function CompanyDrawer({
                         <button
                           onClick={handleSaveClient}
                           disabled={!newClientName.trim()}
-                          className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
+                          className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
                         >
                           Add Client
                         </button>
@@ -311,7 +311,7 @@ export function CompanyDrawer({
                         <button
                           onClick={handleSaveProduct}
                           disabled={!newProductName.trim()}
-                          className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
+                          className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
                         >
                           Add Product
                         </button>

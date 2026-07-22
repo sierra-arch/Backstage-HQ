@@ -610,7 +610,7 @@ function TaskModal({
               onComplete();
               onClose();
             }}
-            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium"
+            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium"
           >
             {buttonText}
           </button>
@@ -848,7 +848,7 @@ function TaskCreateModal({
           <button
             onClick={handleCreate}
             disabled={!title || !description}
-            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Create Task
           </button>
@@ -990,7 +990,7 @@ function CreateClientModal({
           <button
             onClick={handleCreate}
             disabled={!companyName || !name.trim()}
-            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Add
           </button>
@@ -1095,7 +1095,7 @@ function CreateProductModal({
           <button
             onClick={handleCreate}
             disabled={!companyName || !name.trim()}
-            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Add
           </button>
@@ -1175,7 +1175,7 @@ function CreateProjectModal({
           <button
             onClick={handleCreate}
             disabled={!name.trim()}
-            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Create
           </button>
@@ -1312,7 +1312,7 @@ function ProjectModal({
             <button
               onClick={handleLinkTask}
               disabled={!taskToLink}
-              className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+              className="rounded-xl bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
             >
               Link
             </button>
@@ -1682,7 +1682,7 @@ function ClientModal({
           <button
             onClick={inviteToPortal}
             disabled={inviting}
-            className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+            className="rounded-xl bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
           >
             {inviting ? "Sending…" : "Invite to Portal"}
           </button>
@@ -2175,7 +2175,7 @@ function BrandKitEditModal({
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+              className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
             >
               {saving ? "Saving…" : "Save Brand Kit"}
             </button>
@@ -2597,7 +2597,7 @@ function ChatPanel({
             />
             <button
               onClick={sendMessage}
-              className="bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 text-sm font-medium"
+              className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium"
             >
               Send
             </button>
@@ -2657,12 +2657,9 @@ function Sidebar({
   const nav = isFounder(role) ? founderNav : teamNav;
 
   return (
-    <aside className="w-72 shrink-0 bg-forest-900 sticky top-0 h-screen p-4 flex flex-col">
-      <div className="font-serif italic text-[30px] font-semibold leading-none mb-1 tracking-tight text-cream-50">
-        Backstage
-      </div>
-      <div className="text-[11px] uppercase tracking-[0.15em] text-forest-200 mb-6">
-        Headquarters
+    <aside className="w-72 shrink-0 border-r bg-white/90 backdrop-blur-sm sticky top-0 h-screen p-4 flex flex-col">
+      <div className="text-[26px] font-semibold leading-none mb-6 tracking-tight">
+        Backstage Headquarters
       </div>
       <nav className="space-y-1 text-[15px]">
         {nav.map((item) => {
@@ -2671,13 +2668,13 @@ function Sidebar({
             <button
               key={item}
               onClick={() => onSelect(item)}
-              className={`w-full text-left flex items-center justify-between rounded-full px-4 py-2 text-cream-100 hover:bg-forest-700 transition-colors ${
-                isActive ? "bg-teal-600 text-white font-medium shadow-sm" : ""
+              className={`w-full text-left flex items-center justify-between rounded-xl px-3 py-2 hover:bg-teal-50 ${
+                isActive ? "bg-teal-50 text-teal-900 font-medium" : ""
               }`}
             >
               <span>{item}</span>
               {item === "Today" && isActive && (
-                <span className="text-[10px] rounded-full bg-chartreuse-300 text-forest-900 font-semibold px-2 py-0.5">
+                <span className="text-[10px] rounded-full bg-teal-100 text-teal-800 px-2 py-0.5">
                   Now
                 </span>
               )}
@@ -2685,13 +2682,13 @@ function Sidebar({
           );
         })}
       </nav>
-      <div className="mt-auto pt-6 border-t border-forest-700">
-        <div className="text-xs uppercase tracking-wide text-forest-300 mb-1">
+      <div className="mt-auto pt-6">
+        <div className="text-xs uppercase tracking-wide text-neutral-500 mb-1">
           Signed in
         </div>
         <button
           onClick={() => onSelect("Settings" as Page)}
-          className="text-sm font-medium text-cream-50 hover:text-chartreuse-300 transition-colors text-left"
+          className="text-sm font-medium hover:text-teal-600 transition-colors text-left"
         >
           {userName}
         </button>
@@ -2723,9 +2720,9 @@ function TopHeader({
 
   return (
     <div className="sticky top-0 z-30 -mx-4 md:-mx-6 lg:-mx-8 -mt-4 md:-mt-6 lg:-mt-8">
-      <div className="h-12 md:h-14 bg-white flex items-center justify-between px-3 md:px-4 border-b border-cream-300">
+      <div className="h-12 md:h-14 bg-white flex items-center justify-between px-3 md:px-4 border-b">
         <div className="flex items-center gap-3 md:gap-4">
-          <div className="text-[15px] md:text-[16px] text-neutral-900 font-serif font-semibold">
+          <div className="text-[13px] md:text-[14px] text-neutral-900 font-medium">
             Welcome, {name}
           </div>
           <div className="hidden md:block w-[180px] h-1.5 rounded-full bg-teal-100 overflow-hidden">
@@ -3355,7 +3352,7 @@ function MeetingsPage() {
           value={agenda}
           onChange={(e) => setAgenda(e.target.value)}
         />
-        <button className="mt-3 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 text-sm font-medium">
+        <button className="mt-3 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium">
           Save to Google Doc
         </button>
       </Card>
@@ -3463,7 +3460,7 @@ function SettingsPage({
               className="w-full mt-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
             />
           </div>
-          <button className="bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 text-sm font-medium">
+          <button className="bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 text-sm font-medium">
             Save Changes
           </button>
         </div>
@@ -3572,7 +3569,7 @@ function AddAccomplishmentModal({
           <button
             onClick={handleAdd}
             disabled={!text.trim()}
-            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
+            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm disabled:opacity-50"
           >
             Add
           </button>
@@ -3645,7 +3642,7 @@ function KudosModal({
           </button>
           <button
             onClick={handleSend}
-            className="flex-1 bg-teal-600 text-white rounded-full px-4 py-2 hover:bg-teal-700 font-medium text-sm"
+            className="flex-1 bg-teal-600 text-white rounded-xl px-4 py-2 hover:bg-teal-700 font-medium text-sm"
           >
             {kudosText ? "Send Kudos & Approve" : "Approve Without Message"}
           </button>
@@ -4362,7 +4359,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
               <div className="mb-3">
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="text-xs bg-teal-600 text-white rounded-full px-3 py-1.5 hover:bg-teal-700 font-medium"
+                  className="text-xs bg-teal-600 text-white rounded-xl px-3 py-1.5 hover:bg-teal-700 font-medium"
                 >
                   ➕ Add Task
                 </button>
@@ -4502,14 +4499,14 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
 
   if (tasksLoading) {
     return (
-      <div className="min-h-screen bg-cream-100 flex items-center justify-center">
-        <div className="text-neutral-500 font-serif text-lg">Loading your workspace...</div>
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+        <div className="text-neutral-500">Loading your workspace...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream-100 text-neutral-900 relative text-[15px]">
+    <div className="min-h-screen bg-neutral-50 text-neutral-900 relative text-[15px]">
       <Confetti fire={celebrate} />
       {wizardCompany && (
         <OnboardingWizard
@@ -4813,4 +4810,3 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
     </div>
   );
 }
-

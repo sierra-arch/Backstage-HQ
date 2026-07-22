@@ -22,9 +22,9 @@ import {
 } from "../api/_lib/proposalEngine";
 
 const BRAND = {
-  forestGreen: "#2C4A3E",
-  ember: "#C4622D",
-  cream: "#F7F3EC",
+  forestGreen: "#1B4332",
+  ember: "#EA580C",
+  cream: "#FAF3E8",
 };
 
 interface PortalClient {

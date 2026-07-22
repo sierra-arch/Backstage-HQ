@@ -225,7 +225,7 @@ export default function EditTaskModal({
           <button
             onClick={handleSave}
             disabled={!title.trim() || !description.trim()}
-            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Save Changes
           </button>

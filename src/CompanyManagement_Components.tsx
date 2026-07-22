@@ -288,7 +288,7 @@ function ClientModal({ client, companyId, isOpen, onClose, onSaved, isFounder }:
           <button
             onClick={handleSave}
             disabled={!name.trim() || saving}
-            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : isFounder ? "Save" : "Submit for Approval"}
           </button>
@@ -552,7 +552,7 @@ function ProductModal({ product, companyId, isOpen, onClose, onSaved, isFounder 
           <button
             onClick={handleSave}
             disabled={!name.trim() || !price || saving}
-            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : isFounder ? "Save" : "Submit for Approval"}
           </button>
@@ -882,7 +882,7 @@ function SOPModal({ sop, companyId, isOpen, onClose, onSaved, isFounder }: SOPMo
           <button
             onClick={handleSave}
             disabled={!title.trim() || !shortDesc.trim() || saving}
-            className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
+            className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50"
           >
             {saving ? "Saving..." : isFounder ? "Save SOP" : "Submit for Approval"}
           </button>

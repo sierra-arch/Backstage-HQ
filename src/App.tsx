@@ -119,7 +119,7 @@ function GoogleSignInButton() {
     <button
       onClick={signIn}
       disabled={loading}
-      className="w-full rounded-full border-0 px-4 py-2.5 bg-teal-600 text-white font-medium hover:bg-teal-700 disabled:opacity-60 transition-colors"
+      className="w-full rounded-xl border px-3 py-2 bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-60"
     >
       {loading ? "Redirecting…" : "Sign in with Google"}
     </button>
@@ -192,8 +192,8 @@ function AuthGate({ children }: { children: React.ReactElement }) {
   // 1) Loading the initial auth state
   if (session === undefined) {
     return (
-      <div className="grid place-items-center min-h-screen bg-forest-900">
-        <div className="text-sm text-cream-100 font-serif">Checking session…</div>
+      <div className="grid place-items-center min-h-screen">
+        <div className="text-sm text-neutral-500">Checking session…</div>
       </div>
     );
   }
@@ -201,14 +201,9 @@ function AuthGate({ children }: { children: React.ReactElement }) {
   // 2) Signed out → show Google sign-in
   if (!session) {
     return (
-      <div className="grid place-items-center min-h-screen bg-forest-900">
-        <div className="rounded-3xl p-8 bg-cream-50 w-[380px] shadow-2xl">
-          <div className="font-serif italic text-[32px] leading-none text-forest-900 mb-1">
-            Backstage
-          </div>
-          <h1 className="font-sans text-sm uppercase tracking-[0.15em] text-neutral-500 mb-6">
-            Headquarters Sign In
-          </h1>
+      <div className="grid place-items-center min-h-screen">
+        <div className="rounded-2xl border p-6 bg-white w-[360px]">
+          <h1 className="text-xl font-semibold mb-3">Backstage Sign In</h1>
           <GoogleSignInButton />
         </div>
       </div>
@@ -218,8 +213,8 @@ function AuthGate({ children }: { children: React.ReactElement }) {
   // 3) Signed in but profile/role still loading
   if (loadingProfile || !role) {
     return (
-      <div className="grid place-items-center min-h-screen bg-forest-900">
-        <div className="text-sm text-cream-100 font-serif">Loading your workspace…</div>
+      <div className="grid place-items-center min-h-screen">
+        <div className="text-sm text-neutral-500">Loading your workspace…</div>
       </div>
     );
   }
