@@ -206,6 +206,11 @@ export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // See useTasks/useProjects for why this needs a unique topic per
+  // hook instance rather than a shared hardcoded channel name.
+  const channelTopicRef = useRef(
+    `profile-changes-${Math.random().toString(36).slice(2)}`
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -231,7 +236,7 @@ export function useProfile() {
     loadProfile();
 
     const subscription = supabase
-      .channel("profile-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
@@ -454,6 +459,20 @@ export function useTasks(filters?: {
     setLoading(false);
   }, [filters?.status, filters?.assignedTo, filters?.companyId]);
 
+  // Each hook instance needs its own realtime channel topic. Supabase's
+  // client dedupes channels by topic name and reuses the same channel
+  // object when the same topic is requested again -- if two components
+  // both call useTasks() with a shared hardcoded topic (e.g. "task-changes"),
+  // the second .channel(topic).on(...) call attaches a listener to a
+  // channel the first instance already subscribed, which throws
+  // "cannot add postgres_changes callbacks ... after subscribe()". That
+  // throw is uncaught and (with no error boundary) unmounts the whole
+  // React tree, producing a blank screen. A unique topic per instance
+  // avoids the collision entirely.
+  const channelTopicRef = useRef(
+    `task-changes-${Math.random().toString(36).slice(2)}`
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -462,7 +481,7 @@ export function useTasks(filters?: {
     }
 
     const subscription = supabase
-      .channel("task-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
@@ -1375,6 +1394,11 @@ export async function rejectPendingChange(
 export function usePendingApprovals() {
   const [approvals, setApprovals] = useState<PendingApproval[]>([]);
   const [loading, setLoading] = useState(true);
+  // See useTasks/useProjects for why this needs a unique topic per
+  // hook instance rather than a shared hardcoded channel name.
+  const channelTopicRef = useRef(
+    `approval-changes-${Math.random().toString(36).slice(2)}`
+  );
 
   const loadApprovals = useCallback(async () => {
     const data = await fetchPendingApprovals();
@@ -1390,7 +1414,7 @@ export function usePendingApprovals() {
     }
 
     const subscription = supabase
-      .channel("approval-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
