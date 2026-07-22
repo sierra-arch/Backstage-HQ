@@ -2932,7 +2932,7 @@ function BusinessSnapshot({
             <div className="text-xl leading-none">{s.icon}</div>
             <div className="min-w-0">
               <div className="text-lg font-semibold leading-tight">{s.value}</div>
-              <div className="text-xs text-neutral-500 truncate">{s.label}</div>
+              <div className="text-xs text-neutral-500 leading-snug">{s.label}</div>
             </div>
           </div>
         ))}
