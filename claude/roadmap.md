@@ -238,6 +238,19 @@ vars, and `CRON_SECRET` should be set for the cron endpoint to be
 authenticated, before a real send or a real scheduled sequence step can be
 verified end-to-end.
 
+**Hotfix: Vercel Hobby's 12-function cap (2026-07-22, between Phase 12 and
+13).** Phase 12's push failed to deploy — `npx vercel inspect --logs`
+showed the Vite build completing fine, then a bare `Error` right at
+"Deploying outputs," which is where Vercel provisions serverless functions.
+`api/*.ts` (excluding `_lib/`) had grown to 14 files; Hobby plan caps a
+deployment at 12. Fixed by merging two pairs of same-shaped client-portal
+endpoints: `submit-testimonial.ts` + `submit-referral.ts` →
+`submit-offboarding.ts` (`type: 'testimonial'|'referral'` in the body), and
+`sign-agreement.ts` + `respond-deliverable.ts` → `respond.ts` (`type:
+'agreement'|'deliverable'`). Back to exactly 12 — no headroom left, so the
+next new endpoint (Phase 13 onward) needs either another merge or confirming
+the plan has been upgraded before assuming a new file is free.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

@@ -866,13 +866,13 @@ function DeliverableRow({
       return;
     }
     try {
-      const res = await fetch("/api/respond-deliverable", {
+      const res = await fetch("/api/respond", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ deliverable_id: deliverable.id, action, revision_note: note.trim() }),
+        body: JSON.stringify({ type: "deliverable", deliverable_id: deliverable.id, action, revision_note: note.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1096,13 +1096,13 @@ function AgreementCard({ agreement, onSigned }: { agreement: PortalAgreement; on
       return;
     }
     try {
-      const res = await fetch("/api/sign-agreement", {
+      const res = await fetch("/api/respond", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ agreement_id: agreement.id, signed_name: name.trim() }),
+        body: JSON.stringify({ type: "agreement", agreement_id: agreement.id, signed_name: name.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -1195,7 +1195,7 @@ function OffboardingCard({
     setSubmittingTestimonial(true);
     setTestimonialError(null);
     try {
-      await authedFetch("/api/submit-testimonial", { quote, author_name: authorName });
+      await authedFetch("/api/submit-offboarding", { type: "testimonial", quote, author_name: authorName });
       setTestimonialSent(true);
       onTestimonialSubmitted();
     } catch (err: any) {
@@ -1211,7 +1211,7 @@ function OffboardingCard({
     setSubmittingReferral(true);
     setReferralError(null);
     try {
-      await authedFetch("/api/submit-referral", { referred_name: referredName, referred_email: referredEmail });
+      await authedFetch("/api/submit-offboarding", { type: "referral", referred_name: referredName, referred_email: referredEmail });
       setReferralSent(true);
       setReferredName("");
       setReferredEmail("");
