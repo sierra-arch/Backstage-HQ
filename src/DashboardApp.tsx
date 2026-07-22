@@ -42,11 +42,14 @@ import {
   createDeliverable,
   markDeliverableDelivered,
   setDeliverableVisibility,
+  fetchComments,
+  postTeamComment,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
   type Company,
   type Deliverable,
+  type Comment,
 } from "./useDatabase";
 import { OnboardingWizard } from "./OnboardingWizard";
 import {
@@ -89,6 +92,8 @@ type DBTask = {
   title: string;
   description: string | null;
   company_id: string | null;
+  client_id?: string | null;
+  client_visible?: boolean;
   assigned_to: string | null;
   status: "focus" | "active" | "submitted" | "completed" | "archived";
   priority: "low" | "medium" | "high";
@@ -525,18 +530,78 @@ function Modal({
 /* ──────────────────────────────────────────────────────────────────
    Task Modal
    ────────────────────────────────────────────────────────────────── */
+function TaskCommentThread({ task, profileId }: { task: DBTask; profileId?: string }) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [body, setBody] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const load = () => {
+    fetchComments({ taskId: task.id }).then(setComments);
+  };
+
+  useEffect(() => {
+    load();
+  }, [task.id]);
+
+  async function handlePost() {
+    if (!body.trim() || !profileId || !task.client_id) return;
+    setPosting(true);
+    await postTeamComment({ clientId: task.client_id, taskId: task.id, authorProfileId: profileId, body: body.trim() });
+    setBody("");
+    setPosting(false);
+    load();
+  }
+
+  return (
+    <div className="border-t pt-4">
+      <label className="text-sm font-medium text-neutral-700">Client Comments</label>
+      <div className="space-y-2 mt-2">
+        {comments.length === 0 && <p className="text-sm text-neutral-400">No comments yet.</p>}
+        {comments.map((c) => (
+          <div
+            key={c.id}
+            className={`rounded-2xl p-3 text-sm ${
+              c.author_type === "client" ? "bg-teal-50 text-teal-900" : "bg-neutral-100 text-neutral-700"
+            }`}
+          >
+            <p className="text-xs font-medium mb-1 opacity-70">{c.author_type === "client" ? "Client" : "Team"}</p>
+            {c.body}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 mt-3">
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Reply to the client…"
+          className="flex-1 rounded-full border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+        />
+        <button
+          onClick={handlePost}
+          disabled={!body.trim() || posting}
+          className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function TaskModal({
   task,
   isOpen,
   onClose,
   onComplete,
   role,
+  profileId,
 }: {
   task: DBTask | null;
   isOpen: boolean;
   onClose: () => void;
   onComplete: () => void;
   role: Role;
+  profileId?: string;
 }) {
   if (!task) return null;
 
@@ -608,6 +673,8 @@ function TaskModal({
             </p>
           </div>
         </div>
+
+        {task.client_id && <TaskCommentThread task={task} profileId={profileId} />}
 
         <div className="flex gap-3 pt-4 border-t">
           <button
@@ -4816,6 +4883,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
         onClose={() => setShowTaskModal(false)}
         onComplete={() => selectedTask && handleComplete(selectedTask)}
         role={role}
+        profileId={profile?.id}
       />
 
       <TaskCreateModal

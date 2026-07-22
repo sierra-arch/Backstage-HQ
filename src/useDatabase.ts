@@ -1920,3 +1920,52 @@ export async function setDeliverableVisibility(id: string, clientVisible: boolea
   }
   return true;
 }
+
+export interface Comment {
+  id: string;
+  client_id: string;
+  task_id: string | null;
+  deliverable_id: string | null;
+  author_type: "team" | "client";
+  author_profile_id: string | null;
+  author_client_user_id: string | null;
+  body: string;
+  created_at: string;
+}
+
+// Comments have direct client-write RLS (unlike proposals/deliverables),
+// so both the team and client sides post through the browser client under
+// their own session -- no service-role endpoint needed here.
+export async function fetchComments(params: { taskId?: string; deliverableId?: string }): Promise<Comment[]> {
+  let query = supabase.from("comments").select("*").order("created_at", { ascending: true });
+  if (params.taskId) query = query.eq("task_id", params.taskId);
+  if (params.deliverableId) query = query.eq("deliverable_id", params.deliverableId);
+  const { data, error } = await query;
+  if (error) {
+    console.error("Error fetching comments:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function postTeamComment(params: {
+  clientId: string;
+  taskId?: string;
+  deliverableId?: string;
+  authorProfileId: string;
+  body: string;
+}): Promise<boolean> {
+  const { error } = await supabase.from("comments").insert({
+    client_id: params.clientId,
+    task_id: params.taskId ?? null,
+    deliverable_id: params.deliverableId ?? null,
+    author_type: "team",
+    author_profile_id: params.authorProfileId,
+    body: params.body,
+  });
+  if (error) {
+    console.error("Error posting comment:", error);
+    return false;
+  }
+  return true;
+}

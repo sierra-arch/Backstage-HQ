@@ -98,6 +98,26 @@ template was seeded (direct insert), matching Milestone 5's precedent; a
 real editor is Client Portal Expansion Phase 11's job (template manager),
 not this one.
 
+**Comment threads, billing history, files (2026-07-22, Client Portal
+Expansion Phase 6).** Comments use direct client-write RLS (unlike
+proposals/deliverables) — both team and client post through the browser
+client under their own session, no service-role endpoint needed. Real gap
+found while wiring this: `src/TaskModals.tsx` (a `TaskModal`/
+`TaskCreateModal` pair) and its local `type DBTask` are **dead code** — not
+imported anywhere. `src/DashboardApp.tsx` has its own separate local
+`TaskModal` (line ~590) and local `type DBTask` (line ~90) that are what's
+actually rendered; that's where the client-comment-thread UI actually needed
+to go. `src/types.ts` has a third `DBTask` export that's also live (used
+elsewhere) but was drifting out of sync with DashboardApp's local copy. All
+three now carry `client_id`/`client_visible` so this doesn't bite Phase 9.
+Didn't delete `TaskModals.tsx` this pass (out of scope for this phase — flag
+for whoever next touches task UI to confirm it's safe to remove). Billing:
+client portal reads `invoices` directly (already RLS-scoped via
+`client_reads_own`). Files: Google Drive OAuth (Milestone 2 Phase B) is
+still not built, so this is a read-only links list — any `deliverables` or
+`generated_documents` row with a `gdrive_file_id` renders as a link to
+`https://drive.google.com/file/d/{id}/view`, no upload/embed UI yet.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

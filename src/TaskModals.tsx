@@ -1,9 +1,73 @@
 // TaskModals.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Modal } from "./Modal";
 import { Avatar, CompanyChip } from "./ui";
 import { DBTask, Role, TIME_BY_LEVEL, COMPANIES, isFounder } from "./types";
-import { createTask as dbCreateTask, getCompanyByName } from "./useDatabase";
+import {
+  createTask as dbCreateTask,
+  getCompanyByName,
+  fetchComments,
+  postTeamComment,
+  type Comment,
+} from "./useDatabase";
+
+function TaskCommentThread({ task, profileId }: { task: DBTask; profileId?: string }) {
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [body, setBody] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const load = () => {
+    fetchComments({ taskId: task.id }).then(setComments);
+  };
+
+  useEffect(load, [task.id]);
+
+  async function handlePost() {
+    if (!body.trim() || !profileId || !task.client_id) return;
+    setPosting(true);
+    await postTeamComment({ clientId: task.client_id, taskId: task.id, authorProfileId: profileId, body: body.trim() });
+    setBody("");
+    setPosting(false);
+    load();
+  }
+
+  return (
+    <div className="border-t pt-4">
+      <label className="text-sm font-medium text-neutral-700">Client Comments</label>
+      <div className="space-y-2 mt-2">
+        {comments.length === 0 && (
+          <p className="text-sm text-neutral-400">No comments yet.</p>
+        )}
+        {comments.map((c) => (
+          <div
+            key={c.id}
+            className={`rounded-2xl p-3 text-sm ${
+              c.author_type === "client" ? "bg-teal-50 text-teal-900" : "bg-neutral-100 text-neutral-700"
+            }`}
+          >
+            <p className="text-xs font-medium mb-1 opacity-70">{c.author_type === "client" ? "Client" : "Team"}</p>
+            {c.body}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 mt-3">
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Reply to the client…"
+          className="flex-1 rounded-2xl border px-3 py-2 text-sm focus:ring-2 focus:ring-teal-200 outline-none"
+        />
+        <button
+          onClick={handlePost}
+          disabled={!body.trim() || posting}
+          className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function TaskModal({
   task,
@@ -11,12 +75,14 @@ export function TaskModal({
   onClose,
   onComplete,
   role,
+  profileId,
 }: {
   task: DBTask | null;
   isOpen: boolean;
   onClose: () => void;
   onComplete: () => void;
   role: Role;
+  profileId?: string;
 }) {
   if (!task) return null;
 
@@ -88,6 +154,8 @@ export function TaskModal({
             </p>
           </div>
         </div>
+
+        {task.client_id && <TaskCommentThread task={task} profileId={profileId} />}
 
         <div className="flex gap-3 pt-4 border-t">
           <button

@@ -9,10 +9,12 @@ import { supabase } from "./supabase";
 import {
   fetchProposalsForClient,
   fetchPaymentScheduleForProposal,
+  fetchComments,
   type ProposalWithDocument,
   type DocumentTemplate,
   type PaymentInstallment,
   type Deliverable,
+  type Comment,
 } from "./useDatabase";
 import {
   computeDocumentTotals,
@@ -58,6 +60,13 @@ interface PortalTask {
   due_date: string | null;
 }
 
+interface PortalInvoice {
+  id: string;
+  amount: number;
+  status: "unpaid" | "paid" | "overdue";
+  created_at: string;
+}
+
 interface PortalAgreement {
   id: string;
   status: "sent" | "signed" | "voided";
@@ -76,6 +85,7 @@ type LoadState =
       tasks: PortalTask[];
       proposals: ProposalWithDocument[];
       deliverables: Deliverable[];
+      invoices: PortalInvoice[];
     }
   | { kind: "error"; message: string };
 
@@ -162,8 +172,22 @@ export function ClientPortalApp() {
 
       const proposals = await fetchProposalsForClient(mapping.client_id).catch(() => []);
 
+      const { data: invoiceRows } = await supabase
+        .from("invoices")
+        .select("id, amount, status, created_at")
+        .eq("client_id", mapping.client_id)
+        .order("created_at", { ascending: false });
+
       if (mounted) {
-        setState({ kind: "ready", client, projects: projects ?? [], tasks, proposals, deliverables });
+        setState({
+          kind: "ready",
+          client,
+          projects: projects ?? [],
+          tasks,
+          proposals,
+          deliverables,
+          invoices: invoiceRows ?? [],
+        });
       }
     }
 
@@ -204,7 +228,7 @@ export function ClientPortalApp() {
     return <CenteredMessage>{state.message}</CenteredMessage>;
   }
 
-  const { client, projects, tasks, proposals, deliverables } = state;
+  const { client, projects, tasks, proposals, deliverables, invoices } = state;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: BRAND.cream }}>
@@ -268,7 +292,7 @@ export function ClientPortalApp() {
                     {deliverables
                       .filter((d) => d.project_id === project.id)
                       .map((d) => (
-                        <DeliverableRow key={d.id} deliverable={d} onResponded={refetchProposals} />
+                        <DeliverableRow key={d.id} deliverable={d} clientId={client.id} onResponded={refetchProposals} />
                       ))}
                   </div>
                 </div>
@@ -283,26 +307,76 @@ export function ClientPortalApp() {
                 {tasks
                   .filter((t) => t.project_id === project.id)
                   .map((task) => (
-                  <div
-                    key={task.id}
-                    className="flex items-center justify-between rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50"
-                  >
-                    <span className="text-sm text-neutral-700">{task.title}</span>
-                    <div className="flex items-center gap-3">
-                      {task.due_date && (
-                        <span className="text-xs text-neutral-400">
-                          {new Date(task.due_date).toLocaleDateString()}
-                        </span>
-                      )}
-                      <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600">
-                        {task.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                    <ClientTaskRow key={task.id} task={task} clientId={client.id} />
+                  ))}
               </div>
             </div>
           ))
+        )}
+
+        {(() => {
+          const files = [
+            ...deliverables
+              .filter((d) => d.gdrive_file_id)
+              .map((d) => ({ id: d.id, name: d.title, gdriveId: d.gdrive_file_id as string })),
+            ...proposals
+              .filter((p) => p.generated_documents?.gdrive_file_id)
+              .map((p) => ({
+                id: p.id,
+                name: "Proposal",
+                gdriveId: p.generated_documents!.gdrive_file_id as string,
+              })),
+          ];
+          if (files.length === 0) return null;
+          return (
+            <div className="rounded-3xl bg-white border border-neutral-200/70 shadow-sm p-6">
+              <h2 className="text-lg font-semibold mb-4">Files</h2>
+              <div className="space-y-2">
+                {files.map((f) => (
+                  <a
+                    key={f.id}
+                    href={`https://drive.google.com/file/d/${f.gdriveId}/view`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50 hover:bg-neutral-100 transition-colors"
+                  >
+                    <span className="text-sm text-neutral-700">{f.name}</span>
+                    <span className="text-xs" style={{ color: BRAND.forestGreen }}>Open →</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {invoices.length > 0 && (
+          <div className="rounded-3xl bg-white border border-neutral-200/70 shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4">Billing</h2>
+            <div className="space-y-2">
+              {invoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center justify-between rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-neutral-700">${inv.amount.toLocaleString()}</p>
+                    <p className="text-xs text-neutral-400">{new Date(inv.created_at).toLocaleDateString()}</p>
+                  </div>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-full font-medium capitalize ${
+                      inv.status === "paid"
+                        ? "bg-green-100 text-green-700"
+                        : inv.status === "overdue"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-neutral-200 text-neutral-600"
+                    }`}
+                  >
+                    {inv.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </main>
     </div>
@@ -636,6 +710,117 @@ function ProposalCard({
   );
 }
 
+function ClientCommentThread({
+  clientId,
+  taskId,
+  deliverableId,
+}: {
+  clientId: string;
+  taskId?: string;
+  deliverableId?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [body, setBody] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const load = () => {
+    fetchComments({ taskId, deliverableId }).then(setComments);
+  };
+
+  useEffect(() => {
+    if (open) load();
+  }, [open, taskId, deliverableId]);
+
+  async function handlePost() {
+    if (!body.trim() || posting) return;
+    setPosting(true);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (session?.user) {
+      await supabase.from("comments").insert({
+        client_id: clientId,
+        task_id: taskId ?? null,
+        deliverable_id: deliverableId ?? null,
+        author_type: "client",
+        author_client_user_id: session.user.id,
+        body: body.trim(),
+      });
+      setBody("");
+      load();
+    }
+    setPosting(false);
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="text-xs font-medium hover:underline"
+        style={{ color: BRAND.forestGreen }}
+      >
+        Comments
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2">
+      {comments.map((c) => (
+        <div
+          key={c.id}
+          className={`rounded-xl p-2 text-xs ${
+            c.author_type === "client" ? "bg-white border" : "bg-neutral-100"
+          }`}
+        >
+          <p className="font-medium opacity-60 mb-0.5">{c.author_type === "client" ? "You" : "Team"}</p>
+          {c.body}
+        </div>
+      ))}
+      <div className="flex gap-2">
+        <input
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Add a comment…"
+          className="flex-1 rounded-xl border border-neutral-200 px-2 py-1.5 text-xs focus:outline-none bg-white"
+        />
+        <button
+          onClick={handlePost}
+          disabled={!body.trim() || posting}
+          className="rounded-full px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+          style={{ backgroundColor: BRAND.forestGreen }}
+        >
+          Send
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ClientTaskRow({ task, clientId }: { task: PortalTask; clientId: string }) {
+  return (
+    <div className="rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-neutral-700">{task.title}</span>
+        <div className="flex items-center gap-3">
+          {task.due_date && (
+            <span className="text-xs text-neutral-400">
+              {new Date(task.due_date).toLocaleDateString()}
+            </span>
+          )}
+          <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600">
+            {task.status}
+          </span>
+        </div>
+      </div>
+      <div className="mt-2">
+        <ClientCommentThread clientId={clientId} taskId={task.id} />
+      </div>
+    </div>
+  );
+}
+
 const DELIVERABLE_STATUS_LABELS: Record<string, string> = {
   pending: "In progress",
   delivered: "Ready for your review",
@@ -643,7 +828,15 @@ const DELIVERABLE_STATUS_LABELS: Record<string, string> = {
   revision_requested: "Changes requested",
 };
 
-function DeliverableRow({ deliverable, onResponded }: { deliverable: Deliverable; onResponded: () => void }) {
+function DeliverableRow({
+  deliverable,
+  clientId,
+  onResponded,
+}: {
+  deliverable: Deliverable;
+  clientId: string;
+  onResponded: () => void;
+}) {
   const [requestingChanges, setRequestingChanges] = useState(false);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState<"approve" | "request" | null>(null);
@@ -743,6 +936,8 @@ function DeliverableRow({ deliverable, onResponded }: { deliverable: Deliverable
       )}
 
       {error && <p className="text-xs text-red-600">{error}</p>}
+
+      <ClientCommentThread clientId={clientId} deliverableId={deliverable.id} />
     </div>
   );
 }

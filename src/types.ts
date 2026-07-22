@@ -18,6 +18,8 @@ export type DBTask = {
   title: string;
   description: string | null;
   company_id: string | null;
+  client_id?: string | null;
+  client_visible?: boolean;
   assigned_to: string | null;
   status: "focus" | "active" | "submitted" | "completed" | "archived";
   priority: "low" | "medium" | "high";
