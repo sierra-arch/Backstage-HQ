@@ -284,6 +284,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       await admin.from("clients").update({ stage: "active" }).eq("id", clientId);
     }
+
+    // Agreement placeholder becomes real: the accepted proposal itself is
+    // the terms being signed (no separate contract-doc generation yet --
+    // that's the template-manager phase). One agreement per proposal.
+    await admin
+      .from("agreements")
+      .insert({ client_id: clientId, proposal_id: proposal.id, status: "sent" });
   } catch (automationError) {
     console.error("Proposal-accepted kickoff automation failed (non-fatal):", automationError);
   }

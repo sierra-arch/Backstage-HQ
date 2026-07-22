@@ -1478,6 +1478,7 @@ function ProposalDetailModal({
 }) {
   const [template, setTemplate] = useState<DocumentTemplate | null>(null);
   const [installments, setInstallments] = useState<PaymentInstallment[]>([]);
+  const [agreement, setAgreement] = useState<{ status: string; signed_name: string | null; signed_at: string | null } | null>(null);
   const [marking, setMarking] = useState(false);
 
   useEffect(() => {
@@ -1493,8 +1494,15 @@ function ProposalDetailModal({
       fetchPaymentScheduleForProposal(proposal.id).then((result) => {
         setInstallments(result?.installments || []);
       });
+      supabase
+        .from("agreements")
+        .select("status, signed_name, signed_at")
+        .eq("proposal_id", proposal.id)
+        .maybeSingle()
+        .then(({ data }) => setAgreement(data));
     } else {
       setInstallments([]);
+      setAgreement(null);
     }
   }, [isOpen, proposal]);
 
@@ -1552,21 +1560,24 @@ function ProposalDetailModal({
           </div>
         )}
 
-        {(proposal.status === "sent" || proposal.status === "viewed" || proposal.status === "accepted") && (
+        {proposal.status === "accepted" && (
           <div className="border-t pt-4">
             <label className="text-sm font-medium text-neutral-700">Agreement</label>
-            <div className="flex items-center justify-between rounded-2xl border border-dashed border-neutral-300 p-3 bg-neutral-50 mt-2">
-              <div>
-                <p className="text-sm text-neutral-600">Signature status: Not sent</p>
-                <p className="text-xs text-neutral-400 mt-0.5">DocuSign integration — coming soon</p>
-              </div>
-              <button
-                disabled
-                title="Coming soon"
-                className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
-              >
-                Send for Signature
-              </button>
+            <div className="rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50 mt-2">
+              {agreement?.status === "signed" ? (
+                <>
+                  <p className="text-sm text-neutral-700">
+                    Signed by <span className="font-medium">{agreement.signed_name}</span>
+                  </p>
+                  <p className="text-xs text-neutral-400 mt-0.5">
+                    {agreement.signed_at ? new Date(agreement.signed_at).toLocaleString() : ""}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-neutral-600">
+                  Sent to client — awaiting their signature in the portal
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -1583,22 +1594,13 @@ function ProposalDetailModal({
                       Due {inst.due_date ? new Date(inst.due_date + "T00:00:00").toLocaleDateString() : "—"}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
-                      {inst.status}
-                    </span>
-                    <button
-                      disabled
-                      title="Stripe integration coming soon"
-                      className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
-                    >
-                      Send Invoice
-                    </button>
-                  </div>
+                  <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
+                    {inst.status}
+                  </span>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-neutral-400 mt-2">Stripe integration — coming soon.</p>
+            <p className="text-xs text-neutral-400 mt-2">Clients pay each installment directly from their portal via Stripe.</p>
           </div>
         )}
       </div>

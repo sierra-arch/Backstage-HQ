@@ -49,6 +49,13 @@ interface PortalTask {
   due_date: string | null;
 }
 
+interface PortalAgreement {
+  id: string;
+  status: "sent" | "signed" | "voided";
+  signed_at: string | null;
+  signed_name: string | null;
+}
+
 type LoadState =
   | { kind: "loading" }
   | { kind: "signed_out" }
@@ -276,9 +283,20 @@ function ProposalCard({
   const [template, setTemplate] = useState<DocumentTemplate | null>(null);
   const [selections, setSelections] = useState<Selections>(doc?.field_values.selections || {});
   const [installments, setInstallments] = useState<PaymentInstallment[]>([]);
+  const [agreement, setAgreement] = useState<PortalAgreement | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
   const [saving, setSaving] = useState<"save" | "accept" | "decline" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+
+  const refetchAgreement = () => {
+    supabase
+      .from("agreements")
+      .select("id, status, signed_at, signed_name")
+      .eq("proposal_id", proposal.id)
+      .maybeSingle()
+      .then(({ data }) => setAgreement(data as PortalAgreement | null));
+  };
 
   useEffect(() => {
     if (!doc) return;
@@ -294,12 +312,47 @@ function ProposalCard({
   useEffect(() => {
     if (proposal.status !== "accepted") {
       setInstallments([]);
+      setAgreement(null);
       return;
     }
     fetchPaymentScheduleForProposal(proposal.id).then((result) => {
       setInstallments(result?.installments || []);
     });
+    refetchAgreement();
   }, [proposal.id, proposal.status]);
+
+  async function handlePayNow(installmentId: string) {
+    setPayingId(installmentId);
+    setError(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setError("Your session expired — please refresh the page.");
+      setPayingId(null);
+      return;
+    }
+    try {
+      const res = await fetch("/api/create-checkout-session", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ installment_id: installmentId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.url) {
+        setError(data.error || "Something went wrong starting your payment.");
+        setPayingId(null);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("Something went wrong starting your payment.");
+      setPayingId(null);
+    }
+  }
 
   if (!doc || !template) {
     return (
@@ -464,19 +517,13 @@ function ProposalCard({
         <div className="border-t pt-4 space-y-4">
           <div>
             <p className="text-sm font-semibold text-neutral-700 mb-2">Your Agreement</p>
-            <div className="flex items-center justify-between rounded-2xl border border-dashed border-neutral-300 p-3 bg-neutral-50">
-              <div>
-                <p className="text-sm text-neutral-600">Signature status: Not sent yet</p>
-                <p className="text-xs text-neutral-400 mt-0.5">We'll email you when it's ready to review and sign.</p>
+            {agreement ? (
+              <AgreementCard agreement={agreement} onSigned={refetchAgreement} />
+            ) : (
+              <div className="rounded-2xl border border-dashed border-neutral-300 p-3 bg-neutral-50 text-sm text-neutral-500">
+                Loading your agreement…
               </div>
-              <button
-                disabled
-                title="Coming soon"
-                className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
-              >
-                Review & Sign
-              </button>
-            </div>
+            )}
           </div>
 
           {installments.length > 0 && (
@@ -498,18 +545,22 @@ function ProposalCard({
                       <span className="text-xs px-2 py-1 rounded-full bg-neutral-200 text-neutral-600 capitalize">
                         {inst.status}
                       </span>
-                      <button
-                        disabled
-                        title="Online payments coming soon"
-                        className="rounded-full border px-3 py-1.5 text-xs font-medium text-neutral-400 border-neutral-200 cursor-not-allowed whitespace-nowrap"
-                      >
-                        Pay Now
-                      </button>
+                      {inst.status === "paid" ? (
+                        <span className="text-xs text-green-700 font-medium">Paid</span>
+                      ) : (
+                        <button
+                          onClick={() => handlePayNow(inst.id)}
+                          disabled={payingId !== null}
+                          className="rounded-full px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+                          style={{ backgroundColor: BRAND.forestGreen }}
+                        >
+                          {payingId === inst.id ? "Redirecting…" : "Pay Now"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-xs text-neutral-400 mt-2">Online payments are coming soon — we'll follow up with instructions in the meantime.</p>
             </div>
           )}
         </div>
@@ -545,6 +596,90 @@ function ProposalCard({
         </div>
       )}
     </div>
+  );
+}
+
+function AgreementCard({ agreement, onSigned }: { agreement: PortalAgreement; onSigned: () => void }) {
+  const [name, setName] = useState("");
+  const [signing, setSigning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (agreement.status === "signed") {
+    return (
+      <div className="rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50">
+        <p className="text-sm text-neutral-700">
+          Signed by <span className="font-medium">{agreement.signed_name}</span>
+        </p>
+        <p className="text-xs text-neutral-400 mt-0.5">
+          {agreement.signed_at ? new Date(agreement.signed_at).toLocaleString() : ""}
+        </p>
+      </div>
+    );
+  }
+
+  async function handleSign(e: React.FormEvent) {
+    e.preventDefault();
+    if (!name.trim() || signing) return;
+    setSigning(true);
+    setError(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      setError("Your session expired — please refresh the page.");
+      setSigning(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/sign-agreement", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ agreement_id: agreement.id, signed_name: name.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Something went wrong — please try again.");
+        setSigning(false);
+        return;
+      }
+      onSigned();
+    } catch {
+      setError("Something went wrong — please try again.");
+      setSigning(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSign}
+      className="rounded-2xl border border-neutral-200/70 p-3 bg-neutral-50 space-y-2"
+    >
+      <p className="text-xs text-neutral-500">
+        Type your full name below to sign and accept the terms of this agreement.
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          required
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Full name"
+          className="flex-1 rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={signing}
+          className="rounded-full px-3 py-2 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+          style={{ backgroundColor: BRAND.forestGreen }}
+        >
+          {signing ? "Signing…" : "Sign Agreement"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </form>
   );
 }
 

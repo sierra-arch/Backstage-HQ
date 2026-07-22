@@ -52,6 +52,28 @@ the internal toggle UI for it is still open (Client Portal Expansion Phase
 9). Migrations: `0012_company_members_and_new_tables`,
 `0013_company_scoped_rls`, `0014_company_members_rls`.
 
+**E-signature + Stripe deposit (2026-07-22, Client Portal Expansion Phase 3).**
+Migration `0015_agreement_signature_capture` adds `agreements.signed_name`/
+`signed_ip` (lightweight capture, not a paid e-sign vendor — typed full name
++ server timestamp via existing `signed_at` + IP from `x-forwarded-for`).
+`submit-proposal-selections.ts`'s accept path now also creates an
+`agreements` row (status `sent`) — the accepted proposal itself is the terms
+being signed; no separate contract-document generation yet (that's the
+template-manager phase). New endpoints: `api/sign-agreement.ts` (client
+signs, same trust-boundary shape as the rest of this file — client never
+gets direct table write access), `api/create-checkout-session.ts` (Stripe
+Checkout, not Elements — creates/reuses an `invoices` row per installment,
+never trusts a client-sent amount), `api/stripe-webhook.ts`
+(`checkout.session.completed` → marks invoice + installment paid, raw-body
+signature verification via `export const config = { api: { bodyParser:
+false } }`). Both the client portal's `ProposalCard` and the internal
+`ProposalDetailModal` now show live agreement/payment status instead of the
+old disabled placeholders. **Untested — needs your Stripe API keys**:
+`STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` must be set in Vercel's
+environment variables, and the webhook endpoint (`/api/stripe-webhook`)
+registered in the Stripe dashboard, before a real checkout/webhook round
+trip can be verified end-to-end.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`
