@@ -157,6 +157,23 @@ mission's affirmative-not-alarming principle) computed from `projects.status`
 + `target_delivery_date` proximity only (no per-task overdue query, to keep
 this cheap).
 
+**client_visible toggle, end-to-end (2026-07-22, Client Portal Expansion
+Phase 9).** Real gap closed: `TaskCreateModal` (the actual live one, in
+`DashboardApp.tsx`) built tasks with `project_id` but never derived
+`client_id` from the selected project, even though the client-visibility RLS
+policy (`client_reads_own_project_tasks`, from Phase 1) keys off
+`project_id → projects.client_id`, not `tasks.client_id` directly — so the
+toggle would have worked but the Phase 6 comment threads (gated on
+`task.client_id`) silently wouldn't have, for any task created through the
+normal UI. Fixed: `client_id` is now resolved from the selected project at
+creation time. Both `TaskCreateModal` (checkbox, only shown once a project
+is picked) and `TaskModal` (checkbox on any project-linked task, calls
+`updateTask` + the parent's task-list `refetch`) can set it. Default stays
+`false` (opt-in disclosure, per the Phase 1 design) — kickoff/onboarding
+auto-created tasks (`projectAutomation.ts`, `submit-onboarding.ts`) are
+intentionally left at that default; the team decides per task, nothing was
+made client-visible automatically.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

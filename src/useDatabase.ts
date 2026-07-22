@@ -54,6 +54,8 @@ export interface Task {
   assigned_to: string | null;
   created_by: string | null;
   project_id: string | null;
+  client_id: string | null;
+  client_visible: boolean;
   status: "focus" | "active" | "submitted" | "completed" | "archived";
   priority: "low" | "medium" | "high";
   impact: "small" | "medium" | "large";

@@ -99,6 +99,7 @@ type DBTask = {
   company_id: string | null;
   client_id?: string | null;
   client_visible?: boolean;
+  project_id?: string | null;
   assigned_to: string | null;
   status: "focus" | "active" | "submitted" | "completed" | "archived";
   priority: "low" | "medium" | "high";
@@ -600,6 +601,7 @@ function TaskModal({
   onComplete,
   role,
   profileId,
+  onUpdated,
 }: {
   task: DBTask | null;
   isOpen: boolean;
@@ -607,10 +609,16 @@ function TaskModal({
   onComplete: () => void;
   role: Role;
   profileId?: string;
+  onUpdated?: () => void;
 }) {
   if (!task) return null;
 
   const buttonText = isFounder(role) ? "Mark Complete" : "Submit for Approval";
+
+  async function handleVisibilityToggle(checked: boolean) {
+    await dbUpdateTask(task!.id, { client_visible: checked });
+    onUpdated?.();
+  }
 
   return (
     <Modal
@@ -679,6 +687,17 @@ function TaskModal({
           </div>
         </div>
 
+        {task.project_id && (
+          <label className="flex items-center gap-2 text-sm text-neutral-600 border-t pt-4">
+            <input
+              type="checkbox"
+              checked={task.client_visible ?? false}
+              onChange={(e) => handleVisibilityToggle(e.target.checked)}
+            />
+            Visible to client in their portal
+          </label>
+        )}
+
         {task.client_id && <TaskCommentThread task={task} profileId={profileId} />}
 
         <div className="flex gap-3 pt-4 border-t">
@@ -732,7 +751,10 @@ function TaskCreateModal({
   >("none");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [projectId, setProjectId] = useState("");
+  const [clientVisible, setClientVisible] = useState(false);
   const { projects } = useProjects();
+
+  const selectedProject = projects.find((p) => p.id === projectId);
 
   async function handleCreate() {
     const companyData = await getCompanyByName(company);
@@ -748,6 +770,8 @@ function TaskCreateModal({
       company_id: companyData?.id,
       assigned_to: assignedTo,
       project_id: projectId || null,
+      client_id: selectedProject?.client_id ?? null,
+      client_visible: selectedProject ? clientVisible : false,
       status: "active",
       priority: "medium",
       impact: level,
@@ -763,6 +787,7 @@ function TaskCreateModal({
     setRecurring("none");
     setPhotoFile(null);
     setProjectId("");
+    setClientVisible(false);
 
     onCreated();
     onClose();
@@ -908,6 +933,17 @@ function TaskCreateModal({
             ))}
           </select>
         </div>
+
+        {selectedProject && (
+          <label className="flex items-center gap-2 text-sm text-neutral-600">
+            <input
+              type="checkbox"
+              checked={clientVisible}
+              onChange={(e) => setClientVisible(e.target.checked)}
+            />
+            Visible to client in their portal
+          </label>
+        )}
 
         <div>
           <label className="text-sm font-medium text-neutral-700">
@@ -5192,6 +5228,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
         onComplete={() => selectedTask && handleComplete(selectedTask)}
         role={role}
         profileId={profile?.id}
+        onUpdated={refetch}
       />
 
       <TaskCreateModal
