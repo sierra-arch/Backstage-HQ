@@ -12,28 +12,78 @@
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl6cWV5eWdwc3BvcmtncXdlcXJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxODE2NzMsImV4cCI6MjA4NDc1NzY3M30.L5GGKm_9gNEN5VZqgP7m0UrfKIdrmIzI7Z6DOjfIeqY";
     </script>
 
-    <!-- Font for that premium, calm feel -->
+    <!-- Backstage brand fonts: Cormorant Garamond (editorial headlines) + DM Sans (body/UI) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
 
     <!-- ✅ Tailwind CDN (good for prototypes; no build step needed) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      /* Optional: tweak Tailwind theme a bit */
+      /* Backstage brand theme — full-boldness redesign (2026-07-22) */
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: {
-              sans: ['"Plus Jakarta Sans"', "ui-sans-serif", "system-ui"],
+              sans: ['"DM Sans"', "ui-sans-serif", "system-ui"],
+              serif: ['"Cormorant Garamond"', "Georgia", "serif"],
             },
             colors: {
+              /* Ember orange — remaps the app's old teal accent to Backstage's brand ember (#C4622D) */
               teal: {
-                50: "#EEF8F5",
-                100: "#D6F0EA",
-                600: "#1B7E70",
-                700: "#15685D",
+                50: "#FBF1EA",
+                100: "#F6E0CE",
+                200: "#EDC29D",
+                300: "#E19E6E",
+                400: "#D17F49",
+                500: "#C97239",
+                600: "#C4622D",
+                700: "#9C4E24",
+                800: "#7A3D1C",
+                900: "#4A2410",
+              },
+              ember: {
+                50: "#FBF1EA",
+                100: "#F6E0CE",
+                200: "#EDC29D",
+                300: "#E19E6E",
+                400: "#D17F49",
+                500: "#C97239",
+                600: "#C4622D",
+                700: "#9C4E24",
+                800: "#7A3D1C",
+                900: "#4A2410",
+              },
+              /* Forest green — deep, full-bleed brand green */
+              forest: {
+                50: "#E8EDE9",
+                100: "#C9D6CC",
+                200: "#9FB6A3",
+                300: "#719078",
+                400: "#4C6E56",
+                500: "#2C4A3E",
+                600: "#243D33",
+                700: "#1C3029",
+                800: "#14231E",
+                900: "#0C1712",
+              },
+              /* Cream — main background */
+              cream: {
+                50: "#FEFDFB",
+                100: "#F7F3EC",
+                200: "#EFE8DA",
+                300: "#E5DAC6",
+              },
+              /* Chartreuse — bright accent highlight from brand marketing site */
+              chartreuse: {
+                100: "#F3F6D1",
+                200: "#E7EDA3",
+                300: "#DCE875",
+                400: "#CFDE4A",
+                500: "#C0D22E",
               },
             },
           },
@@ -49,13 +99,13 @@
         height: 100%;
       }
       body {
-        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui,
-          -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial,
-          "Apple Color Emoji", "Segoe UI Emoji";
+        font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system,
+          Segoe UI, Roboto, "Helvetica Neue", Arial, "Apple Color Emoji",
+          "Segoe UI Emoji";
       }
     </style>
   </head>
-  <body class="antialiased bg-neutral-50 text-neutral-900">
+  <body class="antialiased bg-cream-100 text-neutral-900">
     <div id="root"></div>
    <script type="module" src="/src/index.tsx"></script>
   </body>

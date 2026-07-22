@@ -115,11 +115,45 @@ order without checking that doc's dependency notes first.
   execute schema/security migrations autonomously. This project has no
   staging environment; the database is live and in daily use.
 
+## Visual Design System (2026-07-22 full-boldness redesign)
+
+The internal dashboard was reskinned app-wide to match the real Backstage
+marketing site (not generic dashboard inspiration) — full-bleed ember
+orange + deep forest green, editorial serif headlines, pill buttons.
+
+- **Colors** (defined in `index.html`'s inline `tailwind.config`): `teal`
+  (legacy key, now remapped so all ~200 existing `teal-*` classes
+  app-wide render as ember orange — `teal-600` = brand ember `#C4622D`),
+  `forest` (deep green, `forest-900` = `#0C1712` for full-bleed panels like
+  the sidebar), `cream` (`cream-100` = `#F7F3EC`, main page background),
+  `chartreuse` (bright lime-yellow accent, `chartreuse-300` = `#DCE875`,
+  used sparingly for highlight pills/badges only).
+- **Fonts:** DM Sans (body/UI, replaces Plus Jakarta Sans) + Cormorant
+  Garamond (serif, applied globally to all `<h1>/<h2>/<h3>` via
+  `src/styles.css` — used for card titles, page headings, big stat
+  numbers, and the "Backstage" wordmark).
+- **Buttons:** primary CTAs (`bg-teal-600` i.e. ember) are pill-shaped
+  (`rounded-full`), not `rounded-xl`, across all files.
+- **Cards:** `rounded-[22px]` with a `border-cream-200` hairline (see
+  `Card` in `src/ui.tsx`).
+- Reskinned structural pieces by hand: `Sidebar` and `TopHeader` in
+  `src/DashboardApp.tsx` (dark forest sidebar, serif wordmark, chartreuse
+  "Now" badge), the sign-in screen in `src/App.tsx`.
+- **Future idea, not built:** per-company dashboard "skin" — letting each
+  client company (or eventually each SaaS tenant) see the dashboard
+  reskinned in their own brand colors/fonts instead of Backstage's. Would
+  likely hang off the existing Brand Kit data (`brand_kits` table already
+  stores a company's colors/fonts) — theme tokens could be generated
+  per-company from that record instead of hardcoded in `index.html`. Not
+  scoped or estimated yet; flagged here so a future session doesn't have
+  to rediscover the idea from scratch.
+
 ## Reference Docs (in `claude/` — read before big features)
 
 - `claude/vocabulary-reference.md` — full terminology authority, current build status detail
 - `claude/roadmap.md` — the 13-milestone build sequence + resolved schema decisions + the detailed Proposal Generator (milestone 5) plan
 - `claude/saas-feature-spec.md` — the full template/systems/dashboard feature spec (source document the roadmap was built from)
+- `claude/saas-feature-spec-v2.md` — updated spec pasted 2026-07-22 (brand_kits/document_templates/generated_documents architecture, Home Dashboard "two jobs" framing) with a reconciliation note on how it coexists with the gamification decision above
 - `claude/platform-spec.md` — original three-view architecture concept (defer to `roadmap.md` and `vocabulary-reference.md` on any naming conflict)
 
 ## Working Agreement

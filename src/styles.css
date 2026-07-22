@@ -1,8 +1,8 @@
-/* === Theme tokens (tweak freely) === */
+/* === Theme tokens — Backstage brand (ember + forest), full-boldness redesign 2026-07-22 === */
 :root {
-  --app-bg: #e9f2ee; /* overall page background */
-  --focus-bg: #ecf7f3; /* Today’s Focus background (lighter + calmer) */
-  --teal-border: #bfe6df; /* subtle teal-ish border for focus area */
+  --app-bg: #f7f3ec; /* cream overall page background */
+  --focus-bg: #fbf1ea; /* Today’s Focus background (warm cream tint) */
+  --teal-border: #edc29d; /* ember-tinted border for focus area */
 }
 
 /* Optional: ultra-subtle depth at the very top of the canvas */
@@ -22,25 +22,29 @@
   );
 }
 
-/* ====== Design Tokens (calming, premium) ====== */
+/* ====== Design Tokens — Backstage brand (ember orange + forest green) ====== */
 :root {
-  --bg: #f6f8f7;
+  --bg: #f7f3ec; /* cream */
   --panel: #ffffff;
-  --ink: #122222;
-  --ink-2: #51615f;
-  --ink-3: #889593;
-  --bd: #e7ecea;
+  --ink: #201a14;
+  --ink-2: #5a4f43;
+  --ink-3: #8c8074;
+  --bd: #ecdfcd;
 
-  --brand: #0e7c6b; /* emerald-teal */
-  --brand-800: #0b695b;
-  --brand-50: #e9f5f2;
+  --brand: #c4622d; /* ember orange */
+  --brand-800: #9c4e24;
+  --brand-50: #fbf1ea;
+
+  --forest: #2c4a3e; /* forest green */
+  --forest-dark: #0c1712;
+  --chartreuse: #dce875;
 
   --accent-ink: #2a2f2e;
-  --good: #1b9365;
-  --warn: #e7a700;
+  --good: #2c4a3e;
+  --warn: #c4622d;
 
-  --rx: 18px; /* card radius */
-  --rx-sm: 12px; /* small radius */
+  --rx: 20px; /* card radius */
+  --rx-sm: 14px; /* small radius */
   --gap: 20px; /* global gap */
   --shadow-1: 0 0 0 1px var(--bd), 0 10px 30px rgba(20, 32, 31, 0.06);
   --shadow-2: 0 0 0 1px var(--bd), 0 16px 40px rgba(20, 32, 31, 0.08);
@@ -59,7 +63,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Inter", "SF Pro Text",
+  font-family: "DM Sans", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
@@ -72,16 +76,18 @@ h3 {
   margin: 0;
   font-weight: 600;
   color: var(--ink);
+  font-family: "Cormorant Garamond", Georgia, serif;
 }
 h1 {
-  font-size: 22px;
-  letter-spacing: -0.02em;
+  font-size: 30px;
+  letter-spacing: -0.01em;
+  font-weight: 700;
 }
 h2 {
-  font-size: 18px;
+  font-size: 22px;
 }
 h3 {
-  font-size: 15px;
+  font-size: 17px;
 }
 
 .muted {
@@ -608,11 +614,11 @@ input[type="radio"] {
   height: 10px;
 }
 *::-webkit-scrollbar-thumb {
-  background: rgba(15, 118, 110, 0.35);
+  background: rgba(196, 98, 45, 0.35);
   border-radius: 9999px;
 }
 *::-webkit-scrollbar-thumb:hover {
-  background: rgba(15, 118, 110, 0.5);
+  background: rgba(196, 98, 45, 0.5);
 }
 *::-webkit-scrollbar-track {
   background: transparent;
@@ -620,8 +626,29 @@ input[type="radio"] {
 
 /* Accessible focus ring fallback */
 :focus-visible {
-  outline: 2px solid rgba(45, 212, 191, 0.45);
+  outline: 2px solid rgba(196, 98, 45, 0.45);
   outline-offset: 2px;
+}
+
+/* Highlight span — chartreuse text highlight, matches the Backstage marketing site's
+   bright-accent phrase treatment (e.g. "never be the bottleneck") */
+.brand-highlight {
+  background: var(--chartreuse);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+/* Rotating circular badge, like the "OUR SYSTEMS • THE BACKSTAGE METHOD" seal on the marketing site */
+@keyframes brand-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.brand-seal {
+  animation: brand-spin 12s linear infinite;
 }
 
 /* ====== Helper usage notes ======

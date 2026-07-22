@@ -28,7 +28,7 @@ export function Card({
   return (
     <section
       onClick={onClick}
-      className={`rounded-2xl border border-neutral-200 bg-white ${
+      className={`rounded-[22px] border border-cream-200 bg-white ${
         variant === "compact" ? "p-4 md:p-5" : "p-5 md:p-6"
       } shadow-sm ${className} ${
         onClick ? "cursor-pointer hover:border-teal-300 transition-colors" : ""

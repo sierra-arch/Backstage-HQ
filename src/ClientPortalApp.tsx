@@ -8,9 +8,9 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
 const BRAND = {
-  forestGreen: "#1B4332",
-  ember: "#EA580C",
-  cream: "#FAF3E8",
+  forestGreen: "#2C4A3E",
+  ember: "#C4622D",
+  cream: "#F7F3EC",
 };
 
 interface PortalClient {

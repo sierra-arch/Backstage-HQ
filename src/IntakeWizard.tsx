@@ -321,7 +321,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
               <button
                 onClick={() => setStep((s) => s + 1)}
                 disabled={!canContinue}
-                className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
               >
                 Continue
               </button>
@@ -329,7 +329,7 @@ export function IntakeWizard({ companySlug }: { companySlug: string }) {
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="flex-1 rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                className="flex-1 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 transition-colors"
               >
                 {submitting ? "Submitting…" : "Submit"}
               </button>
