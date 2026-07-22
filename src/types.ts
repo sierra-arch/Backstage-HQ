@@ -6,7 +6,7 @@ export type Role = "Founder" | "Team";
 export const fromDbToUi: Record<AppRole, Role> = { founder: "Founder", team: "Team" };
 export const isFounder = (r: Role) => r === "Founder";
 
-export const COMPANIES = ["Prose Florals", "Backstage", "Mairë"] as const;
+export const COMPANIES = ["Prose Florals", "Backstage", "Mairé"] as const;
 export type CompanyName = (typeof COMPANIES)[number];
 
 export const XP_BY_IMPACT = { small: 5, medium: 10, large: 20 } as const;
@@ -19,36 +19,28 @@ export type DBTask = {
   description: string | null;
   company_id: string | null;
   assigned_to: string | null;
-  created_by?: string | null;
   status: "focus" | "active" | "submitted" | "completed" | "archived";
   priority: "low" | "medium" | "high";
   impact: "small" | "medium" | "large";
   estimate_minutes: number;
   company_name?: string;
-  company_slug?: string;
   assignee_name?: string;
   due_date?: string | null;
-  completed_at?: string | null;
   photo_url?: string | null;
-  client_id?: string | null;
-  sort_order?: number;
-  created_at?: string;
-  updated_at?: string;
-  metadata?: { recurring?: string; [k: string]: any } | null;
 };
 
 export type Client = {
   id: string;
   company_id?: string | null;
+  company?: string; // older mock shape
   name: string;
-  photo_url?: string | null;
-  description?: string | null;
-  contact_email?: string | null;
-  contact_phone?: string | null;
-  scope?: string | null;
-  quick_links?: { name: string; url: string }[] | null;
-  deadline?: string | null;
-  client_status?: "active" | "completed" | "archived";
+  photo_url?: string;
+  description?: string;
+  contact?: string;
+  scope?: string;
+  quick_links?: string[];
+  deadline?: string;
+  added_date?: string;
   // allow extra DB fields without breaking compile
   [k: string]: any;
 };
@@ -102,7 +94,6 @@ export type FounderPage =
   | "Settings";
 export type TeamPage =
   | "Today"
-  | "Meetings"
   | "Tasks"
   | "Companies"
   | "Playbook"
@@ -115,12 +106,4 @@ export const TASK_WEIGHT: Record<DBTask["impact"], number> = {
   small: 1,
   medium: 2,
   large: 3,
-};
-
-export type Accomplishment = {
-  id: string;
-  user: string;
-  text: string;
-  timestamp: number;
-  postedToTeam: boolean;
 };

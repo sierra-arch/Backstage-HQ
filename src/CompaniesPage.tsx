@@ -1,127 +1,31 @@
 // CompaniesPage.tsx
-import React, { useState } from "react";
+import React from "react";
 import { motion } from "framer-motion";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import type { DragEndEvent } from "@dnd-kit/core";
-import {
-  SortableContext,
-  rectSortingStrategy,
-  useSortable,
-  arrayMove,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import { Card } from "./ui";
-import { Client, Product, DBTask, TASK_WEIGHT } from "./types";
-import { supabase } from "./supabase";
+import { CompanyChip, remainingBreakdown } from "./ui";
+import { Client, Product, DBTask, Page, TASK_WEIGHT } from "./types";
 
-function calculateClientProgress(clientId: string, tasks: DBTask[]) {
+function calculateCompanyProgress(companyName: string, tasks: DBTask[]) {
   const relevant = tasks.filter(
-    (t) => t.client_id === clientId && t.status !== "archived"
+    (t) => t.company_name === companyName && t.status !== "archived"
   );
-  if (relevant.length === 0) return null;
+  if (relevant.length === 0) return 100;
+
   let total = 0;
   let completed = 0;
   relevant.forEach((t) => {
     total += TASK_WEIGHT[t.impact];
     if (t.status === "completed") completed += TASK_WEIGHT[t.impact];
   });
+
   return total > 0 ? Math.round((completed / total) * 100) : 0;
 }
 
-function progressColor(pct: number) {
-  if (pct >= 70) return "bg-teal-500";
-  if (pct >= 40) return "bg-amber-400";
-  return "bg-red-400";
-}
-
-type CompanyRow = { id: string; name: string; software_links?: { name: string; url: string }[] | null };
-
-/* ── Sortable client card ── */
-function SortableClientCard({
-  client,
-  tasks,
-  onClientClick,
-}: {
-  client: Client;
-  tasks: DBTask[];
-  onClientClick: (c: Client) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: client.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.45 : 1,
-    zIndex: isDragging ? 10 : undefined,
-    position: "relative" as const,
-  };
-
-  const clientTasks = tasks.filter(
-    (t) => t.client_id === client.id && t.status !== "archived"
-  );
-
-  return (
-    <div ref={setNodeRef} style={style} className="w-44 shrink-0">
-      <div
-        onClick={(e) => { e.stopPropagation(); onClientClick(client); }}
-        className="rounded-xl border bg-white overflow-hidden cursor-pointer hover:shadow-md hover:border-teal-200 transition-all"
-      >
-        <div className="p-2.5 flex items-stretch gap-2">
-          {/* Round avatar — also the drag handle */}
-          <div
-            {...attributes}
-            {...listeners}
-            className="w-12 h-12 rounded-full overflow-hidden shrink-0 cursor-grab active:cursor-grabbing"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {client.photo_url ? (
-              <img src={client.photo_url} alt={client.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full bg-teal-100 flex items-center justify-center">
-                <span className="text-teal-700 font-bold text-[11px] leading-none select-none">
-                  {client.name.split(" ").map((w: string) => w[0] ?? "").join("").slice(0, 2).toUpperCase()}
-                </span>
-              </div>
-            )}
-          </div>
-          {/* Info */}
-          <div className="flex-1 min-w-0 flex flex-col pt-0.5">
-            <p className="text-xs font-semibold text-neutral-800 truncate leading-tight">{client.name}</p>
-            {client.scope && (
-              <p className="text-[10px] text-neutral-500 line-clamp-1 leading-snug">{client.scope}</p>
-            )}
-            {client.deadline && (
-              <span className="text-[10px] font-medium text-teal-600 block">
-                {new Date(client.deadline + "T12:00:00").toLocaleDateString([], { month: "short", day: "numeric" })}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Main page ── */
 export function CompaniesPage({
   companies,
   tasks,
   clients,
   products,
-  companiesData = [],
   onCompanyClick,
   onClientClick,
   onProductClick,
@@ -130,167 +34,176 @@ export function CompaniesPage({
   tasks: DBTask[];
   clients: Client[];
   products: Product[];
-  companiesData?: CompanyRow[];
   onCompanyClick: (companyName: string) => void;
   onClientClick: (client: Client) => void;
   onProductClick: (product: Product) => void;
-  onTaskClick?: (task: DBTask) => void;
 }) {
-  // Custom drag order per company (keyed by company ID or name)
-  const [orderedIds, setOrderedIds] = useState<Record<string, string[]>>({});
+  const SocialIcon = ({ platform }: { platform: string }) => {
+    const letters: Record<string, string> = {
+      Instagram: "IG",
+      Facebook: "FB",
+      Twitter: "TW",
+      Website: "W",
+      TikTok: "TT",
+      Etsy: "ET",
+      LinkedIn: "LI",
+      Pinterest: "PI",
+    };
+    return (
+      <div className="w-8 h-8 rounded-full border-2 border-teal-700 flex items-center justify-center text-teal-700 hover:bg-teal-50 cursor-pointer transition-colors">
+        <span className="text-[9px] font-bold">
+          {letters[platform] || platform.slice(0, 2).toUpperCase()}
+        </span>
+      </div>
+    );
+  };
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
-
-  function sortByDeadline(list: Client[]): Client[] {
-    return [...list].sort((a, b) => {
-      if (!a.deadline && !b.deadline) return 0;
-      if (!a.deadline) return 1;
-      if (!b.deadline) return -1;
-      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-    });
-  }
-
-  function getOrderedClients(key: string, list: Client[]): Client[] {
-    const custom = orderedIds[key];
-    if (custom) {
-      return custom.map((id) => list.find((c) => c.id === id)).filter(Boolean) as Client[];
-    }
-    return sortByDeadline(list);
-  }
-
-  async function handleDragEnd(event: DragEndEvent, key: string, list: Client[]) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const current = getOrderedClients(key, list).map((c) => c.id);
-    const newOrder = arrayMove(current, current.indexOf(active.id as string), current.indexOf(over.id as string));
-    setOrderedIds((prev) => ({ ...prev, [key]: newOrder }));
-    // Persist sort_order to DB (requires: ALTER TABLE clients ADD COLUMN IF NOT EXISTS sort_order integer)
-    newOrder.forEach((id, idx) => {
-      supabase.from("clients").update({ sort_order: idx }).eq("id", id);
-    });
-  }
+  // NOTE: We don't assume company metadata columns here.
+  // The drawer is the “details” place; this page is a fast overview.
+  const chipColors: Record<string, string> = {
+    "Prose Florals": "bg-lime-50 text-lime-900 border-lime-200",
+    Backstage: "bg-teal-100 text-teal-900 border-teal-300",
+    "Mairé": "bg-emerald-50 text-emerald-900 border-emerald-200",
+  };
 
   return (
     <div className="space-y-6">
       {companies.map((companyName) => {
         const companyTasks = tasks.filter((t) => t.company_name === companyName);
-        const openTasks = companyTasks.filter(
+        const open = companyTasks.filter(
           (t) => t.status !== "completed" && t.status !== "archived"
-        );
+        ).length;
 
-        const companyRow = companiesData.find(
-          (c) => c.name === companyName || c.name.toLowerCase() === companyName.toLowerCase()
-        );
-        const tools: { name: string; url: string }[] = companyRow?.software_links ?? [];
+        const progress = calculateCompanyProgress(companyName, tasks);
+        const remaining = remainingBreakdown(companyName, tasks);
+        const tooltip =
+          remaining.total === 0
+            ? "All clear 🎉"
+            : `${remaining.small} small • ${remaining.medium} medium • ${remaining.large} large remaining`;
 
-        const companyClients = clients.filter((c) =>
-          (companyRow && c.company_id === companyRow.id) ||
-          c.company_name === companyName
-        );
+        // Real data tiles
+        const companyClients = clients
+          .filter((c) => c.company === companyName || c.company_name === companyName)
+          .slice(0, 4);
 
         const companyProducts = products
-          .filter((p) =>
-            (companyRow && p.company_id === companyRow.id) ||
-            p.company_name === companyName
-          )
+          .filter((p) => p.company === companyName || p.company_name === companyName)
           .slice(0, 6);
 
-        const isMaire = companyName === "Mairë";
-        const key = companyRow?.id ?? companyName;
-        const orderedClients = getOrderedClients(key, companyClients);
+        const items: any[] =
+          companyName === "Mairé" ? companyProducts : companyClients;
 
         return (
-          <section
+          <Card
             key={companyName}
+            className="border-2 border-teal-100 hover:border-teal-200 transition-colors"
             onClick={() => onCompanyClick(companyName)}
-            className="rounded-2xl border border-neutral-200 bg-white p-5 md:p-6 shadow-sm cursor-pointer hover:border-teal-300 transition-colors"
           >
             <div className="space-y-4">
-              {/* Header */}
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-2xl font-extrabold text-teal-900 tracking-tight">{companyName}</h3>
-                  {tools.map((tool, i) => (
-                    <a
-                      key={i}
-                      href={tool.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-xs px-3 py-1.5 rounded-xl border bg-white hover:bg-teal-50 hover:border-teal-200 text-neutral-700 font-medium transition-colors whitespace-nowrap"
-                    >
-                      {tool.name} →
-                    </a>
-                  ))}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center flex-shrink-0">
+                    <svg viewBox="0 0 200 150" className="w-7 h-7 opacity-60">
+                      <path
+                        d="M0,150 L50,80 L100,100 L150,40 L200,150 Z"
+                        fill="#0F766E"
+                      />
+                      <circle cx="160" cy="40" r="15" fill="#0F766E" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">{companyName}</h3>
+                    <div className="mt-1 flex items-center gap-2">
+                      <CompanyChip name={companyName} />
+                      <span className="text-xs text-neutral-500">{open} open</span>
+                    </div>
+                  </div>
                 </div>
-                <span className="text-xs text-neutral-500">{openTasks.length} open tasks</span>
+
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2" title={tooltip}>
+                    <div className="h-2 w-32 rounded-full bg-teal-100 overflow-hidden">
+                      <motion.div
+                        className="h-full bg-teal-600"
+                        initial={false}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                      />
+                    </div>
+                    <span className="text-xs text-neutral-500 w-10">
+                      {progress}%
+                    </span>
+                  </div>
+
+                  {/* Chips (safe placeholders if you later add these links per company) */}
+                  <div className="flex gap-2">
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full border ${
+                        chipColors[companyName] || "bg-neutral-50 text-neutral-900 border-neutral-200"
+                      }`}
+                    >
+                      Overview
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {/* Keep icon row for visual parity; real links live in the drawer */}
+                    <span><SocialIcon platform="Website" /></span>
+                  </div>
+                </div>
               </div>
 
-              {/* Clients / Products */}
-              <div>
-                <div className="text-[11px] font-medium text-neutral-400 uppercase tracking-wide mb-2">
-                  {isMaire ? "Products" : "Clients"}
-                </div>
-
-                {isMaire ? (
-                  <div className="relative">
-                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                    {companyProducts.map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={(e) => { e.stopPropagation(); onProductClick(item as Product); }}
-                        className="relative w-36 shrink-0 rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity aspect-[3/4]"
-                        style={{
-                          backgroundImage: item.photo_url
-                            ? `url(${item.photo_url})`
-                            : `linear-gradient(135deg, #F0FAF7 0%, #E2F5EF 100%)`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                        }}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-2">
-                          <p className="text-white text-xs font-medium truncate">{item.name}</p>
-                        </div>
-                      </div>
-                    ))}
-                    {companyProducts.length === 0 && (
-                      <div className="text-xs text-neutral-400 py-4">No products yet.</div>
-                    )}
-                  </div>
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
-                  </div>
-                ) : (
-                  <div className="relative">
-                  <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragEnd={(e) => handleDragEnd(e, key, companyClients)}
+              <div className="grid grid-cols-12 gap-2">
+                {items.map((item: any) => (
+                  <div
+                    key={item.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      companyName === "Mairé"
+                        ? onProductClick(item as Product)
+                        : onClientClick(item as Client);
+                    }}
+                    className={`relative rounded-xl overflow-hidden cursor-pointer hover:opacity-90 transition-opacity ${
+                      companyName === "Mairé" ? "aspect-[3/4]" : "aspect-[4/3]"
+                    }`}
+                    style={{
+                      backgroundImage: item.photo_url
+                        ? `url(${item.photo_url})`
+                        : `linear-gradient(135deg, #CDEDE6 0%, #B8E0D9 100%)`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
                   >
-                    <SortableContext items={orderedClients.map((c) => c.id)} strategy={rectSortingStrategy}>
-                      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                        {orderedClients.map((client) => (
-                          <SortableClientCard
-                            key={client.id}
-                            client={client}
-                            tasks={tasks}
-                            onClientClick={onClientClick}
+                    {!item.photo_url && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <svg
+                          viewBox="0 0 200 150"
+                          className="w-3/4 h-3/4 opacity-30"
+                        >
+                          <path
+                            d="M0,150 L50,80 L100,100 L150,40 L200,150 Z"
+                            fill="#0F766E"
                           />
-                        ))}
-                        {orderedClients.length === 0 && (
-                          <div className="text-xs text-neutral-400 py-4">No clients yet.</div>
-                        )}
+                          <circle cx="160" cy="40" r="15" fill="#0F766E" />
+                        </svg>
                       </div>
-                    </SortableContext>
-                  </DndContext>
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-2">
+                      <p className="text-white text-xs font-medium truncate">
+                        {item.name}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                {items.length === 0 && (
+                  <div className="col-span-12 text-xs text-neutral-500">
+                    No {companyName === "Mairé" ? "products" : "clients"} yet.
                   </div>
                 )}
               </div>
             </div>
-          </section>
+          </Card>
         );
       })}
     </div>

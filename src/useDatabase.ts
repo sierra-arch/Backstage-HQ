@@ -3,7 +3,7 @@
 // React hooks for interacting with your database
 // =====================================================
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
 
 // =====================================================
@@ -19,7 +19,6 @@ export interface Profile {
   avatar_url: string | null;
   xp: number;
   level: number;
-  google_doc_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -35,7 +34,6 @@ export interface Company {
     border: string;
   } | null;
   is_active: boolean;
-  software_links: { name: string; url: string }[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -47,6 +45,7 @@ export interface Task {
   company_id: string | null;
   assigned_to: string | null;
   created_by: string | null;
+  project_id: string | null;
   status: "focus" | "active" | "submitted" | "completed" | "archived";
   priority: "low" | "medium" | "high";
   impact: "small" | "medium" | "large";
@@ -56,8 +55,6 @@ export interface Task {
   sort_order: number;
   tags: string[] | null;
   metadata: any;
-  photo_url: string | null;
-  client_id: string | null;
   created_at: string;
   updated_at: string;
   company_name?: string;
@@ -68,7 +65,6 @@ export interface Task {
 export interface Client {
   id: string;
   company_id: string | null;
-  company_name?: string | null;
   name: string;
   photo_url: string | null;
   description: string | null;
@@ -77,29 +73,24 @@ export interface Client {
   scope: string | null;
   quick_links: { name: string; url: string }[] | null;
   deadline: string | null;
-  client_status: "active" | "completed" | "archived";
+  stage: "lead" | "proposal_sent" | "active" | "delivered" | "archived";
+  track: "freelancer" | "founder_mini" | "founder_full" | "ceo" | null;
+  source: string | null;
   created_by: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 export interface Product {
   id: string;
   company_id: string | null;
-  company_name?: string | null;
   name: string;
   photo_url: string | null;
   description: string | null;
-  sku: string | null;
-  etsy_listing_id: string | null;
-  etsy_url: string | null;
   price: number | null;
-  inventory_count: number;
-  last_synced_at: string | null;
-  is_active: boolean;
-  created_by: string | null;
+  status: string | null;
+  quick_links: string[] | null;
+  launch_date: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 export interface SOP {
@@ -159,8 +150,7 @@ export async function ensureProfile(
   if (!user) return null;
 
   const founderEmails = new Set([
-    "sierra@gobackstage.ai",
-    "sierra@backstageop.com",
+    "sierrabettis@proseflorals.com",
   ]);
 
   const role: AppRole = founderEmails.has(user.email ?? "")
@@ -211,95 +201,59 @@ export async function fetchProfile(): Promise<Profile | null> {
   return data;
 }
 
-export async function updateProfileGoogleDocId(userId: string, docId: string): Promise<void> {
-  await supabase.from("profiles").update({ google_doc_id: docId }).eq("id", userId);
-}
-
-const LEVEL_XP_THRESHOLD = 200;
-
-export async function addXPToProfile(userId: string, xpGained: number): Promise<void> {
-  const { data: profile, error: fetchErr } = await supabase
-    .from("profiles")
-    .select("xp, level")
-    .eq("id", userId)
-    .single();
-  if (fetchErr || !profile) {
-    console.warn("addXPToProfile: could not fetch profile for", userId, fetchErr);
-    return;
-  }
-
-  let newXP = (profile.xp ?? 0) + xpGained;
-  let newLevel = profile.level ?? 1;
-  while (newXP >= LEVEL_XP_THRESHOLD) {
-    newXP -= LEVEL_XP_THRESHOLD;
-    newLevel++;
-  }
-  const { error: updateErr } = await supabase
-    .from("profiles")
-    .update({ xp: newXP, level: newLevel })
-    .eq("id", userId);
-  if (updateErr) {
-    console.warn("addXPToProfile: update failed", updateErr);
-  }
-}
-
 export function useProfile() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadProfile = useCallback(async () => {
-    try {
-      const data = await fetchProfile();
-      setProfile(data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     let mounted = true;
-    let subscription: any = null;
 
-    async function init() {
-      await loadProfile();
-      if (!mounted) return;
-
-      // Get user ID from auth for a stable subscription filter
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || !mounted) return;
-
-      subscription = supabase
-        .channel("profile-changes")
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "profiles",
-            filter: `id=eq.${user.id}`,
-          },
-          (payload) => {
-            if (mounted && payload.new) {
-              setProfile(payload.new as Profile);
-            }
-          }
-        )
-        .subscribe();
+    async function loadProfile() {
+      try {
+        const data = await fetchProfile();
+        if (mounted) {
+          setProfile(data);
+          setError(null);
+        }
+      } catch (err: any) {
+        if (mounted) {
+          setError(err.message);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
     }
 
-    init();
+    loadProfile();
+
+    const subscription = supabase
+      .channel("profile-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${profile?.id}`,
+        },
+        (payload) => {
+          if (mounted && payload.new) {
+            setProfile(payload.new as Profile);
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
       mounted = false;
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, []);
 
-  return { profile, loading, error, refetch: loadProfile };
+  return { profile, loading, error };
 }
 
 export async function fetchAllProfiles(): Promise<Profile[]> {
@@ -314,6 +268,21 @@ export async function fetchAllProfiles(): Promise<Profile[]> {
   }
 
   return data || [];
+}
+
+export async function resolveProfileIdByName(displayName: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .ilike("display_name", displayName)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error resolving profile by name:", error);
+    return null;
+  }
+
+  return data?.id ?? null;
 }
 
 export function useTeamMembers() {
@@ -367,6 +336,7 @@ export async function fetchCompanies(): Promise<Company[]> {
   const { data, error } = await supabase
     .from("companies")
     .select("*")
+    .eq("is_active", true)
     .order("name", { ascending: true });
 
   if (error) {
@@ -381,24 +351,25 @@ export function useCompanies() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadCompanies = useCallback(async () => {
-    const data = await fetchCompanies();
-    setCompanies(data);
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
+    let mounted = true;
+
+    async function loadCompanies() {
+      const data = await fetchCompanies();
+      if (mounted) {
+        setCompanies(data);
+        setLoading(false);
+      }
+    }
+
     loadCompanies();
 
-    const subscription = supabase
-      .channel("company-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "companies" }, loadCompanies)
-      .subscribe();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-    return () => { subscription.unsubscribe(); };
-  }, [loadCompanies]);
-
-  return { companies, loading, refetch: loadCompanies };
+  return { companies, loading };
 }
 
 export async function getCompanyByName(name: string): Promise<Company | null> {
@@ -416,21 +387,6 @@ export async function getCompanyByName(name: string): Promise<Company | null> {
   return data;
 }
 
-export async function updateCompanySoftwareLinks(
-  companyId: string,
-  links: { name: string; url: string }[]
-): Promise<boolean> {
-  const { error } = await supabase
-    .from("companies")
-    .update({ software_links: links })
-    .eq("id", companyId);
-  if (error) {
-    console.error("Error updating software links:", error);
-    return false;
-  }
-  return true;
-}
-
 // =====================================================
 // TASK HOOKS
 // =====================================================
@@ -442,7 +398,13 @@ export async function fetchTasks(filters?: {
 }): Promise<Task[]> {
   let query = supabase
     .from("tasks")
-    .select("*")
+    .select(
+      `
+      *,
+      company:companies(name, slug),
+      assignee:profiles!assigned_to(display_name)
+    `
+    )
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });
 
@@ -469,30 +431,11 @@ export async function fetchTasks(filters?: {
     return [];
   }
 
-  if (!data || data.length === 0) return [];
-
-  // Enrich with company + assignee names via separate simple lookups
-  // (avoids needing FK constraints for PostgREST joins)
-  const companyIds = [...new Set(data.map((t: any) => t.company_id).filter(Boolean))];
-  const assigneeIds = [...new Set(data.map((t: any) => t.assigned_to).filter(Boolean))];
-
-  const [companiesResult, profilesResult] = await Promise.all([
-    companyIds.length > 0
-      ? supabase.from("companies").select("id, name, slug").in("id", companyIds)
-      : Promise.resolve({ data: [] as any[], error: null }),
-    assigneeIds.length > 0
-      ? supabase.from("profiles").select("id, display_name").in("id", assigneeIds)
-      : Promise.resolve({ data: [] as any[], error: null }),
-  ]);
-
-  const companyMap = new Map((companiesResult.data || []).map((c: any) => [c.id, c]));
-  const profileMap = new Map((profilesResult.data || []).map((p: any) => [p.id, p]));
-
-  return data.map((task: any) => ({
+  return (data || []).map((task: any) => ({
     ...task,
-    company_name: companyMap.get(task.company_id)?.name ?? null,
-    company_slug: companyMap.get(task.company_id)?.slug ?? null,
-    assignee_name: profileMap.get(task.assigned_to)?.display_name ?? null,
+    company_name: task.company?.name,
+    company_slug: task.company?.slug,
+    assignee_name: task.assignee?.display_name,
   }));
 }
 
@@ -552,8 +495,6 @@ export async function createTask(task: Partial<Task>): Promise<Task | null> {
   const { data, error } = await supabase
     .from("tasks")
     .insert({
-      sort_order: 0,
-      updated_at: new Date().toISOString(),
       ...task,
       created_by: user.id,
     })
@@ -574,7 +515,7 @@ export async function updateTask(
 ): Promise<Task | null> {
   const { data, error } = await supabase
     .from("tasks")
-    .update({ updated_at: new Date().toISOString(), ...updates })
+    .update(updates)
     .eq("id", taskId)
     .select()
     .single();
@@ -585,12 +526,6 @@ export async function updateTask(
   }
 
   return data;
-}
-
-export async function deleteTask(taskId: string): Promise<boolean> {
-  const { error } = await supabase.from("tasks").delete().eq("id", taskId);
-  if (error) { console.error("Error deleting task:", error); return false; }
-  return true;
 }
 
 export async function completeTask(taskId: string): Promise<boolean> {
@@ -647,27 +582,13 @@ export async function fetchClients(companyId?: string): Promise<Client[]> {
     return [];
   }
 
-  if (!data || data.length === 0) return [];
-
-  const companyIds = [...new Set(data.map((c: any) => c.company_id).filter(Boolean))];
-  if (companyIds.length === 0) return data;
-
-  const { data: companies } = await supabase.from("companies").select("id, name").in("id", companyIds);
-  const companyMap = new Map((companies || []).map((c: any) => [c.id, c.name]));
-
-  return data.map((client: any) => ({
-    ...client,
-    company_name: companyMap.get(client.company_id) ?? null,
-  }));
+  return data || [];
 }
-
-export let lastSaveClientError: string | null = null;
 
 export async function saveClient(
   client: Partial<Client>,
   requiresApproval: boolean = false
 ): Promise<Client | PendingApproval | null> {
-  lastSaveClientError = null;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -692,7 +613,6 @@ export async function saveClient(
 
       if (error) {
         console.error("Error updating client:", error);
-        lastSaveClientError = error.message;
         return null;
       }
       return data;
@@ -705,7 +625,6 @@ export async function saveClient(
 
       if (error) {
         console.error("Error creating client:", error);
-        lastSaveClientError = error.message;
         return null;
       }
       return data;
@@ -777,6 +696,242 @@ export function useClients(companyId?: string) {
 }
 
 // =====================================================
+// PROJECT FUNCTIONS
+// =====================================================
+
+export interface Project {
+  id: string;
+  client_id: string;
+  company_id: string | null;
+  name: string;
+  status: "active" | "on_hold" | "completed" | "archived";
+  start_date: string | null;
+  target_delivery_date: string | null;
+  delivered_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchProjects(clientId?: string): Promise<Project[]> {
+  let query = supabase
+    .from("projects")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (clientId) {
+    query = query.eq("client_id", clientId);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Error fetching projects:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+export async function createProject(project: Partial<Project>): Promise<Project | null> {
+  const { data, error } = await supabase
+    .from("projects")
+    .insert(project)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating project:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function updateProject(
+  id: string,
+  updates: Partial<Project>
+): Promise<Project | null> {
+  const { data, error } = await supabase
+    .from("projects")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error updating project:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export function useProjects(clientId?: string) {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  // Multiple components can mount this hook at once (e.g. TaskCreateModal
+  // and ClientModal are both always in the tree); Supabase realtime channel
+  // names must be unique per subscription, so each hook instance needs its
+  // own channel name rather than a shared fixed string.
+  const channelNameRef = useRef(`project-changes-${Math.random().toString(36).slice(2)}`);
+
+  const loadProjects = useCallback(async () => {
+    const data = await fetchProjects(clientId);
+    setProjects(data);
+    setLoading(false);
+  }, [clientId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (mounted) {
+      loadProjects();
+    }
+
+    const subscription = supabase
+      .channel(channelNameRef.current)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "projects",
+        },
+        () => {
+          if (mounted) {
+            loadProjects();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [loadProjects]);
+
+  return { projects, loading, refetch: loadProjects };
+}
+
+// =====================================================
+// BRAND KIT FUNCTIONS
+// =====================================================
+
+export interface BrandKit {
+  id: string;
+  company_id: string;
+  logo_variants: {
+    primary?: string;
+    mark_only?: string;
+    light?: string;
+    dark?: string;
+  };
+  color_primary: string | null;
+  color_secondary: string | null;
+  color_accent: string | null;
+  font_heading: string | null;
+  font_body: string | null;
+  brand_description: string | null;
+  tone_notes: string | null;
+  policy_defaults: Record<string, string>;
+  cashflow_bands: Record<string, number>;
+  share_slug: string;
+  created_at: string;
+  updated_at: string;
+}
+
+function generateShareSlug(): string {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+}
+
+export async function fetchBrandKit(companyId: string): Promise<BrandKit | null> {
+  const { data, error } = await supabase
+    .from("brand_kits")
+    .select("*")
+    .eq("company_id", companyId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching brand kit:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function fetchBrandKitBySlug(slug: string): Promise<BrandKit | null> {
+  const { data, error } = await supabase
+    .from("brand_kits")
+    .select("*")
+    .eq("share_slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Error fetching brand kit by slug:", error);
+    return null;
+  }
+
+  return data;
+}
+
+export async function saveBrandKit(
+  companyId: string,
+  updates: Partial<BrandKit>
+): Promise<BrandKit | null> {
+  const existing = await fetchBrandKit(companyId);
+
+  if (existing) {
+    const { data, error } = await supabase
+      .from("brand_kits")
+      .update(updates)
+      .eq("id", existing.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error updating brand kit:", error);
+      return null;
+    }
+    return data;
+  }
+
+  const { data, error } = await supabase
+    .from("brand_kits")
+    .insert({ company_id: companyId, share_slug: generateShareSlug(), ...updates })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error creating brand kit:", error);
+    return null;
+  }
+  return data;
+}
+
+export function useBrandKit(companyId: string | null) {
+  const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const loadBrandKit = useCallback(async () => {
+    if (!companyId) {
+      setBrandKit(null);
+      setLoading(false);
+      return;
+    }
+    const data = await fetchBrandKit(companyId);
+    setBrandKit(data);
+    setLoading(false);
+  }, [companyId]);
+
+  useEffect(() => {
+    loadBrandKit();
+  }, [loadBrandKit]);
+
+  return { brandKit, loading, refetch: loadBrandKit };
+}
+
+// =====================================================
 // PRODUCT FUNCTIONS
 // =====================================================
 
@@ -797,18 +952,7 @@ export async function fetchProducts(companyId?: string): Promise<Product[]> {
     return [];
   }
 
-  if (!data || data.length === 0) return [];
-
-  const companyIds = [...new Set(data.map((p: any) => p.company_id).filter(Boolean))];
-  if (companyIds.length === 0) return data;
-
-  const { data: companies } = await supabase.from("companies").select("id, name").in("id", companyIds);
-  const companyMap = new Map((companies || []).map((c: any) => [c.id, c.name]));
-
-  return data.map((product: any) => ({
-    ...product,
-    company_name: companyMap.get(product.company_id) ?? null,
-  }));
+  return data || [];
 }
 
 export async function saveProduct(
@@ -845,7 +989,7 @@ export async function saveProduct(
     } else {
       const { data, error } = await supabase
         .from("products")
-        .insert({ ...product, created_by: user.id })
+        .insert(product)
         .select()
         .single();
 
@@ -945,6 +1089,7 @@ export async function fetchSOPs(companyId?: string): Promise<SOP[]> {
   let query = supabase
     .from("sops")
     .select("*")
+    .eq("is_active", true)
     .order("created_at", { ascending: false });
 
   if (companyId) {
@@ -989,7 +1134,7 @@ export async function saveSOP(
 
       if (error) {
         console.error("Error updating SOP:", error);
-        throw new Error(error.message);
+        return null;
       }
       return data;
     } else {
@@ -1001,7 +1146,7 @@ export async function saveSOP(
 
       if (error) {
         console.error("Error creating SOP:", error);
-        throw new Error(error.message);
+        return null;
       }
       return data;
     }
@@ -1328,296 +1473,24 @@ export async function markMessagesFromUserAsRead(
   return true;
 }
 
-export async function markAllDMsAsRead(): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  await supabase
-    .from("messages")
-    .update({ is_read: true })
-    .eq("to_user_id", user.id)
-    .eq("is_read", false);
-}
-
 export async function getUnreadMessageCount(): Promise<number> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return 0;
 
-  // Count unread DMs addressed to this user
-  const { count: dmCount, error: dmError } = await supabase
+  const { count, error } = await supabase
     .from("messages")
     .select("*", { count: "exact", head: true })
     .eq("to_user_id", user.id)
     .eq("is_read", false);
 
-  if (dmError) {
-    console.error("Error getting unread DM count:", dmError);
+  if (error) {
+    console.error("Error getting unread count:", error);
+    return 0;
   }
 
-  // Count team messages from others newer than last time chat was opened
-  const lastOpened = localStorage.getItem("teamChatLastOpened");
-  let teamCount = 0;
-  if (lastOpened) {
-    const { count, error: teamError } = await supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .is("to_user_id", null)
-      .neq("from_user_id", user.id)
-      .gt("created_at", lastOpened);
-    if (!teamError) teamCount = count || 0;
-  }
-
-  return (dmCount || 0) + teamCount;
-}
-
-// =====================================================
-// MEETINGS
-// =====================================================
-
-export interface Meeting {
-  id: string;
-  title: string;
-  scheduled_at: string;
-  company_id: string | null;
-  notes: string | null;
-  created_by: string | null;
-  attendees?: { id: string; name: string }[];
-  created_at: string;
-  updated_at: string;
-}
-
-export async function fetchMeetings(): Promise<Meeting[]> {
-  const { data, error } = await supabase
-    .from("meetings")
-    .select("*")
-    .order("scheduled_at", { ascending: true });
-  if (error) { console.error("Error fetching meetings:", error); return []; }
-  return data || [];
-}
-
-export async function createMeeting(meeting: Omit<Meeting, "id" | "created_at" | "updated_at">): Promise<Meeting | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data, error } = await supabase
-    .from("meetings")
-    .insert({ ...meeting, created_by: user.id })
-    .select()
-    .single();
-  if (error) { console.error("Error creating meeting:", error); return null; }
-  return data;
-}
-
-export async function updateMeeting(id: string, updates: Partial<Meeting>): Promise<boolean> {
-  const { error } = await supabase.from("meetings").update(updates).eq("id", id);
-  if (error) { console.error("Error updating meeting:", error); return false; }
-  return true;
-}
-
-export async function deleteMeeting(id: string): Promise<boolean> {
-  const { error } = await supabase.from("meetings").delete().eq("id", id);
-  if (error) { console.error("Error deleting meeting:", error); return false; }
-  return true;
-}
-
-export async function rsvpMeeting(
-  meetingId: string,
-  userId: string,
-  displayName: string
-): Promise<{ id: string; name: string }[]> {
-  const { data: meeting } = await supabase
-    .from("meetings")
-    .select("attendees")
-    .eq("id", meetingId)
-    .single();
-  if (!meeting) return [];
-  const current: { id: string; name: string }[] = meeting.attendees ?? [];
-  const alreadyGoing = current.some((a) => a.id === userId);
-  const next = alreadyGoing
-    ? current.filter((a) => a.id !== userId)
-    : [...current, { id: userId, name: displayName }];
-  await supabase.from("meetings").update({ attendees: next }).eq("id", meetingId);
-  return next;
-}
-
-export function useMeetings() {
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    const data = await fetchMeetings();
-    setMeetings(data);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    if (mounted) load();
-    const sub = supabase.channel("meeting-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "meetings" }, () => { if (mounted) load(); })
-      .subscribe();
-    return () => { mounted = false; sub.unsubscribe(); };
-  }, [load]);
-
-  return { meetings, loading, refetch: load };
-}
-
-// =====================================================
-// COMPANY GOALS
-// =====================================================
-
-export interface CompanyGoal {
-  id: string;
-  company_id: string | null;
-  label: string;
-  current_value: number;
-  target_value: number;
-  unit: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export async function fetchCompanyGoals(companyId?: string): Promise<CompanyGoal[]> {
-  let query = supabase.from("company_goals").select("*").order("created_at", { ascending: true });
-  if (companyId) query = query.eq("company_id", companyId);
-  const { data, error } = await query;
-  if (error) { console.error("Error fetching goals:", error); return []; }
-  return data || [];
-}
-
-export async function upsertCompanyGoal(goal: Partial<CompanyGoal>): Promise<CompanyGoal | null> {
-  if (goal.id) {
-    // Update existing
-    const { data, error } = await supabase
-      .from("company_goals")
-      .update(goal)
-      .eq("id", goal.id)
-      .select()
-      .single();
-    if (error) { console.error("Error updating goal:", error); return null; }
-    return data;
-  } else {
-    // Insert new
-    const { data, error } = await supabase
-      .from("company_goals")
-      .insert(goal)
-      .select()
-      .single();
-    if (error) { console.error("Error inserting goal:", error); return null; }
-    return data;
-  }
-}
-
-export async function deleteCompanyGoal(id: string): Promise<boolean> {
-  const { error } = await supabase.from("company_goals").delete().eq("id", id);
-  if (error) { console.error("Error deleting goal:", error); return false; }
-  return true;
-}
-
-export function useCompanyGoals(companyId?: string) {
-  const [goals, setGoals] = useState<CompanyGoal[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    const data = await fetchCompanyGoals(companyId);
-    setGoals(data);
-    setLoading(false);
-  }, [companyId]);
-
-  useEffect(() => {
-    let mounted = true;
-    if (mounted) load();
-    const sub = supabase.channel("goal-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "company_goals" }, () => { if (mounted) load(); })
-      .subscribe();
-    return () => { mounted = false; sub.unsubscribe(); };
-  }, [load]);
-
-  return { goals, loading, refetch: load };
-}
-
-// =====================================================
-// ACCOMPLISHMENTS
-// =====================================================
-
-export interface AccomplishmentDB {
-  id: string;
-  user_id: string;
-  user_name: string;
-  text: string;
-  posted_to_team: boolean;
-  created_at: string;
-}
-
-export async function saveAccomplishment(
-  text: string,
-  userName: string,
-  postedToTeam: boolean
-): Promise<AccomplishmentDB | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data, error } = await supabase
-    .from("accomplishments")
-    .insert({ user_id: user.id, user_name: userName, text, posted_to_team: postedToTeam })
-    .select()
-    .single();
-  if (error) { console.error("Error saving accomplishment:", error); return null; }
-  return data;
-}
-
-export function useAccomplishments() {
-  const [accomplishments, setAccomplishments] = useState<AccomplishmentDB[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data, error } = await supabase
-      .from("accomplishments")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (!error) setAccomplishments(data || []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    if (mounted) load();
-    const sub = supabase.channel("accomplishment-changes")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "accomplishments" },
-        () => { if (mounted) load(); })
-      .subscribe();
-    return () => { mounted = false; sub.unsubscribe(); };
-  }, [load]);
-
-  return { accomplishments, loading, refetch: load };
-}
-
-export function useAllAccomplishments() {
-  const [accomplishments, setAccomplishments] = useState<AccomplishmentDB[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("accomplishments")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (!error) setAccomplishments(data || []);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    let mounted = true;
-    if (mounted) load();
-    const sub = supabase.channel("all-accomplishment-changes")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "accomplishments" },
-        () => { if (mounted) load(); })
-      .subscribe();
-    return () => { mounted = false; sub.unsubscribe(); };
-  }, [load]);
-
-  return { accomplishments, loading, refetch: load };
+  return count || 0;
 }
 
 export function useMessages() {
@@ -1665,59 +1538,10 @@ export function useMessages() {
     };
   }, [loadMessages]);
 
-  return {
-    messages,
-    loading,
+  return { 
+    messages, 
+    loading, 
     unreadCount,
-    refetch: loadMessages
+    refetch: loadMessages 
   };
-}
-
-// =====================================================
-// Notes
-// =====================================================
-
-export interface Note {
-  id: string;
-  author_id: string;
-  company_id: string | null;
-  is_pinned: boolean;
-  content: string;
-  role_context: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export async function saveNote(
-  content: string,
-  authorId: string,
-  roleContext?: string,
-  companyId?: string
-): Promise<Note | null> {
-  const { data, error } = await supabase
-    .from("notes")
-    .insert({ content, author_id: authorId, role_context: roleContext ?? null, company_id: companyId ?? null, is_pinned: false })
-    .select()
-    .single();
-  if (error) { console.error("Error saving note:", error); return null; }
-  return data;
-}
-
-export function useNotes(authorId: string) {
-  const [notes, setNotes] = useState<Note[]>([]);
-
-  async function load() {
-    if (!authorId) return;
-    const { data } = await supabase
-      .from("notes")
-      .select("*")
-      .eq("author_id", authorId)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    setNotes(data ?? []);
-  }
-
-  useEffect(() => { load(); }, [authorId]);
-
-  return { notes, refetch: load };
 }

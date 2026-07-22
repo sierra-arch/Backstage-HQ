@@ -56,8 +56,7 @@ async function ensureProfile(seedRole: AppRole = "team") {
 
   // Optional: auto-promote certain emails to founder on first login.
   const founderEmails = new Set([
-    "sierra@gobackstage.ai",
-    "sierra@backstageop.com",
+    "sierrabettis@proseflorals.com",
   ]);
 
   const role: AppRole = founderEmails.has(user.email ?? "")
@@ -193,8 +192,8 @@ function AuthGate({ children }: { children: React.ReactElement }) {
   // 1) Loading the initial auth state
   if (session === undefined) {
     return (
-      <div className="grid place-items-center min-h-screen bg-white">
-        <div className="text-sm text-neutral-400">Checking session…</div>
+      <div className="grid place-items-center min-h-screen">
+        <div className="text-sm text-neutral-500">Checking session…</div>
       </div>
     );
   }
@@ -202,41 +201,10 @@ function AuthGate({ children }: { children: React.ReactElement }) {
   // 2) Signed out → show Google sign-in
   if (!session) {
     return (
-      <div className="min-h-screen flex">
-        {/* Left panel */}
-        <div className="flex-1 flex flex-col justify-center items-center bg-white px-8 py-12">
-          <div className="w-full max-w-sm">
-            <div className="mb-8">
-              <div className="text-xs font-semibold tracking-widest text-teal-600 uppercase mb-2">Backstage Dashboard</div>
-              <h1 className="text-3xl font-bold text-neutral-900 leading-tight">Welcome to the team.</h1>
-              <p className="text-neutral-500 text-sm mt-2 whitespace-nowrap">Sign in to see your tasks, earn points, and stay in sync.</p>
-            </div>
-            <GoogleSignInButton />
-            <p className="text-xs text-neutral-400 text-center mt-4">Only invited team members can access this workspace.</p>
-          </div>
-        </div>
-
-        {/* Right panel */}
-        <div className="hidden md:flex flex-1 flex-col justify-between relative overflow-hidden"
-          style={{ backgroundColor: "#0C3B37" }}>
-          {/* Watermark lettermark */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-            <span style={{
-              fontSize: "32vw",
-              fontWeight: 900,
-              color: "rgba(255,255,255,0.045)",
-              lineHeight: 1,
-              letterSpacing: "-0.05em",
-              userSelect: "none",
-            }}>B</span>
-          </div>
-          {/* Quote */}
-          <div className="relative z-10 mt-auto p-10">
-            <p className="text-white/70 text-sm leading-relaxed max-w-xs">
-              "The best ops teams don't just execute — they build systems that run without them."
-            </p>
-            <p className="text-white/40 text-xs mt-3 font-medium">Backstage HQ</p>
-          </div>
+      <div className="grid place-items-center min-h-screen">
+        <div className="rounded-2xl border p-6 bg-white w-[360px]">
+          <h1 className="text-xl font-semibold mb-3">Backstage Sign In</h1>
+          <GoogleSignInButton />
         </div>
       </div>
     );
@@ -245,8 +213,8 @@ function AuthGate({ children }: { children: React.ReactElement }) {
   // 3) Signed in but profile/role still loading
   if (loadingProfile || !role) {
     return (
-      <div className="grid place-items-center min-h-screen bg-white">
-        <div className="text-sm text-neutral-400">Loading your workspace…</div>
+      <div className="grid place-items-center min-h-screen">
+        <div className="text-sm text-neutral-500">Loading your workspace…</div>
       </div>
     );
   }

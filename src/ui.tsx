@@ -2,53 +2,6 @@
 import React from "react";
 import { CompanyName, DBTask } from "./types";
 
-export function LevelRing({
-  level,
-  value,
-  max,
-  showStats = true,
-  size = 132,
-  stroke = 16,
-}: {
-  level: number;
-  value: number;
-  max: number;
-  showStats?: boolean;
-  size?: number;
-  stroke?: number;
-}) {
-  const pct = Math.min(100, Math.round((value / max) * 100));
-  const r = size / 2 - stroke - 2;
-  const c = 2 * Math.PI * r;
-  const off = c * (1 - pct / 100);
-
-  const ringSvg = (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke} stroke="#CCFBF1" fill="none" />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} strokeWidth={stroke}
-        stroke="#0C3B37" fill="none" strokeLinecap="round"
-        style={{ strokeDasharray: c, strokeDashoffset: off, transform: "rotate(-90deg)", transformOrigin: "50% 50%" }}
-      />
-      <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle"
-        fontSize={Math.max(12, Math.round(size * 0.18))} fill="#0F172A">
-        L{level}
-      </text>
-    </svg>
-  );
-
-  if (!showStats) return <div>{ringSvg}</div>;
-  return (
-    <div className="flex items-center gap-3">
-      {ringSvg}
-      <div>
-        <div className="text-lg font-semibold">{pct}%</div>
-        <div className="text-xs text-neutral-500">to next level</div>
-      </div>
-    </div>
-  );
-}
-
 export function Chip({ children }: { children: React.ReactNode }) {
   return (
     <span className="text-[12px] rounded-full border bg-teal-50 text-teal-900/80 px-3 py-1">
@@ -64,7 +17,6 @@ export function Card({
   className = "",
   variant = "default",
   onClick,
-  action,
 }: {
   title?: string;
   subtitle?: string;
@@ -72,7 +24,6 @@ export function Card({
   className?: string;
   variant?: "default" | "compact";
   onClick?: () => void;
-  action?: React.ReactNode;
 }) {
   return (
     <section
@@ -83,21 +34,18 @@ export function Card({
         onClick ? "cursor-pointer hover:border-teal-300 transition-colors" : ""
       }`}
     >
-      {(title || subtitle || action) && (
-        <header className="mb-2 md:mb-3 flex items-start justify-between gap-3">
-          <div>
-            {title && (
-              <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">
-                {title}
-              </h2>
-            )}
-            {subtitle && (
-              <p className="text-xs md:text-[13px] text-neutral-500">
-                {subtitle}
-              </p>
-            )}
-          </div>
-          {action && <div className="flex-shrink-0">{action}</div>}
+      {(title || subtitle) && (
+        <header className="mb-2 md:mb-3">
+          {title && (
+            <h2 className="text-[14px] md:text-[15px] font-semibold leading-tight">
+              {title}
+            </h2>
+          )}
+          {subtitle && (
+            <p className="text-xs md:text-[13px] text-neutral-500">
+              {subtitle}
+            </p>
+          )}
         </header>
       )}
       {children}
@@ -131,7 +79,7 @@ export function Avatar({
     .map((s) => s[0]?.toUpperCase())
     .join("")
     .slice(0, 2);
-  const palette = ["#0C3B37", "#166534", "#065F46", "#064E3B", "#0B4D4B"];
+  const palette = ["#0F766E", "#166534", "#065F46", "#064E3B", "#0B4D4B"];
   const color =
     palette[
       (name.charCodeAt(0) + name.charCodeAt(name.length - 1)) % palette.length
@@ -172,7 +120,7 @@ export function CompanyChip({
       border: "border-teal-300",
       logo: "🎯",
     },
-    "Mairë": {
+    "Mairé": {
       bg: "bg-emerald-50",
       text: "text-emerald-900/80",
       border: "border-emerald-200",
@@ -189,6 +137,7 @@ export function CompanyChip({
     <span
       className={`text-[10px] px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border} inline-flex items-center gap-1`}
     >
+      {showLogo && <span>{s.logo}</span>}
       {name}
     </span>
   );
