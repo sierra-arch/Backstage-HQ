@@ -4,6 +4,7 @@ import App from "./App";
 import { ClientPortalApp } from "./ClientPortalApp";
 import { BrandKitShareView } from "./BrandKitShareView";
 import { IntakeWizard } from "./IntakeWizard";
+import { PublicSite } from "./PublicSite";
 import "./styles.css";
 
 // Deliberately not a router — the client portal must never share App.tsx's
@@ -15,11 +16,16 @@ const path = window.location.pathname;
 const isPortal = path.startsWith("/portal");
 const brandSlugMatch = path.match(/^\/brand\/([^/]+)/);
 const intakeSlugMatch = path.match(/^\/intake\/([^/]+)/);
+// Public marketing site — lives at /site for now, not the root "/", so it
+// doesn't disturb the founder's existing dashboard bookmark. Move to "/"
+// once the Phase 1/2 route restructuring (app/portal/public split) lands.
+const isPublicSite = path.startsWith("/site");
 
 function Root() {
   if (isPortal) return <ClientPortalApp />;
   if (brandSlugMatch) return <BrandKitShareView slug={brandSlugMatch[1]} />;
   if (intakeSlugMatch) return <IntakeWizard companySlug={intakeSlugMatch[1]} />;
+  if (isPublicSite) return <PublicSite />;
   return <App />;
 }
 

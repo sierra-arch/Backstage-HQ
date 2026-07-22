@@ -1,0 +1,7 @@
+User-agent: *
+Disallow: /portal
+Disallow: /brand
+Disallow: /intake
+Disallow: /api
+
+Sitemap: https://backstage-dashboard.vercel.app/sitemap.xml
