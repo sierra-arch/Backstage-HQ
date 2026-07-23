@@ -1,0 +1,12 @@
+-- 0028 seeded a default edge chaining proposal_accepted's
+-- create_project_and_tasks node to the deliverable_approved-tagged
+-- notify_team node, to demonstrate "chaining" in the default web. On
+-- reflection this is wrong: those are two independent real-world events
+-- (a proposal being accepted vs. a client approving a deliverable) that
+-- happen to share the same action_type today, not a real dependency. If
+-- the runtime walked this edge, accepting a proposal would fire a
+-- "deliverable approved" notification with the wrong context. The three
+-- seeded automations are correctly three independent single-node chains
+-- (matching what's actually true in the live hardcoded behavior they
+-- replace) -- remove the incorrect edge before any runtime code reads it.
+delete from public.automation_edges;

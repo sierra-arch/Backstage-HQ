@@ -4,6 +4,7 @@ import "./styles.css";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "./supabase";
+import { runTrigger } from "../api/_lib/automationRuntime";
 import {
   useTasks,
   useProfile,
@@ -51,7 +52,6 @@ import {
   createLead,
   updateLeadStatus,
   convertLeadToClient,
-  notifyFounders,
   fetchBroadcasts,
   createBroadcast,
   fetchSequences,
@@ -69,7 +69,12 @@ import {
   type SocialPost,
   fetchCompanyMembers,
   updateCompanyMemberRole,
+  updateCompanyMemberDepartments,
+  removeCompanyMember,
+  voidAgreement,
+  DEPARTMENTS,
   fetchIsContractorOnly,
+  updateActiveCompany,
   type CompanyMember,
   fetchSystemUnlocks,
   fetchPendingStageTransition,
@@ -90,6 +95,7 @@ import {
   type Lead,
 } from "./useDatabase";
 import { OnboardingWizard } from "./OnboardingWizard";
+import { AutomationWebPage } from "./features/automation-web/AutomationWebPage";
 import {
   computeDocumentTotals,
   getDesignBriefSection,
@@ -258,13 +264,13 @@ const COMPANY_DATA: Record<string, CompanyData> = {
 /* ──────────────────────────────────────────────────────────────────
    Confetti
    ────────────────────────────────────────────────────────────────── */
-function Confetti({ fire }: { fire: boolean }) {
+function Confetti({ fire, count = 140 }: { fire: boolean; count?: number }) {
   if (!fire) return null;
   return (
     <div
       style={{ pointerEvents: "none", position: "fixed", inset: 0, zIndex: 60 }}
     >
-      {Array.from({ length: 140 }).map((_, i) => {
+      {Array.from({ length: count }).map((_, i) => {
         const left = Math.random() * 100;
         const delay = Math.random() * 0.2;
         const dur = 0.8 + Math.random() * 0.9;
@@ -1399,8 +1405,12 @@ function ProjectModal({
     await updateProject(project.id, { status: status as Project["status"] });
 
     // Automation: project completed -> advance the client to 'delivered'
-    // (the next Client Journey stage) and notify the team. Best-effort --
-    // the status change itself has already succeeded.
+    // (the next Client Journey stage) and notify the team, the latter now
+    // through the Automation Web runtime (migration 0028) instead of a
+    // hardcoded call -- which node(s) actually run is data, not this call
+    // site. Best-effort -- the status change itself has already succeeded.
+    // Runs under this team member's own session/RLS, same as the rest of
+    // this component (team_full_access already grants the writes below).
     if (status === "completed") {
       try {
         await supabase
@@ -1409,7 +1419,10 @@ function ProjectModal({
           .eq("id", project.client_id)
           .eq("stage", "active");
         if (project.company_id) {
-          await notifyFounders(project.company_id, `"${project.name}" was marked completed`);
+          await runTrigger(supabase, project.company_id, "project_completed", {
+            companyId: project.company_id,
+            message: `"${project.name}" was marked completed`,
+          });
         }
       } catch (automationError) {
         console.error("Project-completed automation failed (non-fatal):", automationError);
@@ -1727,16 +1740,19 @@ function ProposalDetailModal({
   isOpen,
   onClose,
   onUpdated,
+  role,
 }: {
   proposal: ProposalWithDocument | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdated: () => void;
+  role: Role;
 }) {
   const [template, setTemplate] = useState<DocumentTemplate | null>(null);
   const [installments, setInstallments] = useState<PaymentInstallment[]>([]);
-  const [agreement, setAgreement] = useState<{ status: string; signed_name: string | null; signed_at: string | null } | null>(null);
+  const [agreement, setAgreement] = useState<{ id: string; status: string; signed_name: string | null; signed_at: string | null } | null>(null);
   const [marking, setMarking] = useState(false);
+  const [voiding, setVoiding] = useState(false);
 
   useEffect(() => {
     if (!isOpen || !proposal?.generated_documents) return;
@@ -1753,7 +1769,7 @@ function ProposalDetailModal({
       });
       supabase
         .from("agreements")
-        .select("status, signed_name, signed_at")
+        .select("id, status, signed_name, signed_at")
         .eq("proposal_id", proposal.id)
         .maybeSingle()
         .then(({ data }) => setAgreement(data));
@@ -1777,6 +1793,14 @@ function ProposalDetailModal({
     onUpdated();
   }
 
+  async function handleVoidAgreement() {
+    if (!agreement) return;
+    setVoiding(true);
+    const result = await voidAgreement(agreement.id);
+    setVoiding(false);
+    if (result.ok) setAgreement({ ...agreement, status: "voided" });
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Proposal" size="medium">
       <div className="space-y-4">
@@ -1784,7 +1808,7 @@ function ProposalDetailModal({
           <span className="text-xs px-3 py-1 rounded-full font-medium bg-neutral-100 text-neutral-700">
             {PROPOSAL_STATUS_LABELS[proposal.status] || proposal.status}
           </span>
-          {proposal.status === "draft" && (
+          {proposal.status === "draft" && isFounder(role) && (
             <button
               onClick={handleMarkSent}
               disabled={marking}
@@ -1830,12 +1854,23 @@ function ProposalDetailModal({
                     {agreement.signed_at ? new Date(agreement.signed_at).toLocaleString() : ""}
                   </p>
                 </>
+              ) : agreement?.status === "voided" ? (
+                <p className="text-sm text-neutral-600">Voided</p>
               ) : (
                 <p className="text-sm text-neutral-600">
                   Sent to client — awaiting their signature in the portal
                 </p>
               )}
             </div>
+            {isFounder(role) && agreement && agreement.status !== "voided" && (
+              <button
+                onClick={handleVoidAgreement}
+                disabled={voiding}
+                className="mt-2 text-xs font-medium text-red-600 hover:underline disabled:opacity-50"
+              >
+                {voiding ? "Voiding…" : "Void Agreement"}
+              </button>
+            )}
           </div>
         )}
 
@@ -1869,10 +1904,12 @@ function ClientModal({
   client,
   isOpen,
   onClose,
+  role,
 }: {
   client: Client | null;
   isOpen: boolean;
   onClose: () => void;
+  role: Role;
 }) {
   const [inviting, setInviting] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<string | null>(null);
@@ -1880,6 +1917,7 @@ function ClientModal({
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { projects, refetch: refetchProjects } = useProjects(client?.id);
   const [savingStage, setSavingStage] = useState(false);
+  const [stageError, setStageError] = useState<string | null>(null);
   const [showCreateProposalModal, setShowCreateProposalModal] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<ProposalWithDocument | null>(null);
   const { proposals, refetch: refetchProposals } = useProposals(client?.id);
@@ -1888,7 +1926,13 @@ function ClientModal({
 
   async function handleStageChange(stage: string) {
     setSavingStage(true);
-    await saveClient({ id: client!.id, stage: stage as Client["stage"] });
+    setStageError(null);
+    const result = await saveClient({ id: client!.id, stage: stage as Client["stage"] });
+    if (!result && stage === "archived") {
+      // The enforce_founder_only_archive trigger (migration 0031/0032)
+      // rejects this transition for anyone but a founder.
+      setStageError("Only a founder can archive a client.");
+    }
     setSavingStage(false);
   }
 
@@ -1963,6 +2007,7 @@ function ClientModal({
               <option value="delivered">Delivered</option>
               <option value="archived">Archived</option>
             </select>
+            {stageError && <p className="text-xs text-red-600 mt-1">{stageError}</p>}
           </div>
           <div>
             <label className="text-sm font-medium text-neutral-700">Track</label>
@@ -2109,6 +2154,7 @@ function ClientModal({
       isOpen={!!selectedProposal}
       onClose={() => setSelectedProposal(null)}
       onUpdated={refetchProposals}
+      role={role}
     />
 
     <ProjectModal
@@ -2453,8 +2499,9 @@ interface TestimonialRow {
   is_featured: boolean;
 }
 
-function TeamManagementSection({ companyId }: { companyId: string }) {
+function TeamManagementSection({ companyId, role }: { companyId: string; role: Role }) {
   const [members, setMembers] = useState<CompanyMember[]>([]);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setMembers(await fetchCompanyMembers(companyId));
@@ -2470,25 +2517,76 @@ function TeamManagementSection({ companyId }: { companyId: string }) {
   // user isn't a founder here -- not a bug.
   if (members.length <= 1) return null;
 
+  async function handleRemove(id: string) {
+    await removeCompanyMember(id);
+    setRemovingId(null);
+    load();
+  }
+
   return (
     <div>
       <label className="text-sm font-medium text-neutral-700 block mb-3">Team & Roles</label>
       <div className="space-y-2">
         {members.map((m) => (
-          <div key={m.id} className="flex items-center justify-between rounded-2xl border p-3 bg-neutral-50">
-            <span className="text-sm text-neutral-700">{m.profiles?.display_name || "Unknown"}</span>
-            <select
-              value={m.role}
-              onChange={async (e) => {
-                await updateCompanyMemberRole(m.id, e.target.value as CompanyMember["role"]);
-                load();
-              }}
-              className="rounded-xl border px-2 py-1.5 text-xs capitalize"
-            >
-              <option value="founder">Founder</option>
-              <option value="team">Team</option>
-              <option value="contractor">Contractor</option>
-            </select>
+          <div key={m.id} className="rounded-2xl border p-3 bg-neutral-50 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-neutral-700">{m.profiles?.display_name || "Unknown"}</span>
+              <div className="flex items-center gap-2">
+                {isFounder(role) ? (
+                  <select
+                    value={m.role}
+                    onChange={async (e) => {
+                      await updateCompanyMemberRole(m.id, e.target.value as CompanyMember["role"]);
+                      load();
+                    }}
+                    className="rounded-xl border px-2 py-1.5 text-xs capitalize"
+                  >
+                    <option value="founder">Founder</option>
+                    <option value="team">Team</option>
+                    <option value="contractor">Contractor</option>
+                  </select>
+                ) : (
+                  <span className="text-xs text-neutral-500 capitalize px-2">{m.role}</span>
+                )}
+                {isFounder(role) &&
+                  (removingId === m.id ? (
+                    <span className="flex items-center gap-1.5">
+                      <button onClick={() => handleRemove(m.id)} className="text-xs font-medium text-red-600 hover:underline">
+                        Confirm
+                      </button>
+                      <button onClick={() => setRemovingId(null)} className="text-xs font-medium text-neutral-400 hover:underline">
+                        Cancel
+                      </button>
+                    </span>
+                  ) : (
+                    <button onClick={() => setRemovingId(m.id)} className="text-xs text-neutral-400 hover:text-neutral-600">
+                      Remove
+                    </button>
+                  ))}
+              </div>
+            </div>
+            {/* Additive to role, scopes which Automation Web nodes this
+                member can edit -- see migration 0028. */}
+            <div className="flex flex-wrap gap-1.5">
+              {DEPARTMENTS.map((dept) => {
+                const active = m.departments.includes(dept);
+                return (
+                  <button
+                    key={dept}
+                    onClick={async () => {
+                      const next = active ? m.departments.filter((d) => d !== dept) : [...m.departments, dept];
+                      await updateCompanyMemberDepartments(m.id, next);
+                      load();
+                    }}
+                    className={`rounded-full px-2.5 py-1 text-[11px] font-medium border ${
+                      active ? "bg-teal-50 text-teal-700 border-teal-200" : "text-neutral-400 border-neutral-200 hover:bg-white"
+                    }`}
+                  >
+                    {dept}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ))}
       </div>
@@ -2924,6 +3022,42 @@ function TemplateManagerModal({
   );
 }
 
+// Sticky sub-nav for CompanyModal -- anchor-scroll, not a tab-switch
+// rewrite: every section keeps rendering exactly as it does today, this
+// just scrolls the modal to that section's existing heading (or opens the
+// Brand Kit/Templates modals directly, since those are pop-outs, not part
+// of the vertical stack). `top` is an approximate offset to sit just below
+// Modal's own sticky header (DashboardApp.tsx's shared Modal component,
+// `sticky top-0` at roughly 60px tall) -- fine to nudge visually.
+function CompanyModalTabs({
+  canSeeTeamSection,
+  onOpenBrandKit,
+  onOpenTemplates,
+}: {
+  canSeeTeamSection: boolean;
+  onOpenBrandKit: () => void;
+  onOpenTemplates: () => void;
+}) {
+  function scrollTo(id: string) {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const tabClass = "shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium hover:bg-neutral-50 transition-colors whitespace-nowrap";
+
+  return (
+    <div className="sticky top-[61px] z-10 -mx-6 px-6 py-2 bg-white border-b flex gap-2 overflow-x-auto">
+      <button onClick={() => scrollTo("section-overview")} className={tabClass}>Overview</button>
+      <button onClick={() => scrollTo("section-clients")} className={tabClass}>Clients & Projects</button>
+      <button onClick={onOpenBrandKit} className={tabClass}>Brand Kit</button>
+      <button onClick={onOpenTemplates} className={tabClass}>Templates</button>
+      {canSeeTeamSection && (
+        <button onClick={() => scrollTo("section-team")} className={tabClass}>Team & Roles</button>
+      )}
+      <button onClick={() => scrollTo("section-testimonials")} className={tabClass}>Testimonials</button>
+    </div>
+  );
+}
+
 function CompanyModal({
   companyName,
   isOpen,
@@ -2952,6 +3086,11 @@ function CompanyModal({
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [showBrandKitModal, setShowBrandKitModal] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
+  // Mirrors TeamManagementSection's own members.length <= 1 inference
+  // (RLS only returns every row to founders here) -- used to decide
+  // whether the sticky tab row's "Team & Roles" tab should even appear,
+  // so it never jumps to a section that would render nothing.
+  const [canSeeTeamSection, setCanSeeTeamSection] = useState(false);
 
   useEffect(() => {
     if (!companyName) {
@@ -2967,6 +3106,20 @@ function CompanyModal({
     };
   }, [companyName]);
 
+  useEffect(() => {
+    if (!companyId) {
+      setCanSeeTeamSection(false);
+      return;
+    }
+    let mounted = true;
+    fetchCompanyMembers(companyId).then((members) => {
+      if (mounted) setCanSeeTeamSection(members.length > 1);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [companyId]);
+
   if (!companyName) return null;
 
   const company = COMPANY_DATA[companyName];
@@ -2978,7 +3131,7 @@ function CompanyModal({
     <>
     <Modal isOpen={isOpen} onClose={onClose} title={companyName} size="large">
       <div className="space-y-6">
-        <div className="flex items-center gap-4">
+        <div id="section-overview" className="flex items-center gap-4">
           <div
             className="flex items-center justify-center rounded-2xl text-white text-2xl font-semibold flex-shrink-0"
             style={{ width: 64, height: 64, background: company.color }}
@@ -2989,6 +3142,12 @@ function CompanyModal({
             <p className="text-sm text-neutral-600">{company.description}</p>
           </div>
         </div>
+
+        <CompanyModalTabs
+          canSeeTeamSection={canSeeTeamSection}
+          onOpenBrandKit={() => setShowBrandKitModal(true)}
+          onOpenTemplates={() => setShowTemplateManager(true)}
+        />
 
         <div>
           <label className="text-sm font-medium text-neutral-700 block mb-2">
@@ -3029,19 +3188,24 @@ function CompanyModal({
         </div>
 
 
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowBrandKitModal(true)}
-            className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
-          >
-            Brand Kit
-          </button>
-          <button
-            onClick={() => setShowTemplateManager(true)}
-            className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
-          >
-            Templates
-          </button>
+        <div>
+          <label className="text-sm font-medium text-neutral-700 block mb-2">Documents</label>
+          <div className="flex gap-2">
+            {isFounder(role) && (
+              <button
+                onClick={() => setShowBrandKitModal(true)}
+                className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
+              >
+                Brand Kit
+              </button>
+            )}
+            <button
+              onClick={() => setShowTemplateManager(true)}
+              className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-2 text-sm font-medium hover:bg-teal-50 transition-colors"
+            >
+              Templates
+            </button>
+          </div>
         </div>
 
 {isFounder(role) && (
@@ -3061,7 +3225,7 @@ function CompanyModal({
   </div>
 )}
 
-        <div>
+        <div id="section-clients">
           <label className="text-sm font-medium text-neutral-700 block mb-3">
             {companyName === "Mairé"
               ? "All Products"
@@ -3115,8 +3279,16 @@ function CompanyModal({
           </div>
         </div>
 
-        {companyId && <TeamManagementSection companyId={companyId} />}
-        {companyId && <TestimonialsSection companyId={companyId} />}
+        {companyId && (
+          <div id="section-team">
+            <TeamManagementSection companyId={companyId} role={role} />
+          </div>
+        )}
+        {companyId && (
+          <div id="section-testimonials">
+            <TestimonialsSection companyId={companyId} />
+          </div>
+        )}
       </div>
     </Modal>
 
@@ -3376,6 +3548,7 @@ type FounderPage =
   | "Leads"
   | "Systems"
   | "Marketing"
+  | "Automation Web"
   | "Reporting"
   | "Companies"
   | "Playbook"
@@ -3387,6 +3560,7 @@ type TeamPage =
   | "Leads"
   | "Systems"
   | "Marketing"
+  | "Automation Web"
   | "Reporting"
   | "Companies"
   | "Playbook"
@@ -3400,12 +3574,18 @@ function Sidebar({
   onSelect,
   userName,
   isContractorOnly,
+  companies,
+  activeCompanyId,
+  onSelectCompany,
 }: {
   role: Role;
   active: Page;
   onSelect: (p: Page) => void;
   userName: string;
   isContractorOnly?: boolean;
+  companies: Company[];
+  activeCompanyId: string;
+  onSelectCompany: (companyId: string) => void;
 }) {
   const founderNav: FounderPage[] = [
     "Today",
@@ -3414,6 +3594,7 @@ function Sidebar({
     "Leads",
     "Systems",
     "Marketing",
+    "Automation Web",
     "Reporting",
     "Companies",
     "Playbook",
@@ -3425,6 +3606,7 @@ function Sidebar({
     "Leads",
     "Systems",
     "Marketing",
+    "Automation Web",
     "Reporting",
     "Companies",
     "Playbook",
@@ -3439,9 +3621,22 @@ function Sidebar({
 
   return (
     <aside className="w-72 shrink-0 border-r border-neutral-200/70 bg-white sticky top-0 h-screen p-4 flex flex-col">
-      <div className="text-[24px] font-semibold leading-none mb-6 tracking-tight px-1">
+      <div className="text-[24px] font-semibold leading-none mb-4 tracking-tight px-1">
         Backstage Headquarters
       </div>
+      {companies.length > 0 && (
+        <select
+          value={activeCompanyId}
+          onChange={(e) => onSelectCompany(e.target.value)}
+          className="mb-4 rounded-xl border px-2.5 py-1.5 text-sm w-full"
+        >
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      )}
       <nav className="space-y-1.5 text-[15px]">
         {nav.map((item) => {
           const isActive = active === item;
@@ -3471,9 +3666,13 @@ function Sidebar({
         </div>
         <button
           onClick={() => onSelect("Settings" as Page)}
-          className="text-sm font-medium hover:text-teal-700 transition-colors text-left px-1"
+          className="flex items-center gap-1.5 text-sm font-medium hover:text-teal-700 transition-colors text-left px-1"
         >
-          {userName}
+          <span>{userName}</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
         </button>
       </div>
     </aside>
@@ -3613,6 +3812,7 @@ const NUDGE_NAV_TARGET: Record<SafetyNetNudge["type"], string> = {
   cash_buffer: "Reporting",
   quiet_lead: "Leads",
   seasonal_dip: "Reporting",
+  stage_progress: "Systems",
 };
 
 function NudgeCard({ nudge, onDismissed, onNavigate }: { nudge: SafetyNetNudge; onDismissed: () => void; onNavigate: (page: string) => void }) {
@@ -3874,6 +4074,7 @@ const NEXT_STAGE: Record<string, string | null> = { one: "two", two: "three", th
 function SystemUnlockRow({ unlock, companyId, onChanged }: { unlock: SystemUnlock; companyId: string; onChanged: () => void }) {
   const [template, setTemplate] = useState<DocumentTemplate | null | undefined>(undefined);
   const [marking, setMarking] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
 
   useEffect(() => {
     fetchDocumentTemplates(companyId, unlock.template_type).then((rows) => setTemplate(rows[0] ?? null));
@@ -3888,13 +4089,19 @@ function SystemUnlockRow({ unlock, companyId, onChanged }: { unlock: SystemUnloc
     setMarking(true);
     await markSystemComplete(unlock);
     setMarking(false);
+    // A smaller, shorter celebration than the full stage-transition one --
+    // a real step still deserves a moment, just not a full stage moment.
+    setCelebrate(true);
+    setTimeout(() => setCelebrate(false), 1000);
     onChanged();
   }
 
   return (
     <div className="flex items-center justify-between rounded-2xl border p-3 bg-white">
+      <Confetti fire={celebrate} count={30} />
       <div>
         <p className="text-sm font-medium text-neutral-700">{unlock.system_name}</p>
+        {unlock.depth_note && <p className="text-xs text-neutral-400 mt-0.5">{unlock.depth_note}</p>}
         <p className="text-xs text-neutral-400 capitalize">{unlock.status.replace("_", " ")}</p>
       </div>
       {unlock.status === "complete" ? (
@@ -3916,20 +4123,15 @@ function SystemUnlockRow({ unlock, companyId, onChanged }: { unlock: SystemUnloc
   );
 }
 
-function SystemsPage({ companies, onCompanyChanged }: { companies: Company[]; onCompanyChanged: () => void }) {
-  const [companyId, setCompanyId] = useState("");
+function SystemsPage({ company, onCompanyChanged }: { company: Company; onCompanyChanged: () => void }) {
+  const companyId = company.id;
   const [unlocks, setUnlocks] = useState<SystemUnlock[]>([]);
   const [pendingTransition, setPendingTransition] = useState<StageTransition | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [accepting, setAccepting] = useState(false);
 
-  useEffect(() => {
-    if (companies.length > 0 && !companyId) setCompanyId(companies[0].id);
-  }, [companies, companyId]);
-
   const load = useCallback(async () => {
-    if (!companyId) return;
     setUnlocks(await fetchSystemUnlocks(companyId));
     setPendingTransition(await fetchPendingStageTransition(companyId));
     setDismissed(false);
@@ -3938,10 +4140,6 @@ function SystemsPage({ companies, onCompanyChanged }: { companies: Company[]; on
   useEffect(() => {
     load();
   }, [load]);
-
-  if (!companyId) return null;
-  const company = companies.find((c) => c.id === companyId);
-  if (!company) return null;
 
   const currentStageSystems = unlocks.filter((u) => u.stage === company.current_stage);
   const nextStage = NEXT_STAGE[company.current_stage];
@@ -3960,11 +4158,6 @@ function SystemsPage({ companies, onCompanyChanged }: { companies: Company[]; on
   return (
     <div className="space-y-6">
       <Confetti fire={celebrate} />
-      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="rounded-2xl border px-3 py-2 text-sm">
-        {companies.map((c) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
 
       {pendingTransition && !dismissed && (
         <Card className="border-teal-300">
@@ -4643,24 +4836,12 @@ function SocialPlannerPanel({ companyId }: { companyId: string }) {
   );
 }
 
-function MarketingPage({ companies }: { companies: Company[] }) {
-  const [companyId, setCompanyId] = useState("");
-
-  useEffect(() => {
-    if (companies.length > 0 && !companyId) setCompanyId(companies[0].id);
-  }, [companies, companyId]);
-
-  if (!companyId) return null;
-  const selectedCompany = companies.find((c) => c.id === companyId);
-  const emailMarketingGated = selectedCompany?.plan === "starter";
+function MarketingPage({ company }: { company: Company }) {
+  const companyId = company.id;
+  const emailMarketingGated = company.plan === "starter";
 
   return (
     <div className="space-y-6">
-      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="rounded-2xl border px-3 py-2 text-sm">
-        {companies.map((c) => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
       {emailMarketingGated ? (
         <Card>
           <p className="text-sm font-semibold text-neutral-700">Email marketing is a Growth+ feature</p>
@@ -5611,6 +5792,19 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
   // Philosophy). Auto-shows once for any company that hasn't completed it;
   // can also be replayed manually from Settings.
   const { companies: allCompanies, loading: companiesLoading, refetch: refetchCompanies } = useCompanies();
+
+  // Global "active company" (Stage System Buildout) -- drives the company
+  // switcher and whole-app stage theming. Falls back to the first company
+  // in the list, same as every page-level picker did before this.
+  const activeCompany = allCompanies.find((c) => c.id === profile?.active_company_id) ?? allCompanies[0];
+  function handleSelectCompany(companyId: string) {
+    if (profile?.id) updateActiveCompany(profile.id, companyId);
+  }
+
+  useEffect(() => {
+    document.documentElement.dataset.stage = activeCompany?.current_stage ?? "two";
+  }, [activeCompany]);
+
   const [wizardCompany, setWizardCompany] = useState<Company | null>(null);
   const [wizardIsManualReplay, setWizardIsManualReplay] = useState(false);
   const [autoWizardDismissed, setAutoWizardDismissed] = useState(false);
@@ -6235,6 +6429,9 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
           onSelect={setPage as any}
           userName={userName}
           isContractorOnly={isContractorOnly}
+          companies={allCompanies}
+          activeCompanyId={activeCompany?.id ?? ""}
+          onSelectCompany={handleSelectCompany}
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8 pt-0 space-y-6">
           <TopHeader
@@ -6367,8 +6564,9 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             </div>
           )}
           {page === "Leads" && <LeadsPage companies={allCompanies} />}
-          {page === "Systems" && <SystemsPage companies={allCompanies} onCompanyChanged={refetchCompanies} />}
-          {page === "Marketing" && <MarketingPage companies={allCompanies} />}
+          {page === "Systems" && activeCompany && <SystemsPage company={activeCompany} onCompanyChanged={refetchCompanies} />}
+          {page === "Marketing" && activeCompany && <MarketingPage company={activeCompany} />}
+          {page === "Automation Web" && activeCompany && <AutomationWebPage companyId={activeCompany.id} />}
           {page === "Reporting" && <ReportingPage tasks={tasks} teamMembers={teamMembers} />}
           {page === "Companies" && (
             <CompaniesPage
@@ -6475,6 +6673,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
         client={selectedClient}
         isOpen={!!selectedClient}
         onClose={() => setSelectedClient(null)}
+        role={role}
       />
 
       <ProductModal

@@ -40,23 +40,29 @@
               sans: ['"Plus Jakarta Sans"', "ui-sans-serif", "system-ui"],
             },
             colors: {
-              /* Modern forest-green system — rounder, softer, greener (2026-07-22 refresh) */
+              /* Stage System Buildout: teal/sage now resolve to CSS custom
+                 properties (src/stageTheme.css) keyed off a `data-stage`
+                 attribute on <html>, so the whole app repaints per the
+                 active company's stage without touching any of the 241
+                 existing teal-*/sage-* class call sites. Stage Two's
+                 values (the default, via :root) are the exact forest-green
+                 system kept from the 2026-07-22 refresh -- unchanged. */
               teal: {
-                50: "#EDF6EC",
-                100: "#DCEEDA",
-                200: "#B9DDB4",
-                300: "#8FC787",
-                400: "#5FAE5E",
-                500: "#3B9350",
-                600: "#1F7A52",
-                700: "#175F40",
-                800: "#123D2C",
-                900: "#0B2A1C",
+                50: "rgb(var(--teal-50) / <alpha-value>)",
+                100: "rgb(var(--teal-100) / <alpha-value>)",
+                200: "rgb(var(--teal-200) / <alpha-value>)",
+                300: "rgb(var(--teal-300) / <alpha-value>)",
+                400: "rgb(var(--teal-400) / <alpha-value>)",
+                500: "rgb(var(--teal-500) / <alpha-value>)",
+                600: "rgb(var(--teal-600) / <alpha-value>)",
+                700: "rgb(var(--teal-700) / <alpha-value>)",
+                800: "rgb(var(--teal-800) / <alpha-value>)",
+                900: "rgb(var(--teal-900) / <alpha-value>)",
               },
               sage: {
-                50: "#F3F8F1",
-                100: "#E7F2E5",
-                200: "#D3E9CE",
+                50: "rgb(var(--sage-50) / <alpha-value>)",
+                100: "rgb(var(--sage-100) / <alpha-value>)",
+                200: "rgb(var(--sage-200) / <alpha-value>)",
               },
             },
             borderRadius: {

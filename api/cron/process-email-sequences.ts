@@ -12,6 +12,20 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAdminClient } from "../_lib/supabaseServer";
 import { getResendClient, getFromAddress } from "../_lib/resend";
 
+// Mirrors NEXT_STAGE/STAGE_LABELS in src/DashboardApp.tsx -- duplicated
+// here (2 lines) rather than importing that file, since it pulls in the
+// whole React component tree into a serverless function.
+const STAGE_PROGRESS_NEXT_STAGE: Record<"one" | "two" | "three", "one" | "two" | "three" | null> = {
+  one: "two",
+  two: "three",
+  three: null,
+};
+const STAGE_PROGRESS_LABELS: Record<"one" | "two" | "three", string> = {
+  one: "Stage One",
+  two: "Stage Two",
+  three: "Stage Three",
+};
+
 async function processEmailSequences(admin: SupabaseClient): Promise<number> {
   const today = new Date().toISOString().slice(0, 10);
 
@@ -161,6 +175,36 @@ async function generateSafetyNetNudges(admin: SupabaseClient): Promise<number> {
           message: `${quietLeads.length} ${plural} heard from you in over a week — here's an option to check back in, whenever works.`,
         });
         created++;
+      }
+    }
+
+    // Stage progress (Stage System Buildout): an available, not-yet-started
+    // system at the company's current stage -- orientation language only,
+    // per the Dashboard Guardrail, same as the two nudge types above.
+    if (!activeTypes.has("stage_progress")) {
+      const { data: currentStageRow } = await admin.from("companies").select("current_stage").eq("id", company.id).maybeSingle();
+      const currentStage = currentStageRow?.current_stage as "one" | "two" | "three" | undefined;
+      const nextStage = currentStage ? STAGE_PROGRESS_NEXT_STAGE[currentStage] : null;
+
+      if (currentStage && nextStage) {
+        const { data: availableSystems } = await admin
+          .from("system_unlocks")
+          .select("system_name, unlocked_at")
+          .eq("company_id", company.id)
+          .eq("stage", currentStage)
+          .eq("status", "available")
+          .order("unlocked_at", { ascending: true })
+          .limit(1);
+
+        const nextSystem = availableSystems?.[0];
+        if (nextSystem) {
+          await admin.from("safety_net_nudges").insert({
+            company_id: company.id,
+            type: "stage_progress",
+            message: `${nextSystem.system_name} is available whenever you're ready — it's one step closer to ${STAGE_PROGRESS_LABELS[nextStage]}.`,
+          });
+          created++;
+        }
       }
     }
   }

@@ -7,6 +7,7 @@ import { IntakeWizard } from "./IntakeWizard";
 import { PublicSite } from "./PublicSite";
 import { OrgSignupWizard } from "./OrgSignupWizard";
 import "./styles.css";
+import "./stageTheme.css";
 
 // Deliberately not a router — the client portal must never share App.tsx's
 // AuthGate/ensureProfile path (see ClientPortalApp.tsx and

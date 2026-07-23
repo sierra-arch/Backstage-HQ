@@ -22,6 +22,10 @@ export interface Profile {
   level: number;
   created_at: string;
   updated_at: string;
+  // Per-person UI preference (migration 0030) driving the global company
+  // switcher and whole-app stage theming -- falls back to the first
+  // company in the list when null.
+  active_company_id: string | null;
 }
 
 export interface Company {
@@ -272,6 +276,19 @@ export function useProfile() {
   }, []);
 
   return { profile, loading, error };
+}
+
+// Backs the global company switcher (Stage System Buildout) -- writing
+// this is enough to update the UI everywhere, since useProfile() above
+// already subscribes to postgres_changes filtered to the caller's own
+// profile row.
+export async function updateActiveCompany(profileId: string, companyId: string): Promise<boolean> {
+  const { error } = await supabase.from("profiles").update({ active_company_id: companyId }).eq("id", profileId);
+  if (error) {
+    console.error("Error updating active company:", error);
+    return false;
+  }
+  return true;
 }
 
 export async function fetchAllProfiles(): Promise<Profile[]> {
@@ -921,6 +938,157 @@ export function useProjects(clientId?: string) {
   }, [loadProjects]);
 
   return { projects, loading, refetch: loadProjects };
+}
+
+// =====================================================
+// AUTOMATION WEB FUNCTIONS (migration 0028)
+//
+// The `automations` table (Phase 1, migration 0012) was deliberately left
+// unused by hardcoded call sites until now -- see api/_lib/automationRuntime.ts
+// for the runtime that actually reads these rows. These functions are the
+// read/edit side: the visual canvas at src/features/automation-web/.
+// =====================================================
+
+export type AutomationTriggerType = "proposal_accepted" | "deliverable_approved" | "project_completed";
+export type AutomationActionType = "create_project_and_tasks" | "notify_team" | "request_testimonial";
+export type AutomationStatus = "active" | "waiting" | "paused"; // neutral, no red/yellow/green
+
+export interface Automation {
+  id: string;
+  company_id: string;
+  trigger_type: AutomationTriggerType;
+  action_type: AutomationActionType;
+  config: Record<string, unknown>;
+  active: boolean;
+  title: string | null;
+  subtitle: string | null;
+  icon: string | null;
+  status: AutomationStatus;
+  position_x: number;
+  position_y: number;
+  clearance_departments: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutomationEdge {
+  id: string;
+  company_id: string;
+  source_automation_id: string;
+  target_automation_id: string;
+  created_at: string;
+}
+
+export async function fetchAutomations(companyId: string): Promise<Automation[]> {
+  const { data, error } = await supabase.from("automations").select("*").eq("company_id", companyId).order("created_at", { ascending: true });
+  if (error) {
+    console.error("Error fetching automations:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function fetchAutomationEdges(companyId: string): Promise<AutomationEdge[]> {
+  const { data, error } = await supabase.from("automation_edges").select("*").eq("company_id", companyId);
+  if (error) {
+    console.error("Error fetching automation edges:", error);
+    return [];
+  }
+  return data || [];
+}
+
+// Repositioning is pure presentation (per the Automation Web spec's "no
+// auto-save on drag" rule -- reposition is the one exception that IS
+// immediate/local, since it doesn't change what the automation does).
+export async function updateAutomationPosition(id: string, positionX: number, positionY: number): Promise<boolean> {
+  const { error } = await supabase.from("automations").update({ position_x: positionX, position_y: positionY }).eq("id", id);
+  if (error) {
+    console.error("Error updating automation position:", error);
+    return false;
+  }
+  return true;
+}
+
+// Anything that changes what a chain does (active/config/clearance) goes
+// through this after the inline confirm step -- see
+// src/features/automation-web/panel/ConfirmChainChange.tsx.
+export async function updateAutomation(
+  id: string,
+  updates: Partial<Pick<Automation, "active" | "status" | "config" | "clearance_departments" | "title" | "subtitle">>
+): Promise<boolean> {
+  const { error } = await supabase.from("automations").update(updates).eq("id", id);
+  if (error) {
+    console.error("Error updating automation:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function createAutomationEdge(companyId: string, sourceId: string, targetId: string): Promise<boolean> {
+  const { error } = await supabase
+    .from("automation_edges")
+    .insert({ company_id: companyId, source_automation_id: sourceId, target_automation_id: targetId });
+  if (error) {
+    console.error("Error creating automation edge:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function deleteAutomationEdge(id: string): Promise<boolean> {
+  const { error } = await supabase.from("automation_edges").delete().eq("id", id);
+  if (error) {
+    console.error("Error deleting automation edge:", error);
+    return false;
+  }
+  return true;
+}
+
+export function useAutomationWeb(companyId: string | null) {
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [edges, setEdges] = useState<AutomationEdge[]>([]);
+  const [loading, setLoading] = useState(true);
+  // See useProjects's channelNameRef comment above -- every hook instance
+  // needs its own realtime channel name, not a shared fixed string.
+  const channelNameRef = useRef(`automation-web-changes-${Math.random().toString(36).slice(2)}`);
+
+  const load = useCallback(async () => {
+    if (!companyId) {
+      setAutomations([]);
+      setEdges([]);
+      setLoading(false);
+      return;
+    }
+    const [automationRows, edgeRows] = await Promise.all([fetchAutomations(companyId), fetchAutomationEdges(companyId)]);
+    setAutomations(automationRows);
+    setEdges(edgeRows);
+    setLoading(false);
+  }, [companyId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (mounted) {
+      load();
+    }
+
+    const subscription = supabase
+      .channel(channelNameRef.current)
+      .on("postgres_changes", { event: "*", schema: "public", table: "automations" }, () => {
+        if (mounted) load();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "automation_edges" }, () => {
+        if (mounted) load();
+      })
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [load]);
+
+  return { automations, edges, loading, refetch: load };
 }
 
 // =====================================================
@@ -2026,13 +2194,35 @@ export interface CompanyMember {
   company_id: string;
   profile_id: string;
   role: "founder" | "team" | "contractor";
+  // Additive to `role` (migration 0028), not a replacement -- department
+  // tags scope which Automation Web nodes this member can edit
+  // (clearance_departments overlap), they don't change founder/team/
+  // contractor's existing nav-gating or power level. Empty by default.
+  departments: string[];
   profiles: { display_name: string | null } | null;
 }
+
+// Fixed V1 default list, matching the department language already used in
+// claude/backstage-os-philosophy.md -- a frontend constant, not a database
+// table, since departments are a flat text[] tag (see 0028's migration
+// comment on why that's the deliberate V1 choice).
+export const DEPARTMENTS = [
+  "Operations",
+  "Sales",
+  "Marketing",
+  "Design/Branding",
+  "Customer Service",
+  "Administration",
+  "Technology",
+  "Production/Fulfillment",
+  "Inventory Management",
+  "Finance",
+] as const;
 
 export async function fetchCompanyMembers(companyId: string): Promise<CompanyMember[]> {
   const { data, error } = await supabase
     .from("company_members")
-    .select("id, company_id, profile_id, role, profiles(display_name)")
+    .select("id, company_id, profile_id, role, departments, profiles(display_name)")
     .eq("company_id", companyId);
   if (error) {
     console.error("Error fetching company members:", error);
@@ -2048,6 +2238,38 @@ export async function updateCompanyMemberRole(id: string, role: CompanyMember["r
     return false;
   }
   return true;
+}
+
+export async function updateCompanyMemberDepartments(id: string, departments: string[]): Promise<boolean> {
+  const { error } = await supabase.from("company_members").update({ departments }).eq("id", id);
+  if (error) {
+    console.error("Error updating company member departments:", error);
+    return false;
+  }
+  return true;
+}
+
+// Founder-only in the UI; RLS already enforces this too (founders_manage_
+// company_memberships is FOR ALL on company_members, migration 0027).
+export async function removeCompanyMember(id: string): Promise<boolean> {
+  const { error } = await supabase.from("company_members").delete().eq("id", id);
+  if (error) {
+    console.error("Error removing company member:", error);
+    return false;
+  }
+  return true;
+}
+
+// Founder-only in the UI; the enforce_founder_only_transitions trigger
+// (migration 0031/0032) rejects this transition server-side for anyone
+// else, regardless of what the UI does.
+export async function voidAgreement(id: string): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase.from("agreements").update({ status: "voided" }).eq("id", id);
+  if (error) {
+    console.error("Error voiding agreement:", error);
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 
 // A profile is "contractor-only" if every company_members row they hold is
@@ -2265,6 +2487,10 @@ export interface SystemUnlock {
   stage: "one" | "two" | "three";
   status: "locked" | "available" | "in_progress" | "complete";
   unlocked_at: string | null;
+  // The same template_type can now reappear at a later stage "in further
+  // detail" (migration 0030) -- this carries the framing text for that
+  // re-pass without needing a second table.
+  depth_note: string | null;
 }
 
 export async function fetchSystemUnlocks(companyId: string): Promise<SystemUnlock[]> {
@@ -2339,7 +2565,7 @@ export async function acceptStageTransition(transitionId: string): Promise<boole
 export interface SafetyNetNudge {
   id: string;
   company_id: string;
-  type: "cash_buffer" | "quiet_lead" | "seasonal_dip";
+  type: "cash_buffer" | "quiet_lead" | "seasonal_dip" | "stage_progress";
   message: string;
   created_at: string;
   dismissed_at: string | null;

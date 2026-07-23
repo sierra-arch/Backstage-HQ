@@ -47,8 +47,16 @@ Never conflate them.
 
 **Routes:** `/portal` (client app, `ClientPortalApp`, `client_users` login
 only, magic-link — never routes through `AuthGate`/`ensureProfile`).
-**Internal nav:** Today · Meetings · Tasks · Companies · Playbook · My Team ·
-Career Path · Settings
+**Internal nav (founder):** Today · Meetings · Tasks · Leads · Systems ·
+Marketing · Automation Web · Reporting · Companies · Playbook · My Team ·
+Settings (via username at sidebar bottom, not a nav row item).
+**Internal nav (team):** Today · Tasks · Leads · Systems · Marketing ·
+Automation Web · Reporting · Companies · Playbook · Career Path · Settings.
+Leads/Marketing/Reporting/Systems are hidden for contractor-only profiles.
+Career Path is deliberately team-only, not shown to founders. Proposals /
+Agreements / Invoices / Brand Kit / Templates / Team & Roles / Testimonials
+are real and built but nested inside Companies (not top-level nav) — see
+`claude/nav-and-discoverability-spec.md`.
 
 ## Already Built — Don't Re-spec or Rebuild
 
@@ -168,12 +176,21 @@ order without checking that doc's dependency notes first.
 
 **2026-07-22:** the "full-boldness" ember/forest/cream redesign (pill
 buttons, dark forest sidebar, ember-remapped teal scale, Cormorant
-Garamond serif headlines) was tried and then **reverted the same day at
-the founder's request** ("return to the original color scheme"). The app
-is back to its original teal accent (`#1B7E70`/`#15685D`) on a light
-neutral background, Plus Jakarta Sans throughout, `rounded-xl` buttons/
-cards. Do not re-apply the ember/forest palette without the founder
-explicitly asking for it again.
+Garamond serif headlines) was tried, and the pill-button/dark-sidebar/serif
+parts were undone at the founder's request. **Correction (2026-07-23):**
+this doc previously claimed the color scheme was also reverted to an
+original teal (`#1B7E70`/`#15685D`) — that revert never actually landed in
+`index.html`. The forest-green remap from that redesign (`teal-600:
+#1F7A52`, `teal-700: #175F40`) is still live, and the founder has since
+confirmed (2026-07-23) she wants to **keep it** — this is the real, kept
+baseline color, not a leftover to fix. Light neutral background, Plus
+Jakarta Sans throughout, `rounded-xl` buttons/cards. As of the Stage System
+Buildout (`claude/stage-system-buildout-spec.md`), this forest-green is
+specifically **Stage Two's** color — Stage One (purple) and Stage Three
+(blue) get their own palettes, with the whole app chrome shifting between
+them based on the active company's stage. Don't re-introduce the
+pill-button/dark-sidebar ember redesign without the founder explicitly
+asking for it again.
 - **Still open:** Sierra's real brand display font is "Spicy Margarita"
   (hand-script/display style) — she's uploaded the .woff file in
   conversation but it has not been wired into the app yet. Likely
@@ -187,6 +204,10 @@ explicitly asking for it again.
 - `claude/roadmap.md` — the 13-milestone build sequence + resolved schema decisions + the detailed Proposal Generator (milestone 5) plan
 - `claude/saas-feature-spec.md` — the full template/systems/dashboard feature spec (source document the roadmap was built from)
 - `claude/platform-spec.md` — original three-view architecture concept (defer to `roadmap.md` and `vocabulary-reference.md` on any naming conflict)
+- `claude/backstage-os-philosophy.md` — the founder's Values Charter, Onboarding Philosophy, Dashboard Guardrail, and Build Pack Ethical Constraint. Locked rules; check every new feature against this.
+- `claude/automation-web-build-spec.md` — **in progress, sent to the dev agent 2026-07-23.** Spec for the Automation Web feature: a visual, chainable canvas over the existing `automations` table. Builds a real, generic, chainable engine (not a UI skin over hardcoded automations), but execution stays bounded to a fixed set of vetted trigger/action-type handlers — never arbitrary founder-authored logic. Also specs the `company_members.departments` addition (additive column, does not touch the existing founder/team/contractor role or its RLS/nav-gating). `src/features/automation-web/` already has files in progress — check current state before assuming anything here is unbuilt.
+- `claude/nav-and-discoverability-spec.md` — **not yet built (2026-07-23).** Sticky sub-nav for `CompanyModal`'s stacked sections (Brand Kit/Templates/Team & Roles/Testimonials are real but easy to miss), a visible Settings entry point, and a proposed founder-only action list for nested company/client actions. Nothing here is a missing feature — it's a "the thing exists but you can't find it" pass.
+- `claude/stage-system-buildout-spec.md` — **not yet built (2026-07-23).** Gamified Company Stage buildout: fills in missing Stage One systems and seeds real Stage Three systems (currently empty) from the founder's original notes, lets a `template_type` reappear at multiple stages "in further detail" (schema change to `system_unlocks`' unique constraint), whole-app stage-colored theming (Stage One purple / Stage Two the kept forest-green / Stage Three blue) via CSS variables — no changes needed to the 241 existing `teal-*` Tailwind class sites — driven by a new global company switcher (`profiles.active_company_id`), per-system-completion confetti alongside the existing stage-transition confetti, and a new `stage_progress` type on the existing `safety_net_nudges` mechanism for "push the needle" suggestions. Read in full before starting.
 
 ## Working Agreement
 

@@ -20,11 +20,7 @@ import {
   type TemplateSection,
   type Selections,
 } from "./_lib/proposalEngine";
-import {
-  buildKickoffTasks,
-  kickoffProjectName,
-  KICKOFF_TASK_METADATA,
-} from "./_lib/projectAutomation";
+import { runTrigger } from "./_lib/automationRuntime";
 
 interface FieldValues {
   authored: Record<string, unknown>;
@@ -240,11 +236,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   await admin.from("proposals").update({ status: "accepted" }).eq("id", proposal.id);
 
   // Client Journey automation: this used to be a manual dropdown flip and a
-  // blank project. The instant a proposal is accepted, the client moves to
-  // 'active', a project exists, and a starter task list is waiting for the
-  // team — with the payment schedule step already checked off, since we
-  // just built it above. Best-effort: if this fails, the client's acceptance
-  // itself has already succeeded and must not be rolled back over it.
+  // blank project. Now it runs through the Automation Web runtime (migration
+  // 0028) -- the project/tasks/stage-advance/agreement-placeholder side
+  // effects live in automationHandlers/createProjectAndTasks.ts, and which
+  // node(s) actually run is data (the automations/automation_edges tables),
+  // not this hardcoded call site. Best-effort: if this fails, the client's
+  // acceptance itself has already succeeded and must not be rolled back
+  // over it.
   try {
     const { data: clientRow } = await admin
       .from("clients")
@@ -253,44 +251,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle();
 
     if (clientRow) {
-      const { data: project } = await admin
-        .from("projects")
-        .insert({
-          client_id: clientId,
-          company_id: clientRow.company_id,
-          name: kickoffProjectName(clientRow.name),
-          status: "active",
-          start_date: today,
-        })
-        .select("id")
-        .single();
-
-      const kickoffTasks = buildKickoffTasks(clientRow.name);
-      if (project) {
-        await admin.from("tasks").insert(
-          kickoffTasks.map((t) => ({
-            title: t.title,
-            description: t.description,
-            company_id: clientRow.company_id,
-            client_id: clientId,
-            project_id: project.id,
-            status: t.autoComplete ? "completed" : "active",
-            completed_at: t.autoComplete ? new Date().toISOString() : null,
-            priority: "medium",
-            metadata: KICKOFF_TASK_METADATA,
-          }))
-        );
-      }
-
-      await admin.from("clients").update({ stage: "active" }).eq("id", clientId);
+      await runTrigger(admin, clientRow.company_id, "proposal_accepted", {
+        companyId: clientRow.company_id,
+        clientId,
+        clientName: clientRow.name,
+        proposalId: proposal.id,
+        startDate: today,
+      });
     }
-
-    // Agreement placeholder becomes real: the accepted proposal itself is
-    // the terms being signed (no separate contract-doc generation yet --
-    // that's the template-manager phase). One agreement per proposal.
-    await admin
-      .from("agreements")
-      .insert({ client_id: clientId, proposal_id: proposal.id, status: "sent" });
   } catch (automationError) {
     console.error("Proposal-accepted kickoff automation failed (non-fatal):", automationError);
   }

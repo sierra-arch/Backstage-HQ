@@ -1,0 +1,62 @@
+/* Stage System Buildout: whole-app stage-colored theming, driven by a
+   `data-stage` attribute DashboardApp.tsx sets on <html> based on the
+   active company's current_stage. index.html's Tailwind config remaps the
+   `teal`/`sage` tokens to reference these variables, so every existing
+   `bg-teal-600`/`text-teal-700`/etc. call site across the app repaints
+   automatically -- no call site changes needed anywhere else.
+
+   :root is the default (no data-stage set yet, e.g. before companies load)
+   and [data-stage="two"] are the SAME values -- Stage Two is the confirmed,
+   kept forest-green baseline (CLAUDE.md, Visual Design System section),
+   not a new color. Stage One (purple) and Stage Three (blue) are first-
+   draft placeholders, expected to be eyeballed and adjusted, not final. */
+
+:root, [data-stage="two"] {
+  --teal-50: 237 246 236;
+  --teal-100: 220 238 218;
+  --teal-200: 185 221 180;
+  --teal-300: 143 199 135;
+  --teal-400: 95 174 94;
+  --teal-500: 59 147 80;
+  --teal-600: 31 122 82;
+  --teal-700: 23 95 64;
+  --teal-800: 18 61 44;
+  --teal-900: 11 42 28;
+  --sage-50: 243 248 241;
+  --sage-100: 231 242 229;
+  --sage-200: 211 233 206;
+}
+
+[data-stage="one"] {
+  /* Calm muted plum/purple -- first draft, adjust freely. */
+  --teal-50: 243 240 247;
+  --teal-100: 230 223 239;
+  --teal-200: 207 192 223;
+  --teal-300: 178 157 203;
+  --teal-400: 148 120 179;
+  --teal-500: 122 93 154;
+  --teal-600: 99 74 126;
+  --teal-700: 77 57 99;
+  --teal-800: 54 40 73;
+  --teal-900: 33 24 48;
+  --sage-50: 243 240 247;
+  --sage-100: 230 223 239;
+  --sage-200: 207 192 223;
+}
+
+[data-stage="three"] {
+  /* Calm muted steel blue -- first draft, adjust freely. */
+  --teal-50: 238 243 246;
+  --teal-100: 220 231 237;
+  --teal-200: 185 207 219;
+  --teal-300: 143 178 196;
+  --teal-400: 98 148 172;
+  --teal-500: 69 123 147;
+  --teal-600: 53 99 122;
+  --teal-700: 41 76 95;
+  --teal-800: 28 52 68;
+  --teal-900: 16 31 41;
+  --sage-50: 238 243 246;
+  --sage-100: 220 231 237;
+  --sage-200: 185 207 219;
+}

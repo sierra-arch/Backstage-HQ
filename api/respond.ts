@@ -10,6 +10,7 @@
 // `deliverables`, only this endpoint can write to them.
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { getRequestClientUser, getAdminClient, UnauthorizedError } from "./_lib/supabaseServer";
+import { runTrigger } from "./_lib/automationRuntime";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -144,30 +145,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return;
     }
 
-    // Automation: deliverable approved -> notify the team. Best-effort --
-    // the client's response has already saved successfully, so a
-    // notification failure must not roll it back or surface as an error.
+    // Automation: deliverable approved -> notify the team, through the
+    // Automation Web runtime (migration 0028) instead of a hardcoded
+    // insert -- which node(s) actually run is data, not this call site.
+    // Best-effort: the client's response has already saved successfully,
+    // so a notification failure must not roll it back or surface as an
+    // error.
     if (action === "approve") {
       try {
         const projectData = (deliverable as any).projects;
         const companyId = projectData?.company_id;
         const clientName = projectData?.clients?.name ?? "A client";
         if (companyId) {
-          const { data: founders } = await admin
-            .from("company_members")
-            .select("profile_id")
-            .eq("company_id", companyId)
-            .eq("role", "founder");
-          if (founders && founders.length > 0) {
-            await admin.from("messages").insert(
-              founders.map((f) => ({
-                from_user_id: f.profile_id,
-                to_user_id: f.profile_id,
-                content: `${clientName} approved "${deliverable.title}"`,
-                message_type: "team",
-              }))
-            );
-          }
+          await runTrigger(admin, companyId, "deliverable_approved", {
+            companyId,
+            message: `${clientName} approved "${deliverable.title}"`,
+          });
         }
       } catch (notifyError) {
         console.error("Deliverable-approved notification failed (non-fatal):", notifyError);
