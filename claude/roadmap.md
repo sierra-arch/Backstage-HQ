@@ -482,17 +482,30 @@ valid type but not generated yet, per the hand-off spec's own instruction
   appeared in the first live test — `fetchActiveNudge()` resolved
   correctly every time (confirmed via network response bodies), but the
   component holding the result was destroyed before it could render.
-  **Not fixed at the root** (hoisting every nested component in this
-  ~6000-line file out of `DashboardApp`'s closure is a large, separate
-  refactor touching dozens of components that currently rely on closing
-  over its state/handlers — out of scope for a nudge feature). Instead,
-  the nudge state was moved up to live in `DashboardApp` itself (which
-  does *not* exhibit this remounting — confirmed stable across the same
-  test), the same way `userName`/`xp`/`level` already do, and
-  `TodayFounder` just reads it via closure. **Worth a dedicated future
-  session**: any other state anyone adds inside `TodayFounder`/`TodayTeam`
-  (or likely other nested components in this file) will hit the exact same
-  silent-reset bug until the root cause is fixed.
+  **Not fixed at the root at the time** (hoisting looked like a large,
+  separate refactor — out of scope for a nudge feature). Instead, the
+  nudge state was moved up to live in `DashboardApp` itself (which does
+  *not* exhibit this remounting — confirmed stable across the same test),
+  the same way `userName`/`xp`/`level` already do, and `TodayFounder` just
+  reads it via closure.
+- **Follow-up (same day, 2026-07-22) — root cause actually fixed.** An
+  `awk` search of the full `DashboardApp` body (lines 5526-6538) confirmed
+  only **2** nested component definitions exist in the whole file —
+  `TodayFounder` and `TodayTeam` — not "dozens" as speculated above. Fixed
+  properly by converting both from `function TodayFounder() { return (...);
+  }` into plain JSX values (`const todayFounderView = (...)`) computed
+  inline in `DashboardApp`'s render body, then referencing
+  `todayFounderView`/`todayTeamView` directly at the call site instead of
+  `<TodayFounder />`/`<TodayTeam />`. A JSX value has no component-type
+  identity of its own to change between renders — React reconciles the
+  actual element tree (the `div`s, `Card`s, etc. inside) directly, so the
+  remount is eliminated entirely rather than routed around. Verified via
+  `tsc`/`build` (only pre-existing baseline errors, none new) and a fresh
+  live Playwright pass against a local dev server with a real founder
+  session (Today page renders Welcome/Ask Claude/Today's Focus/Submitted
+  for Approval/Business Snapshot correctly, zero console errors). Deployed
+  as commit `e13dda7`, confirmed Vercel status `success`. Any future state
+  added inside either component is now safe from this class of bug.
 
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
