@@ -5782,8 +5782,14 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
 
   const equalCardH = "h-[360px]";
 
-  function TodayFounder() {
-    return (
+  // Rendered as plain JSX values (not nested component functions) so their
+  // identity stays stable across DashboardApp re-renders -- defining these
+  // as `function TodayFounder() {...}` inside this render body previously
+  // made React treat them as a brand-new component type on every render,
+  // fully unmounting/remounting them and silently discarding any state
+  // (e.g. active nudges never rendered because the mount that fetched them
+  // was gone before the fetch resolved).
+  const todayFounderView = (
       <>
         {activeNudge && (
           <NudgeCard nudge={activeNudge} onDismissed={refetchNudge} onNavigate={(p) => setPage(p as Page)} />
@@ -6007,13 +6013,11 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
           </div>
         </div>
       </>
-    );
-  }
+  );
 
-  function TodayTeam() {
-    const myTasks = filteredTasks.filter((t) => t.assignee_name === userName);
+  const myTasks = filteredTasks.filter((t) => t.assignee_name === userName);
 
-    return (
+  const todayTeamView = (
       <>
         <div className="grid grid-cols-12 gap-4 items-stretch">
           <div className="col-span-12 md:col-span-4">
@@ -6213,8 +6217,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
           </div>
         </div>
       </>
-    );
-  }
+  );
 
   if (tasksLoading) {
     return (
@@ -6266,7 +6269,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
           />
 
           {page === "Today" &&
-            (isFounder(role) ? <TodayFounder /> : <TodayTeam />)}
+            (isFounder(role) ? todayFounderView : todayTeamView)}
           {page === "Meetings" && isFounder(role) && <MeetingsPage />}
           {page === "Tasks" && (
             <div className="space-y-4">
