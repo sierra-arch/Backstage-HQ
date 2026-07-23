@@ -78,7 +78,7 @@ export function CompaniesPage({
         const remaining = remainingBreakdown(companyName, tasks);
         const tooltip =
           remaining.total === 0
-            ? "All clear 🎉"
+            ? "All clear"
             : `${remaining.small} small • ${remaining.medium} medium • ${remaining.large} large remaining`;
 
         // Real data tiles

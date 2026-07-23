@@ -334,7 +334,6 @@ export function OnboardingWizard({
           >
             {step === "welcome" && (
               <div className="text-center space-y-4">
-                <div className="text-4xl">👋</div>
                 <h1 className="text-2xl font-semibold text-neutral-900">
                   Welcome to {company.name}'s space.
                 </h1>
@@ -594,7 +593,7 @@ export function OnboardingWizard({
                                   className="text-xs mt-1"
                                   style={{ color: colorPrimary }}
                                 >
-                                  ⚡ Automated — {t.description}
+                                  Automated — {t.description}
                                 </motion.div>
                               )}
                             </AnimatePresence>
@@ -658,7 +657,6 @@ export function OnboardingWizard({
 
             {step === "done" && (
               <div className="text-center space-y-4 py-6">
-                <div className="text-4xl">✨</div>
                 <h1 className="text-2xl font-semibold text-neutral-900">
                   Your space is ready.
                 </h1>

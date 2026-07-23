@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Modal from "./Modal"; // ✅ uses your default export (works with unified Modal.tsx)
+import Modal from "./Modal"; // uses your default export (works with unified Modal.tsx)
 import { DBTask, Role, TIME_BY_LEVEL, COMPANIES, isFounder } from "./types";
 import { getCompanyByName, updateTask as dbUpdateTask } from "./useDatabase";
 

@@ -341,7 +341,7 @@ function ProductCard({ product, onEdit, onSync, isFounder }: ProductCardProps) {
               className="p-2 rounded-lg hover:bg-purple-50 text-purple-600 transition-colors disabled:opacity-50"
               title="Sync with Etsy"
             >
-              {syncing ? "..." : "🔄"}
+              {syncing ? "..." : "Sync"}
             </button>
           )}
           <button

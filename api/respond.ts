@@ -163,7 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               founders.map((f) => ({
                 from_user_id: f.profile_id,
                 to_user_id: f.profile_id,
-                content: `✅ ${clientName} approved "${deliverable.title}"`,
+                content: `${clientName} approved "${deliverable.title}"`,
                 message_type: "team",
               }))
             );

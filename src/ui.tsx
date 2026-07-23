@@ -102,42 +102,35 @@ export function Avatar({
 
 export function CompanyChip({
   name,
-  showLogo = true,
 }: {
   name: string;
-  showLogo?: boolean;
 }) {
   const map: any = {
     "Prose Florals": {
       bg: "bg-lime-50",
       text: "text-lime-900/80",
       border: "border-lime-200",
-      logo: "🌸",
     },
     Backstage: {
       bg: "bg-teal-100",
       text: "text-teal-900/90",
       border: "border-teal-300",
-      logo: "🎯",
     },
     "Mairé": {
       bg: "bg-emerald-50",
       text: "text-emerald-900/80",
       border: "border-emerald-200",
-      logo: "✨",
     },
   };
   const s = map[name] || {
     bg: "bg-neutral-50",
     text: "text-neutral-800",
     border: "border-neutral-200",
-    logo: "📦",
   };
   return (
     <span
       className={`text-[10px] px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border} inline-flex items-center gap-1`}
     >
-      {showLogo && <span>{s.logo}</span>}
       {name}
     </span>
   );

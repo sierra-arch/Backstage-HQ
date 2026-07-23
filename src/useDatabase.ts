@@ -2022,8 +2022,8 @@ export async function updateCompanyMemberRole(id: string, role: CompanyMember["r
 
 // A profile is "contractor-only" if every company_members row they hold is
 // role='contractor' -- no founder/team role anywhere. Used to hide
-// revenue/marketing-adjacent nav per the roles matrix (Contractor: ❌ on
-// email marketing, automations, revenue reporting), without needing a full
+// revenue/marketing-adjacent nav per the roles matrix (Contractor: no access
+// to email marketing, automations, revenue reporting), without needing a full
 // per-company context switcher -- this app's internal views are cross-
 // company by default, so the only permission check that cleanly fits today
 // is "does this person have any elevated role at all."

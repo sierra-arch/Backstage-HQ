@@ -1,5 +1,5 @@
 // DashboardApp.tsx - COMPLETE MULTI-BRAND VERSION
-// ✨ Full client/product management, cover photos, smart navigation
+// Full client/product management, cover photos, smart navigation
 import "./styles.css";
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -184,7 +184,6 @@ type Product = {
 
 type CompanyData = {
   name: string;
-  logo_url: string;
   description: string;
   color: string;
   social_links: { platform: string; url: string }[];
@@ -217,7 +216,6 @@ type Accomplishment = {
 const COMPANY_DATA: Record<string, CompanyData> = {
   "Prose Florals": {
     name: "Prose Florals",
-    logo_url: "🌸",
     description: "High-touch creative floral design for weddings and events",
     color: "#84cc16",
     social_links: [
@@ -231,7 +229,6 @@ const COMPANY_DATA: Record<string, CompanyData> = {
   },
   Backstage: {
     name: "Backstage",
-    logo_url: "🎯",
     description: "Business operations systems and strategic consulting",
     color: "#14b8a6",
     social_links: [
@@ -245,7 +242,6 @@ const COMPANY_DATA: Record<string, CompanyData> = {
   },
   Mairé: {
     name: "Mairé",
-    logo_url: "✨",
     description: "Handcrafted botanical products and pressed flower art",
     color: "#10b981",
     social_links: [
@@ -424,42 +420,35 @@ function LevelRing({
 
 function CompanyChip({
   name,
-  showLogo = true,
 }: {
   name: string;
-  showLogo?: boolean;
 }) {
   const map: any = {
     "Prose Florals": {
       bg: "bg-lime-50",
       text: "text-lime-900/80",
       border: "border-lime-200",
-      logo: "🌸",
     },
     Backstage: {
       bg: "bg-teal-100",
       text: "text-teal-900/90",
       border: "border-teal-300",
-      logo: "🎯",
     },
     Mairé: {
       bg: "bg-emerald-50",
       text: "text-emerald-900/80",
       border: "border-emerald-200",
-      logo: "✨",
     },
   };
   const s = map[name] || {
     bg: "bg-neutral-50",
     text: "text-neutral-800",
     border: "border-neutral-200",
-    logo: "📦",
   };
   return (
     <span
       className={`text-[10px] px-2 py-0.5 rounded-full border ${s.bg} ${s.text} ${s.border} inline-flex items-center gap-1`}
     >
-      {showLogo && <span>{s.logo}</span>}
       {name}
     </span>
   );
@@ -1420,7 +1409,7 @@ function ProjectModal({
           .eq("id", project.client_id)
           .eq("stage", "active");
         if (project.company_id) {
-          await notifyFounders(project.company_id, `🎉 "${project.name}" was marked completed`);
+          await notifyFounders(project.company_id, `"${project.name}" was marked completed`);
         }
       } catch (automationError) {
         console.error("Project-completed automation failed (non-fatal):", automationError);
@@ -2990,7 +2979,12 @@ function CompanyModal({
     <Modal isOpen={isOpen} onClose={onClose} title={companyName} size="large">
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <div className="text-6xl">{company.logo_url}</div>
+          <div
+            className="flex items-center justify-center rounded-2xl text-white text-2xl font-semibold flex-shrink-0"
+            style={{ width: 64, height: 64, background: company.color }}
+          >
+            {company.name[0]?.toUpperCase()}
+          </div>
           <div className="flex-1">
             <p className="text-sm text-neutral-600">{company.description}</p>
           </div>
@@ -3582,7 +3576,7 @@ function TaskRow({ task, onClick }: { task: DBTask; onClick: () => void }) {
               className="text-[10px] px-2 py-0.5 rounded-full border border-amber-200 bg-amber-50 text-amber-800 inline-flex items-center gap-1"
               title="Created automatically by Backstage"
             >
-              ⚡ Automated
+              Automated
             </span>
           )}
         </div>
@@ -3737,7 +3731,7 @@ function calculateCompanyProgress(companyTasks: DBTask[]) {
 function BusinessSnapshot({
   stats,
 }: {
-  stats: { icon: string; label: string; value: number | string }[];
+  stats: { label: string; value: number | string }[];
 }) {
   return (
     <Card title="Business Snapshot" subtitle="Here's what's present today">
@@ -3745,13 +3739,10 @@ function BusinessSnapshot({
         {stats.map((s) => (
           <div
             key={s.label}
-            className="rounded-2xl border p-3 bg-white flex items-center gap-3"
+            className="rounded-2xl border p-3 bg-white"
           >
-            <div className="text-xl leading-none">{s.icon}</div>
-            <div className="min-w-0">
-              <div className="text-lg font-semibold leading-tight">{s.value}</div>
-              <div className="text-xs text-neutral-500 leading-snug">{s.label}</div>
-            </div>
+            <div className="text-lg font-semibold leading-tight">{s.value}</div>
+            <div className="text-xs text-neutral-500 leading-snug">{s.label}</div>
           </div>
         ))}
       </div>
@@ -4036,21 +4027,19 @@ function ReportingPage({ tasks, teamMembers }: { tasks: DBTask[]; teamMembers: {
   const overdue = invoices.filter((i) => i.status === "overdue").reduce((sum, i) => sum + i.amount, 0);
 
   const revenueStats = [
-    { icon: "💵", label: "Paid this month", value: `$${paidThisMonth.toLocaleString()}` },
-    { icon: "🧾", label: "Paid all-time", value: `$${paidAllTime.toLocaleString()}` },
-    { icon: "⏳", label: "Unpaid", value: `$${unpaid.toLocaleString()}` },
-    { icon: "📌", label: "Overdue", value: `$${overdue.toLocaleString()}` },
+    { label: "Paid this month", value: `$${paidThisMonth.toLocaleString()}` },
+    { label: "Paid all-time", value: `$${paidAllTime.toLocaleString()}` },
+    { label: "Unpaid", value: `$${unpaid.toLocaleString()}` },
+    { label: "Overdue", value: `$${overdue.toLocaleString()}` },
   ];
 
   const pipelineStats = LEAD_STATUS_COLUMNS.map((col) => ({
-    icon: "📋",
     label: col.label,
     value: leads.filter((l) => l.status === col.key).length,
   }));
 
   const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "archived");
   const workloadStats = teamMembers.map((m) => ({
-    icon: "🗂️",
     label: m.display_name || "Unknown",
     value: activeTasks.filter((t) => t.assignee_name === m.display_name).length,
   }));
@@ -4072,7 +4061,7 @@ function ReportingPage({ tasks, teamMembers }: { tasks: DBTask[]; teamMembers: {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {workloadStats.map((s) => (
             <div key={s.label} className="rounded-2xl border p-3 bg-white flex items-center gap-3">
-              <div className="text-xl leading-none">{s.icon}</div>
+              <Avatar name={s.label} size={32} />
               <div>
                 <div className="text-lg font-semibold leading-tight">{s.value}</div>
                 <div className="text-xs text-neutral-500 leading-snug">{s.label}</div>
@@ -5693,7 +5682,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
     if (success) {
       // Send kudos message to team
       await sendMessage(
-        `🎉 ${userName} completed: ${task.title}`,
+        `${userName} completed: ${task.title}`,
         undefined, // No recipient = team message
         true, // is kudos
         task.id // related task
@@ -5747,7 +5736,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
     // If posting to team, send message to database
     if (postToTeam) {
       await sendMessage(
-        `🎉 ${text}`,
+        text,
         undefined, // team message
         false, // not kudos
         undefined // no related task
@@ -5933,22 +5922,18 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
               <BusinessSnapshot
                 stats={[
                   {
-                    icon: "\uD83C\uDFE2",
                     label: allCompanies.length === 1 ? "Company" : "Companies",
                     value: allCompanies.length,
                   },
                   {
-                    icon: "\uD83E\uDD1D",
                     label: "Active clients",
                     value: dbClients.filter((c) => c.stage === "active").length,
                   },
                   {
-                    icon: "\uD83D\uDCCB",
                     label: "Tasks in motion",
                     value: allActiveTasks.length,
                   },
                   {
-                    icon: "\u2705",
                     label: "Completed this week",
                     value: completedTasks.filter((t) => {
                       if (!t.completed_at) return false;
@@ -6084,7 +6069,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
                   onClick={() => setShowCreateModal(true)}
                   className="text-xs bg-teal-600 text-white rounded-full px-3 py-1.5 hover:bg-teal-700 font-medium"
                 >
-                  ➕ Add Task
+                  Add Task
                 </button>
               </div>
               <div className="relative flex-1 overflow-y-auto pr-1">
@@ -6138,22 +6123,18 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
               <BusinessSnapshot
                 stats={[
                   {
-                    icon: "📋",
                     label: "My tasks in motion",
                     value: myTasks.length,
                   },
                   {
-                    icon: "⏳",
                     label: "Waiting on founder",
                     value: submittedTasks.filter((t) => t.assignee_name === userName).length,
                   },
                   {
-                    icon: "🏢",
                     label: "Companies you touch",
                     value: new Set(myTasks.map((t) => t.company_name)).size,
                   },
                   {
-                    icon: "✅",
                     label: "Completed this week",
                     value: completedTasks.filter((t) => {
                       if (t.assignee_name !== userName || !t.completed_at) return false;

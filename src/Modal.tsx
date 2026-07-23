@@ -12,7 +12,7 @@ export interface ModalProps {
   size?: "small" | "medium" | "large";
   children: React.ReactNode;
 
-  // ✅ Optional enhancements (used by some parts of the refactor)
+  // Optional enhancements (used by some parts of the refactor)
   coverImage?: string;              // shows a header image (like Task cover)
   hideCloseButton?: boolean;        // rare, but sometimes useful
   disableBackdropClose?: boolean;   // prevent accidental close
