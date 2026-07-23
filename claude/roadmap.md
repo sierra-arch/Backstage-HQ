@@ -436,6 +436,40 @@ shown on different pages, never merged into one badge.
   Pack Ethical Constraint. Worth checking against for every future feature,
   not just this one.
 
+**Safety Net v1 — Phase 22 (2026-07-22, Post-Expansion build).**
+`safety_net_nudges` (company × type × message, dismiss/act timestamps).
+Only `cash_buffer` and `quiet_lead` generate in v1 — `seasonal_dip` is a
+valid type but not generated yet, per the hand-off spec's own instruction
+(needs a full season of revenue history to mean anything).
+
+- **Real gap found and fixed first**: `leads` never had an `updated_at`
+  trigger — every other timestamped table (`companies`/`notes`/`profiles`/
+  `sops`/`tasks`) already uses the existing `handle_updated_at()` function,
+  but `leads` was missed back in Phase 1. That made `updated_at` frozen at
+  insert time forever, which would have made "quiet lead" (no recent
+  activity) meaningless. Added the same trigger before building the nudge
+  logic that depends on it.
+- **Endpoint budget, resolved as the spec itself suggested**: nudge
+  generation piggybacks on the existing daily email-sequences cron
+  (`api/cron/process-email-sequences.ts`) rather than getting its own
+  function — the file now runs two independent jobs
+  (`processEmailSequences` + `generateSafetyNetNudges`), both unconditional
+  (the original sequences code had an early return on "nothing due today"
+  that would have skipped nudges too — restructured so neither job can
+  starve the other). Function count stays at 12.
+- **Dedup**: a nudge type only regenerates for a company once its previous
+  one has been dismissed or acted on — not on a fixed time window.
+- **UI**: `NudgeCard` on the founder's Today view only (not team) — at most
+  one nudge shown at a time, the single most recent active one across every
+  company the profile can see, matching the Dashboard Guardrail's "one
+  gentle suggested action, dismissable without penalty." "Take a look"
+  marks it acted and navigates to Leads (quiet_lead) or Reporting
+  (cash_buffer); "Not now" just dismisses, no persisted judgment either way.
+- **Cash buffer logic**: this week's paid revenue vs. the trailing 4-week
+  average, scoped per company via `invoices → clients.company_id` (invoices
+  has no `company_id` column directly). Fires when this week is under half
+  the trailing average.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

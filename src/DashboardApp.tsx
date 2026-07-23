@@ -77,6 +77,10 @@ import {
   acceptStageTransition,
   type SystemUnlock,
   type StageTransition,
+  fetchActiveNudge,
+  dismissNudge,
+  markNudgeActed,
+  type SafetyNetNudge,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
@@ -3611,6 +3615,37 @@ function TaskList({
 /* ──────────────────────────────────────────────────────────────────
    Welcome Card
    ────────────────────────────────────────────────────────────────── */
+const NUDGE_NAV_TARGET: Record<SafetyNetNudge["type"], string> = {
+  cash_buffer: "Reporting",
+  quiet_lead: "Leads",
+  seasonal_dip: "Reporting",
+};
+
+function NudgeCard({ nudge, onDismissed, onNavigate }: { nudge: SafetyNetNudge; onDismissed: () => void; onNavigate: (page: string) => void }) {
+  async function handleDismiss() {
+    await dismissNudge(nudge.id);
+    onDismissed();
+  }
+  async function handleView() {
+    await markNudgeActed(nudge.id);
+    onNavigate(NUDGE_NAV_TARGET[nudge.type]);
+    onDismissed();
+  }
+  return (
+    <div className="rounded-2xl border-2 p-4 bg-[#F3F7F1]" style={{ borderColor: "#0F766E" }}>
+      <p className="text-sm text-neutral-700">{nudge.message}</p>
+      <div className="flex gap-3 mt-3">
+        <button onClick={handleView} className="text-xs font-medium text-teal-700 hover:underline">
+          Take a look
+        </button>
+        <button onClick={handleDismiss} className="text-xs font-medium text-neutral-400 hover:underline">
+          Not now
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function WelcomeCard({
   name,
   doneThisWeek,
@@ -5734,8 +5769,16 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
   const equalCardH = "h-[360px]";
 
   function TodayFounder() {
+    const [nudge, setNudge] = useState<SafetyNetNudge | null>(null);
+    useEffect(() => {
+      fetchActiveNudge().then(setNudge);
+    }, []);
+
     return (
       <>
+        {nudge && (
+          <NudgeCard nudge={nudge} onDismissed={() => setNudge(null)} onNavigate={(p) => setPage(p as Page)} />
+        )}
         <div className="grid grid-cols-12 gap-4 items-stretch">
           <div className="col-span-12 md:col-span-4">
             <WelcomeCard

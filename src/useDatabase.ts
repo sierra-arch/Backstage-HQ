@@ -2306,6 +2306,53 @@ export async function acceptStageTransition(transitionId: string): Promise<boole
   return true;
 }
 
+export interface SafetyNetNudge {
+  id: string;
+  company_id: string;
+  type: "cash_buffer" | "quiet_lead" | "seasonal_dip";
+  message: string;
+  created_at: string;
+  dismissed_at: string | null;
+  acted_at: string | null;
+}
+
+// At most one gentle suggested action at a time, per the Dashboard
+// Guardrail -- the most recent undismissed/unacted nudge across every
+// company this profile can see, not one per company.
+export async function fetchActiveNudge(): Promise<SafetyNetNudge | null> {
+  const { data, error } = await supabase
+    .from("safety_net_nudges")
+    .select("*")
+    .is("dismissed_at", null)
+    .is("acted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("Error fetching active nudge:", error);
+    return null;
+  }
+  return data;
+}
+
+export async function dismissNudge(id: string): Promise<boolean> {
+  const { error } = await supabase.from("safety_net_nudges").update({ dismissed_at: new Date().toISOString() }).eq("id", id);
+  if (error) {
+    console.error("Error dismissing nudge:", error);
+    return false;
+  }
+  return true;
+}
+
+export async function markNudgeActed(id: string): Promise<boolean> {
+  const { error } = await supabase.from("safety_net_nudges").update({ acted_at: new Date().toISOString() }).eq("id", id);
+  if (error) {
+    console.error("Error marking nudge acted:", error);
+    return false;
+  }
+  return true;
+}
+
 export interface Lead {
   id: string;
   company_id: string;
