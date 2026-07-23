@@ -290,6 +290,18 @@ one company context at a time. A contractor who's also a team member
 somewhere else would see the full nav. Revisit if/when a real second
 tenant's contractor usage exposes this as an actual problem.
 
+**Reporting dashboard (2026-07-22, Client Portal Expansion Phase 15).** New
+"Reporting" nav page (hidden for contractor-only profiles, same mechanism
+as Phase 14's Leads/Marketing gating). Plain counts only, no scores or
+comparisons — reuses `BusinessSnapshot`'s existing stat-tile pattern (icon +
+raw value + label, no percentages, no red) for revenue (paid this month,
+paid all-time, unpaid, overdue — summed straight from `invoices`), a
+Pipeline card (lead counts per stage, same five columns as the Leads kanban
+but as static counts), and a Workload card (active-task count per team
+member). No new serverless function — reads `invoices`/`leads`/`tasks`
+directly under existing team RLS, consistent with Phase 13's lesson about
+the function-count cap.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

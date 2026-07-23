@@ -3371,6 +3371,7 @@ type FounderPage =
   | "Tasks"
   | "Leads"
   | "Marketing"
+  | "Reporting"
   | "Companies"
   | "Playbook"
   | "My Team"
@@ -3380,6 +3381,7 @@ type TeamPage =
   | "Tasks"
   | "Leads"
   | "Marketing"
+  | "Reporting"
   | "Companies"
   | "Playbook"
   | "Career Path"
@@ -3405,6 +3407,7 @@ function Sidebar({
     "Tasks",
     "Leads",
     "Marketing",
+    "Reporting",
     "Companies",
     "Playbook",
     "My Team",
@@ -3414,6 +3417,7 @@ function Sidebar({
     "Tasks",
     "Leads",
     "Marketing",
+    "Reporting",
     "Companies",
     "Playbook",
     "Career Path",
@@ -3421,7 +3425,7 @@ function Sidebar({
   // Contractors don't get revenue/marketing-adjacent tools, per the roles
   // matrix -- see fetchIsContractorOnly's doc comment for why this checks
   // "any elevated role anywhere" rather than a per-company context.
-  const hiddenForContractors = new Set(["Leads", "Marketing"]);
+  const hiddenForContractors = new Set(["Leads", "Marketing", "Reporting"]);
   const baseNav = isFounder(role) ? founderNav : teamNav;
   const nav = isContractorOnly ? (baseNav.filter((p) => !hiddenForContractors.has(p)) as typeof baseNav) : baseNav;
 
@@ -3826,6 +3830,81 @@ function projectHealth(project: Project): { label: string; color: string } | nul
     if (days >= 0 && days <= 14) return { label: "Delivery approaching", color: "#B45309" };
   }
   return { label: "On track", color: "#15803D" };
+}
+
+function ReportingPage({ tasks, teamMembers }: { tasks: DBTask[]; teamMembers: { id: string; display_name: string | null }[] }) {
+  const [invoices, setInvoices] = useState<{ amount: number; status: string; created_at: string }[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      supabase.from("invoices").select("amount, status, created_at"),
+      fetchLeads(),
+    ]).then(([invoiceResult, leadRows]) => {
+      setInvoices(invoiceResult.data || []);
+      setLeads(leadRows);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <p className="text-sm text-neutral-400">Loading…</p>;
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const paidThisMonth = invoices.filter((i) => i.status === "paid" && new Date(i.created_at) >= monthStart).reduce((sum, i) => sum + i.amount, 0);
+  const paidAllTime = invoices.filter((i) => i.status === "paid").reduce((sum, i) => sum + i.amount, 0);
+  const unpaid = invoices.filter((i) => i.status === "unpaid").reduce((sum, i) => sum + i.amount, 0);
+  const overdue = invoices.filter((i) => i.status === "overdue").reduce((sum, i) => sum + i.amount, 0);
+
+  const revenueStats = [
+    { icon: "💵", label: "Paid this month", value: `$${paidThisMonth.toLocaleString()}` },
+    { icon: "🧾", label: "Paid all-time", value: `$${paidAllTime.toLocaleString()}` },
+    { icon: "⏳", label: "Unpaid", value: `$${unpaid.toLocaleString()}` },
+    { icon: "📌", label: "Overdue", value: `$${overdue.toLocaleString()}` },
+  ];
+
+  const pipelineStats = LEAD_STATUS_COLUMNS.map((col) => ({
+    icon: "📋",
+    label: col.label,
+    value: leads.filter((l) => l.status === col.key).length,
+  }));
+
+  const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "archived");
+  const workloadStats = teamMembers.map((m) => ({
+    icon: "🗂️",
+    label: m.display_name || "Unknown",
+    value: activeTasks.filter((t) => t.assignee_name === m.display_name).length,
+  }));
+
+  return (
+    <div className="space-y-6">
+      <BusinessSnapshot stats={revenueStats} />
+      <Card title="Pipeline" subtitle="Leads by stage">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {pipelineStats.map((s) => (
+            <div key={s.label} className="rounded-2xl border p-3 bg-white text-center">
+              <div className="text-lg font-semibold">{s.value}</div>
+              <div className="text-xs text-neutral-500">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card title="Workload" subtitle="Active tasks per person">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {workloadStats.map((s) => (
+            <div key={s.label} className="rounded-2xl border p-3 bg-white flex items-center gap-3">
+              <div className="text-xl leading-none">{s.icon}</div>
+              <div>
+                <div className="text-lg font-semibold leading-tight">{s.value}</div>
+                <div className="text-xs text-neutral-500 leading-snug">{s.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
 }
 
 function LeadsPage({ companies }: { companies: Company[] }) {
@@ -6099,6 +6178,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
           )}
           {page === "Leads" && <LeadsPage companies={allCompanies} />}
           {page === "Marketing" && <MarketingPage companies={allCompanies} />}
+          {page === "Reporting" && <ReportingPage tasks={tasks} teamMembers={teamMembers} />}
           {page === "Companies" && (
             <CompaniesPage
               onCompanyClick={setSelectedCompany}
