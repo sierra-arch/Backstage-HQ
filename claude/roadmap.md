@@ -469,6 +469,30 @@ valid type but not generated yet, per the hand-off spec's own instruction
   average, scoped per company via `invoices → clients.company_id` (invoices
   has no `company_id` column directly). Fires when this week is under half
   the trailing average.
+- **Significant pre-existing bug found and worked around while verifying
+  this live**: `TodayFounder` (and `TodayTeam`) are defined as functions
+  *inside* `DashboardApp`'s own render body, not at module scope. React
+  treats a function component defined this way as a brand-new component
+  type on every single `DashboardApp` re-render (a fresh function object
+  each time, even though the code is identical), which fully unmounts and
+  remounts it rather than just re-rendering — silently discarding any state
+  that lives inside. Confirmed via an instrumented local test (a temporary
+  `console.count` in a mount effect): 8 full remounts in 4 seconds just
+  sitting idle on the Today view. This is why the nudge card never
+  appeared in the first live test — `fetchActiveNudge()` resolved
+  correctly every time (confirmed via network response bodies), but the
+  component holding the result was destroyed before it could render.
+  **Not fixed at the root** (hoisting every nested component in this
+  ~6000-line file out of `DashboardApp`'s closure is a large, separate
+  refactor touching dozens of components that currently rely on closing
+  over its state/handlers — out of scope for a nudge feature). Instead,
+  the nudge state was moved up to live in `DashboardApp` itself (which
+  does *not* exhibit this remounting — confirmed stable across the same
+  test), the same way `userName`/`xp`/`level` already do, and
+  `TodayFounder` just reads it via closure. **Worth a dedicated future
+  session**: any other state anyone adds inside `TodayFounder`/`TodayTeam`
+  (or likely other nested components in this file) will hit the exact same
+  silent-reset bug until the root cause is fixed.
 
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable

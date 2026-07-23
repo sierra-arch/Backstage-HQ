@@ -5531,6 +5531,20 @@ export default function DashboardApp() {
     if (!profile?.id) return;
     fetchIsContractorOnly(profile.id).then(setIsContractorOnly);
   }, [profile?.id]);
+
+  // Lives here, not inside TodayFounder -- TodayFounder/TodayTeam are
+  // defined as nested functions inside this component's body, which React
+  // treats as a brand-new component type on every DashboardApp re-render
+  // (a pre-existing architectural issue, not introduced here), fully
+  // remounting them and resetting any state that lived inside. Keeping the
+  // nudge here means it survives those remounts, same as userName/xp/level.
+  const [activeNudge, setActiveNudge] = useState<SafetyNetNudge | null>(null);
+  const refetchNudge = useCallback(() => {
+    fetchActiveNudge().then(setActiveNudge);
+  }, []);
+  useEffect(() => {
+    refetchNudge();
+  }, [refetchNudge]);
   const { teamMembers, loading: loadingTeam } = useTeamMembers();
   const {
     tasks,
@@ -5769,15 +5783,10 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
   const equalCardH = "h-[360px]";
 
   function TodayFounder() {
-    const [nudge, setNudge] = useState<SafetyNetNudge | null>(null);
-    useEffect(() => {
-      fetchActiveNudge().then(setNudge);
-    }, []);
-
     return (
       <>
-        {nudge && (
-          <NudgeCard nudge={nudge} onDismissed={() => setNudge(null)} onNavigate={(p) => setPage(p as Page)} />
+        {activeNudge && (
+          <NudgeCard nudge={activeNudge} onDismissed={refetchNudge} onNavigate={(p) => setPage(p as Page)} />
         )}
         <div className="grid grid-cols-12 gap-4 items-stretch">
           <div className="col-span-12 md:col-span-4">
