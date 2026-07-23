@@ -37,6 +37,7 @@ export interface Company {
   is_active: boolean;
   plan: "starter" | "growth" | "pro";
   custom_domain: string | null;
+  current_stage: "one" | "two" | "three";
   created_at: string;
   updated_at: string;
   onboarding_completed_at?: string | null;
@@ -2221,6 +2222,77 @@ export async function enrollInSequence(params: {
   });
   if (error) {
     console.error("Error enrolling in sequence:", error);
+    return false;
+  }
+  return true;
+}
+
+export interface SystemUnlock {
+  id: string;
+  company_id: string;
+  system_name: string;
+  template_type: string;
+  stage: "one" | "two" | "three";
+  status: "locked" | "available" | "in_progress" | "complete";
+  unlocked_at: string | null;
+}
+
+export async function fetchSystemUnlocks(companyId: string): Promise<SystemUnlock[]> {
+  const { data, error } = await supabase.from("system_unlocks").select("*").eq("company_id", companyId);
+  if (error) {
+    console.error("Error fetching system unlocks:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export interface StageTransition {
+  id: string;
+  company_id: string;
+  from_stage: string;
+  to_stage: string;
+  offered_at: string;
+  accepted_at: string | null;
+}
+
+export async function fetchPendingStageTransition(companyId: string): Promise<StageTransition | null> {
+  const { data, error } = await supabase
+    .from("stage_transitions")
+    .select("*")
+    .eq("company_id", companyId)
+    .is("accepted_at", null)
+    .order("offered_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    console.error("Error fetching pending stage transition:", error);
+    return null;
+  }
+  return data;
+}
+
+// Marks a system's template complete and checks whether that finishes the
+// company's current stage (which -- via check_stage_completion -- creates
+// the offer to advance, but never advances the stage itself; that only
+// happens when the founder explicitly accepts, per the Values Charter's
+// "human agency before automation" rule).
+export async function markSystemComplete(unlock: SystemUnlock): Promise<boolean> {
+  const { error } = await supabase
+    .from("system_unlocks")
+    .update({ status: "complete", unlocked_at: new Date().toISOString() })
+    .eq("id", unlock.id);
+  if (error) {
+    console.error("Error marking system complete:", error);
+    return false;
+  }
+  await supabase.rpc("check_stage_completion", { p_company_id: unlock.company_id });
+  return true;
+}
+
+export async function acceptStageTransition(transitionId: string): Promise<boolean> {
+  const { error } = await supabase.rpc("accept_stage_transition", { p_transition_id: transitionId });
+  if (error) {
+    console.error("Error accepting stage transition:", error);
     return false;
   }
   return true;

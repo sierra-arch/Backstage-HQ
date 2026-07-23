@@ -71,6 +71,12 @@ import {
   updateCompanyMemberRole,
   fetchIsContractorOnly,
   type CompanyMember,
+  fetchSystemUnlocks,
+  fetchPendingStageTransition,
+  markSystemComplete,
+  acceptStageTransition,
+  type SystemUnlock,
+  type StageTransition,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
@@ -3370,6 +3376,7 @@ type FounderPage =
   | "Meetings"
   | "Tasks"
   | "Leads"
+  | "Systems"
   | "Marketing"
   | "Reporting"
   | "Companies"
@@ -3380,6 +3387,7 @@ type TeamPage =
   | "Today"
   | "Tasks"
   | "Leads"
+  | "Systems"
   | "Marketing"
   | "Reporting"
   | "Companies"
@@ -3406,6 +3414,7 @@ function Sidebar({
     "Meetings",
     "Tasks",
     "Leads",
+    "Systems",
     "Marketing",
     "Reporting",
     "Companies",
@@ -3416,6 +3425,7 @@ function Sidebar({
     "Today",
     "Tasks",
     "Leads",
+    "Systems",
     "Marketing",
     "Reporting",
     "Companies",
@@ -3425,7 +3435,7 @@ function Sidebar({
   // Contractors don't get revenue/marketing-adjacent tools, per the roles
   // matrix -- see fetchIsContractorOnly's doc comment for why this checks
   // "any elevated role anywhere" rather than a per-company context.
-  const hiddenForContractors = new Set(["Leads", "Marketing", "Reporting"]);
+  const hiddenForContractors = new Set(["Leads", "Marketing", "Reporting", "Systems"]);
   const baseNav = isFounder(role) ? founderNav : teamNav;
   const nav = isContractorOnly ? (baseNav.filter((p) => !hiddenForContractors.has(p)) as typeof baseNav) : baseNav;
 
@@ -3830,6 +3840,138 @@ function projectHealth(project: Project): { label: string; color: string } | nul
     if (days >= 0 && days <= 14) return { label: "Delivery approaching", color: "#B45309" };
   }
   return { label: "On track", color: "#15803D" };
+}
+
+const STAGE_LABELS: Record<string, string> = { one: "Stage One", two: "Stage Two", three: "Stage Three" };
+const NEXT_STAGE: Record<string, string | null> = { one: "two", two: "three", three: null };
+
+function SystemUnlockRow({ unlock, companyId, onChanged }: { unlock: SystemUnlock; companyId: string; onChanged: () => void }) {
+  const [template, setTemplate] = useState<DocumentTemplate | null | undefined>(undefined);
+  const [marking, setMarking] = useState(false);
+
+  useEffect(() => {
+    fetchDocumentTemplates(companyId, unlock.template_type).then((rows) => setTemplate(rows[0] ?? null));
+  }, [companyId, unlock.template_type]);
+
+  async function handleCreate() {
+    const created = await createTemplate({ companyId, type: unlock.template_type, name: unlock.system_name });
+    if (created) setTemplate(created);
+  }
+
+  async function handleMarkComplete() {
+    setMarking(true);
+    await markSystemComplete(unlock);
+    setMarking(false);
+    onChanged();
+  }
+
+  return (
+    <div className="flex items-center justify-between rounded-2xl border p-3 bg-white">
+      <div>
+        <p className="text-sm font-medium text-neutral-700">{unlock.system_name}</p>
+        <p className="text-xs text-neutral-400 capitalize">{unlock.status.replace("_", " ")}</p>
+      </div>
+      {unlock.status === "complete" ? (
+        <span className="text-xs text-teal-700 font-medium">✓ Complete</span>
+      ) : template === undefined ? null : template === null ? (
+        <button onClick={handleCreate} className="rounded-full border-2 border-teal-600 text-teal-600 px-3 py-1.5 text-xs font-medium hover:bg-teal-50">
+          Start
+        </button>
+      ) : (
+        <button
+          onClick={handleMarkComplete}
+          disabled={marking}
+          className="rounded-full bg-teal-600 text-white px-3 py-1.5 text-xs font-medium hover:bg-teal-700 disabled:opacity-50"
+        >
+          {marking ? "Saving…" : "Mark Complete"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SystemsPage({ companies }: { companies: Company[] }) {
+  const [companyId, setCompanyId] = useState("");
+  const [unlocks, setUnlocks] = useState<SystemUnlock[]>([]);
+  const [pendingTransition, setPendingTransition] = useState<StageTransition | null>(null);
+  const [dismissed, setDismissed] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+  const [accepting, setAccepting] = useState(false);
+
+  useEffect(() => {
+    if (companies.length > 0 && !companyId) setCompanyId(companies[0].id);
+  }, [companies, companyId]);
+
+  const load = useCallback(async () => {
+    if (!companyId) return;
+    setUnlocks(await fetchSystemUnlocks(companyId));
+    setPendingTransition(await fetchPendingStageTransition(companyId));
+    setDismissed(false);
+  }, [companyId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (!companyId) return null;
+  const company = companies.find((c) => c.id === companyId);
+  if (!company) return null;
+
+  const currentStageSystems = unlocks.filter((u) => u.stage === company.current_stage);
+  const nextStage = NEXT_STAGE[company.current_stage];
+
+  async function handleAccept() {
+    if (!pendingTransition) return;
+    setAccepting(true);
+    await acceptStageTransition(pendingTransition.id);
+    setAccepting(false);
+    setCelebrate(true);
+    setTimeout(() => setCelebrate(false), 2500);
+    load();
+  }
+
+  return (
+    <div className="space-y-6">
+      <Confetti fire={celebrate} />
+      <select value={companyId} onChange={(e) => setCompanyId(e.target.value)} className="rounded-2xl border px-3 py-2 text-sm">
+        {companies.map((c) => (
+          <option key={c.id} value={c.id}>{c.name}</option>
+        ))}
+      </select>
+
+      {pendingTransition && !dismissed && (
+        <Card className="border-teal-300">
+          <p className="text-sm font-semibold text-neutral-700">
+            {STAGE_LABELS[company.current_stage]}'s built out — want to see what {STAGE_LABELS[pendingTransition.to_stage]} adds?
+          </p>
+          <div className="flex gap-3 mt-3">
+            <button
+              onClick={handleAccept}
+              disabled={accepting}
+              className="rounded-full bg-teal-600 text-white px-4 py-2 text-sm font-medium hover:bg-teal-700 disabled:opacity-50"
+            >
+              {accepting ? "Opening…" : `Yes, show me ${STAGE_LABELS[pendingTransition.to_stage]}`}
+            </button>
+            <button onClick={() => setDismissed(true)} className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-neutral-50">
+              Not now
+            </button>
+          </div>
+        </Card>
+      )}
+
+      <Card title={STAGE_LABELS[company.current_stage]} subtitle="Here's what's present for this stage">
+        <div className="space-y-2">
+          {currentStageSystems.map((u) => (
+            <SystemUnlockRow key={u.id} unlock={u} companyId={companyId} onChanged={load} />
+          ))}
+        </div>
+      </Card>
+
+      {nextStage && (
+        <p className="text-xs text-neutral-400 text-center">Next up, when you're ready: {STAGE_LABELS[nextStage]}</p>
+      )}
+    </div>
+  );
 }
 
 function ReportingPage({ tasks, teamMembers }: { tasks: DBTask[]; teamMembers: { id: string; display_name: string | null }[] }) {
@@ -6188,6 +6330,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             </div>
           )}
           {page === "Leads" && <LeadsPage companies={allCompanies} />}
+          {page === "Systems" && <SystemsPage companies={allCompanies} />}
           {page === "Marketing" && <MarketingPage companies={allCompanies} />}
           {page === "Reporting" && <ReportingPage tasks={tasks} teamMembers={teamMembers} />}
           {page === "Companies" && (

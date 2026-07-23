@@ -349,6 +349,76 @@ completeness:
    Phase 3's Stripe keys and Phase 12's Resend key, except here the gap is
    the routing code itself, not just missing credentials.
 
+**Company Stage system — Phases 19–21 (2026-07-22, Post-Expansion build).**
+A hand-off spec ("Phase 18+") arrived proposing a company-level "Stage
+One/Two/Three" progression system. Two of its premises didn't survive
+verification against the live codebase: (1) there is no floral-tier XP
+system to migrate away from — grepped `src/`/`claude/`/`CLAUDE.md`; the
+tier names only ever appeared as a "someday" idea in two spec docs, already
+flagged unbuilt in Phase 17's own roadmap note; (2) XP/Level
+(`profiles.xp`/`level`) is per-*person* (task-completion reward, scoped to
+Career Path/My Team), not per-company — `companies` never had an XP column
+to backfill from. Confirmed with the founder before building: Stage is a
+**real, new, per-company concept** (not a rename), and Level/Stage stay
+**deliberately separate** — different subjects (a person vs. a company),
+shown on different pages, never merged into one badge.
+
+- **Phase 19**: `companies.current_stage` (`one`/`two`/`three`, default
+  `one`). No `stage_level` column — the original spec's rationale for one
+  ("replaces old floral-tier XP level") was moot once (1) above was
+  confirmed; progress within a stage is computed from `system_unlocks`
+  completion instead (see Phase 21), not tracked as a redundant integer.
+  Seeded per the founder's explicit, non-uniform answer — **not** "start
+  everyone fresh" or "everyone's already unlocked": Mairë = Stage One,
+  Prose Florals = Stage Two, Backstage = Stage One (her stated goal for
+  Backstage is Stage Three, but she wants it to earn that for real rather
+  than start there).
+- **Phase 20**: extended `document_templates.type` with 4 new Stage One
+  values — `vision_mapping`, `sales_script_milestones`,
+  `branding_essentials`, `policies_checklist` — same pattern as Phase 4's
+  `onboarding` type, no new table. Naming disambiguation (a judgment call,
+  not asked about): `branding_essentials` instead of a literal
+  `branding_kit` type, since that would collide with the already-built
+  `brand_kits` *table*; `policies_checklist` instead of overloading the
+  existing `policies_sheet` type, which is a different thing (a reference
+  doc, not a checklist).
+- **Phase 21**: `system_unlocks` (company × template_type × stage × status)
+  and `stage_transitions` (offer/accept ritual) tables. Two RPCs, no new
+  serverless function: `check_stage_completion(company_id)` — inserts a
+  `stage_transitions` offer once every current-stage `system_unlocks` row
+  is `complete`; `accept_stage_transition(id)` — advances
+  `companies.current_stage` and flips the new stage's `locked` rows to
+  `available`. **Security fix applied same-session**: both RPCs were
+  initially written with zero caller-authorization check (unlike
+  `signup_new_org`, which does check) — any anon or unrelated authenticated
+  caller could have advanced any company's stage. Both now call
+  `is_company_member()` before doing anything; verified the fix rejects an
+  unrelated caller inside a rolled-back transaction. Seeded Stage One
+  `system_unlocks` per company (`complete` for Prose Florals, which already
+  passed Stage One; `available` for Mairë/Backstage) plus **Stage Two
+  placeholder systems** (New Hire Packet, Freebie Funnel — reusing the
+  already-existing `new_hire_packet`/`freebie` template types, no new type
+  needed) per the founder's explicit "build placeholders now" answer, so
+  the Stage Two invitation reveals something real rather than an empty
+  page. UI: new "Systems" nav page (hidden for contractor-only profiles,
+  same mechanism as Leads/Marketing/Reporting) shows the current stage's
+  systems with Start/Mark-Complete actions (creating/completing the
+  underlying `document_templates` row), the pending-offer invitation card
+  (accept → RPC + confetti; decline → local-only dismiss, no persisted
+  "declined" state, matches "declining is a no-op, nothing forced"), and a
+  single one-line "next up" teaser for the following stage — deliberately
+  not the full roadmap, per the philosophy doc's progressive-disclosure
+  principle. Existing operational nav (Tasks/Leads/Marketing/etc.) is
+  **not** stage-gated — only this new Systems page is; gating the whole app
+  behind stage completion would have broken Prose Florals' actual day-to-
+  day Marketing usage.
+- **New reference doc surfaced this session**: `claude/backstage-os-
+  philosophy.md` (dropped 2026-07-22, read in full while investigating this
+  spec's premises) has the real, locked Values Charter — human-agency/
+  consent rules for automation — plus the Dashboard Guardrail and Build
+  Pack Ethical Constraint. Worth checking against for every future feature,
+  not just this one.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`
