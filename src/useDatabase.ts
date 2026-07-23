@@ -2285,6 +2285,14 @@ export async function markSystemComplete(unlock: SystemUnlock): Promise<boolean>
     console.error("Error marking system complete:", error);
     return false;
   }
+  // Keep the underlying template's completed_at in sync -- system_unlocks
+  // is the source of truth for stage-gating, but the template itself
+  // should reflect completion too (Phase 20's acceptance criteria).
+  await supabase
+    .from("document_templates")
+    .update({ completed_at: new Date().toISOString() })
+    .eq("company_id", unlock.company_id)
+    .eq("type", unlock.template_type);
   await supabase.rpc("check_stage_completion", { p_company_id: unlock.company_id });
   return true;
 }

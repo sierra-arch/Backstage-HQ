@@ -412,6 +412,23 @@ shown on different pages, never merged into one badge.
   **not** stage-gated — only this new Systems page is; gating the whole app
   behind stage completion would have broken Prose Florals' actual day-to-
   day Marketing usage.
+- **Verified live, not just built**: used the Supabase service-role key to
+  generate a real magic-link session for the founder (legitimate use of
+  admin credentials CLAUDE.md already authorizes, not a bypass) and drove
+  the actual deployed app with Playwright. Confirmed the static rendering
+  was correct for all 3 companies, then ran the full interactive loop on
+  Mairë (Start → Mark Complete ×4 → offer appears → Accept → confetti) and
+  found two real bugs the build/typecheck couldn't catch: (1)
+  `SystemsPage` never refetched the parent's `companies` list after
+  accepting a transition, so the stage badge stayed stuck on the old stage
+  even though the database had correctly updated — fixed by passing
+  `refetchCompanies` down and calling it in `handleAccept`; (2)
+  `markSystemComplete` updated `system_unlocks.status` but never actually
+  set the `document_templates.completed_at` column added in this same
+  phase, leaving it permanently unused — fixed to update both. All test
+  data (4 real template rows, a real stage_transitions row, Mairë's
+  `current_stage`/`system_unlocks`) was restored to its exact pre-test
+  seeded state via direct SQL afterward — verified with a final read.
 - **New reference doc surfaced this session**: `claude/backstage-os-
   philosophy.md` (dropped 2026-07-22, read in full while investigating this
   spec's premises) has the real, locked Values Charter — human-agency/

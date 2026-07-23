@@ -3890,7 +3890,7 @@ function SystemUnlockRow({ unlock, companyId, onChanged }: { unlock: SystemUnloc
   );
 }
 
-function SystemsPage({ companies }: { companies: Company[] }) {
+function SystemsPage({ companies, onCompanyChanged }: { companies: Company[]; onCompanyChanged: () => void }) {
   const [companyId, setCompanyId] = useState("");
   const [unlocks, setUnlocks] = useState<SystemUnlock[]>([]);
   const [pendingTransition, setPendingTransition] = useState<StageTransition | null>(null);
@@ -3927,6 +3927,7 @@ function SystemsPage({ companies }: { companies: Company[] }) {
     setAccepting(false);
     setCelebrate(true);
     setTimeout(() => setCelebrate(false), 2500);
+    onCompanyChanged();
     load();
   }
 
@@ -6330,7 +6331,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
             </div>
           )}
           {page === "Leads" && <LeadsPage companies={allCompanies} />}
-          {page === "Systems" && <SystemsPage companies={allCompanies} />}
+          {page === "Systems" && <SystemsPage companies={allCompanies} onCompanyChanged={refetchCompanies} />}
           {page === "Marketing" && <MarketingPage companies={allCompanies} />}
           {page === "Reporting" && <ReportingPage tasks={tasks} teamMembers={teamMembers} />}
           {page === "Companies" && (
