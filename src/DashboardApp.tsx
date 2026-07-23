@@ -4484,6 +4484,8 @@ function MarketingPage({ companies }: { companies: Company[] }) {
   }, [companies, companyId]);
 
   if (!companyId) return null;
+  const selectedCompany = companies.find((c) => c.id === companyId);
+  const emailMarketingGated = selectedCompany?.plan === "starter";
 
   return (
     <div className="space-y-6">
@@ -4492,8 +4494,17 @@ function MarketingPage({ companies }: { companies: Company[] }) {
           <option key={c.id} value={c.id}>{c.name}</option>
         ))}
       </select>
-      <BroadcastsPanel companyId={companyId} />
-      <SequencesPanel companyId={companyId} />
+      {emailMarketingGated ? (
+        <Card>
+          <p className="text-sm font-semibold text-neutral-700">Email marketing is a Growth+ feature</p>
+          <p className="text-sm text-neutral-500 mt-1">Upgrade your plan to unlock broadcasts and sequences.</p>
+        </Card>
+      ) : (
+        <>
+          <BroadcastsPanel companyId={companyId} />
+          <SequencesPanel companyId={companyId} />
+        </>
+      )}
       <SocialPlannerPanel companyId={companyId} />
     </div>
   );

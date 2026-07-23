@@ -35,6 +35,8 @@ export interface Company {
     border: string;
   } | null;
   is_active: boolean;
+  plan: "starter" | "growth" | "pro";
+  custom_domain: string | null;
   created_at: string;
   updated_at: string;
   onboarding_completed_at?: string | null;

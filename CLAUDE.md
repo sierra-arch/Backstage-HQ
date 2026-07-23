@@ -60,22 +60,34 @@ Career Path · Settings
 - **Milestone 2, Phase A: Brand Kit** — migration 0008, `BrandKitEditModal` (opened from `CompanyModal`), and the first fully public no-login page in this app: `/brand/{share_slug}` (`src/BrandKitShareView.tsx`). Google Drive OAuth (Phase B) is not started — blocked on the user creating credentials in their Google Cloud project; see `claude/roadmap.md` for the exact steps and the ready-to-execute build design.
 - `api/chat.ts` — AI task assistant (separate feature, unrelated to the client lifecycle work)
 - `mcp-server/` — separate MCP integration for Claude Code, not part of the web app
-- **Client Portal Expansion, Phase 1: Multi-tenant foundation** — `company_members` join table (profile ↔ company, many-to-role membership) layered on top of `companies` as the real tenant table; `is_company_member()`/`is_company_member_via_client()`/`is_company_member_via_project()`/`is_company_member_via_generated_document()` helper functions; `team_full_access` RLS rewritten from blanket `is_team_member()` to company-scoped across every client/business-data table. New tables: `leads`, `deliverables`, `comments` (client-facing, distinct from internal `messages`), `automations`, `testimonials`. New `tasks.client_visible` column (default `false`), gating the client task-read policy (internal toggle UI still open — Phase 9). Full design rationale and the empirical isolation-test result in `claude/roadmap.md`'s "Schema decisions resolved" section. Migrations `0012`–`0014`.
+- **Client Portal Expansion, Phase 1: Multi-tenant foundation** — `company_members` join table (profile ↔ company, many-to-role membership) layered on top of `companies` as the real tenant table; `is_company_member()`/`is_company_member_via_client()`/`is_company_member_via_project()`/`is_company_member_via_generated_document()` helper functions; `team_full_access` RLS rewritten from blanket `is_team_member()` to company-scoped across every client/business-data table. New tables: `leads`, `deliverables`, `comments` (client-facing, distinct from internal `messages`), `automations`, `testimonials`. New `tasks.client_visible` column (default `false`), gating the client task-read policy. Full design rationale and the empirical isolation-test result in `claude/roadmap.md`'s "Schema decisions resolved" section. Migrations `0012`–`0014`.
+- **Client Portal Expansion, Phases 2–17: everything else** — client magic-link login, proposal e-signature + Stripe deposits, post-acceptance onboarding forms, deliverables checklist, comment threads/billing/files, offboarding + testimonial/referral capture, CRM leads pipeline + client roster, the `client_visible` toggle wired end-to-end, a 2-automation engine (deliverable approved, project completed), a proposal/contract template manager, Resend email marketing, a social media planner, team roles/permissions, a plain-counts reporting dashboard, the public marketing site (built separately, see below), and white-label org signup + plan gating. One dated entry per phase in `claude/roadmap.md`'s "Schema decisions resolved" section — read there before touching any of it, especially the "untested pending your action" items (Stripe/Resend API keys, custom-domain routing, real billing) called out in this file's Current Priority section above.
 
 ## Current Priority
 
-**✅ SUPERSEDES THE ABOVE PRIORITY (2026-07-22):** the founder reviewed a new
-full spec — `claude/client-portal-expansion-spec.md` — expanding Backstage
-into a three-tier platform (Public/Client/Internal) and explicitly chose to
-build it **full multi-tenant from day one** (not the deferred/single-tenant
-path originally recommended), paced as **one continuous push** rather than
-phase-by-phase check-ins. Read `claude/client-portal-expansion-spec.md` in
-full, especially its "Reconciliation note" section, before writing any code
-against it — it maps the spec's abstract data model onto the real live
-schema and flags what's already built vs. genuinely new. The still-open
-Google Drive OAuth (Milestone 2 Phase B) and the 13-milestone roadmap below
-are not abandoned, just no longer the top priority — resume them once the
-expansion's foundation phase lands.
+**✅ CLIENT PORTAL EXPANSION — ALL 17 PHASES BUILT (2026-07-22).** The full
+three-tier Public/Client/Internal expansion (`claude/client-portal-
+expansion-spec.md`), full multi-tenant from day one, built as one
+continuous push per the founder's direction. Every phase's real scope
+decisions, deliberate deferrals, and honest gaps are logged in
+`claude/roadmap.md`'s "Schema decisions resolved" section (search for
+"Client Portal Expansion Phase" — one dated entry per phase, in order).
+**What's built but genuinely untested, pending your action:**
+- Phase 3 (Stripe deposits) needs `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` in Vercel env vars + the webhook registered in the Stripe dashboard.
+- Phase 12 (Resend email) needs `RESEND_API_KEY`/`RESEND_FROM_ADDRESS`/`CRON_SECRET` in Vercel env vars.
+- Phase 17 (white-label) shipped org signup + plan-gating schema, but custom-domain routing is schema-only (no hostname-based tenant resolution yet) and there's no real billing to move a company off the `starter` plan.
+
+**Operational note from this build:** Vercel's Hobby plan caps a deployment
+at **12 serverless functions**. `api/*.ts` (excluding `_lib/`) is at exactly
+12 right now — a hard-learned lesson mid-build (Phase 12 failed to deploy
+at 14). Any new endpoint needs either a merge of two existing ones first, or
+confirming the plan has been upgraded. Prefer the RPC/direct-RLS pattern
+(Phases 13, 15, 17's org signup) over a new serverless function when a
+feature doesn't strictly need one.
+
+The still-open Google Drive OAuth (Milestone 2 Phase B) and the rest of the
+13-milestone roadmap below are not abandoned — resume them now that the
+expansion has landed.
 
 Full 13-milestone roadmap + the detailed schema plan for the Proposal
 Generator milestone: `claude/roadmap.md`. Do not start a milestone out of

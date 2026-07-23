@@ -302,6 +302,53 @@ member). No new serverless function — reads `invoices`/`leads`/`tasks`
 directly under existing team RLS, consistent with Phase 13's lesson about
 the function-count cap.
 
+**White-label — final Client Portal Expansion phase (2026-07-22,
+Phase 17).** Four sub-requirements, each landed at a different level of
+completeness:
+1. **Org onboarding wizard — done, via reuse not rebuild.** New public
+   route `/get-started` (`OrgSignupWizard.tsx`): standard anon-key
+   `auth.signUp()`, then a new `signup_new_org()` Postgres RPC (SECURITY
+   DEFINER, same anon-executable-but-internally-guarded pattern as
+   `is_company_member` etc.) atomically creates the `profiles` +
+   `companies` + founder `company_members` rows so a failure partway
+   through can't orphan one without the others. Needed **no new serverless
+   function** (the RPC runs through PostgREST directly) — worth remembering
+   for future phases now that the function count is pinned at 12. Real
+   insight that shrank this task a lot: `DashboardApp.tsx` already
+   auto-fires `OnboardingWizard.tsx` (the "purpose/who/how/boundaries/
+   vision + brand + first client + witness statement" ritual) for any
+   company with `onboarding_completed_at` null — since a freshly-signed-up
+   company starts with that column at its default (null), the existing
+   ritual just fires on first login. Nothing about that ritual needed
+   rebuilding or mirroring; it was already generic per-company, not
+   hardcoded to Sierra's businesses.
+2. **Brand config UI — already existed, not rebuilt.** `brand_kits` +
+   `BrandKitEditModal` (Milestone 2 Phase A) already cover this. The
+   spec's "rename Seed → Sprout → Bloom tier names" idea doesn't map to
+   anything actually built (gamification here is numeric XP/levels, not
+   named tiers) — not chased as a phantom feature.
+3. **Plan gating — real but shallow.** `companies.plan` (`starter` |
+   `growth` | `pro`, default `starter`; Sierra's 3 existing companies
+   backfilled to `pro` so nothing newly gates for her). Email marketing
+   (broadcasts + sequences) is gated behind `plan !== 'starter'` with an
+   upgrade message; the social planner stays available on every plan.
+   **No billing exists** — `plan` is just a column a founder could
+   currently only change via direct DB access; there's no Stripe
+   subscription flow to actually let a `starter` org pay to become
+   `growth`. That's a materially bigger feature (recurring billing, not a
+   one-off Checkout session like Phase 3's deposits) and is explicitly
+   out of scope here.
+4. **Custom domain support — schema-only, not wired.** `companies
+   .custom_domain` (nullable, unique) exists so a value can be stored, but
+   nothing resolves incoming requests by hostname to the right tenant —
+   every public/portal route today resolves tenancy by slug in the URL
+   path (`/site`, `/intake/{slug}`, `/brand/{slug}`), not by domain. Real
+   hostname-based routing needs a Vercel Edge Middleware layer and, more
+   fundamentally, an actual domain the user owns pointed at Vercel to ever
+   test against — same "can't verify without your infrastructure" shape as
+   Phase 3's Stripe keys and Phase 12's Resend key, except here the gap is
+   the routing code itself, not just missing credentials.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

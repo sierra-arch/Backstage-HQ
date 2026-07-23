@@ -5,6 +5,7 @@ import { ClientPortalApp } from "./ClientPortalApp";
 import { BrandKitShareView } from "./BrandKitShareView";
 import { IntakeWizard } from "./IntakeWizard";
 import { PublicSite } from "./PublicSite";
+import { OrgSignupWizard } from "./OrgSignupWizard";
 import "./styles.css";
 
 // Deliberately not a router — the client portal must never share App.tsx's
@@ -20,12 +21,15 @@ const intakeSlugMatch = path.match(/^\/intake\/([^/]+)/);
 // doesn't disturb the founder's existing dashboard bookmark. Move to "/"
 // once the Phase 1/2 route restructuring (app/portal/public split) lands.
 const isPublicSite = path.startsWith("/site");
+// White-label (Phase 17): self-serve signup for a brand-new tenant.
+const isGetStarted = path.startsWith("/get-started");
 
 function Root() {
   if (isPortal) return <ClientPortalApp />;
   if (brandSlugMatch) return <BrandKitShareView slug={brandSlugMatch[1]} />;
   if (intakeSlugMatch) return <IntakeWizard companySlug={intakeSlugMatch[1]} />;
   if (isPublicSite) return <PublicSite />;
+  if (isGetStarted) return <OrgSignupWizard />;
   return <App />;
 }
 
