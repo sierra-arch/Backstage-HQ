@@ -264,6 +264,32 @@ a real month-grid calendar (prev/next navigation, click a day to add a
 post, click a post to mark it posted or delete it) plus an "Unscheduled
 Drafts" list for posts with no date yet.
 
+**Team roles/permissions (2026-07-22, Client Portal Expansion Phase 14).**
+The three-tier role model (`founder`/`team`/`contractor`) already existed
+at the schema level (`company_members.role`, from Phase 1) but had no UI and
+no enforcement anywhere. Added: a `TeamManagementSection` in `CompanyModal`
+(founders only — `company_members` RLS only returns every row to founders
+of that company, so a `members.length <= 1` result is the normal signal for
+"you're not a founder here," not a bug) letting a founder change any
+existing member's role via dropdown. Enforcement: `fetchIsContractorOnly()`
+hides the Leads and Marketing nav items for a profile whose company_members
+rows are *all* `contractor` (no founder/team role anywhere), matching the
+roles matrix's "❌ for Contractor" on email marketing / automations / CRM.
+**Real gap, deliberately deferred**: there is no "invite a brand-new team
+member" flow (would need a new endpoint like `api/invite-client.ts`'s
+`auth.admin.inviteUserByEmail`, but the function count is pinned at exactly
+12 — see the Hobby-plan hotfix note above — so adding one means merging two
+existing endpoints first). Today, growing a team still means the founder
+manually creating the `profiles` row (existing signup flow) and then a
+`company_members` row by hand; role *changing* for existing members is the
+part this phase actually built. Also worth flagging: this permission model
+checks "does this profile have elevated access to ANY company," not
+per-company — a genuine structural limitation, since the internal dashboard
+shows cross-company aggregated views everywhere rather than being scoped to
+one company context at a time. A contractor who's also a team member
+somewhere else would see the full nav. Revisit if/when a real second
+tenant's contractor usage exposes this as an actual problem.
+
 **Proposals content — single source of truth.** `proposals` (existing)
 becomes the *lifecycle tracker* (status, client_id) only. A nullable
 `generated_document_id` FK on `proposals` points to a `generated_documents`

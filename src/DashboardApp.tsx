@@ -67,6 +67,10 @@ import {
   updateSocialPost,
   deleteSocialPost,
   type SocialPost,
+  fetchCompanyMembers,
+  updateCompanyMemberRole,
+  fetchIsContractorOnly,
+  type CompanyMember,
   type DocumentTemplate,
   type PaymentInstallment,
   type ProposalWithDocument,
@@ -2450,6 +2454,49 @@ interface TestimonialRow {
   is_featured: boolean;
 }
 
+function TeamManagementSection({ companyId }: { companyId: string }) {
+  const [members, setMembers] = useState<CompanyMember[]>([]);
+
+  const load = useCallback(async () => {
+    setMembers(await fetchCompanyMembers(companyId));
+  }, [companyId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // company_members RLS only returns every row to founders of this company
+  // (team/contractor members can only see their own membership row), so an
+  // empty/single-row result here is expected and simply means the acting
+  // user isn't a founder here -- not a bug.
+  if (members.length <= 1) return null;
+
+  return (
+    <div>
+      <label className="text-sm font-medium text-neutral-700 block mb-3">Team & Roles</label>
+      <div className="space-y-2">
+        {members.map((m) => (
+          <div key={m.id} className="flex items-center justify-between rounded-2xl border p-3 bg-neutral-50">
+            <span className="text-sm text-neutral-700">{m.profiles?.display_name || "Unknown"}</span>
+            <select
+              value={m.role}
+              onChange={async (e) => {
+                await updateCompanyMemberRole(m.id, e.target.value as CompanyMember["role"]);
+                load();
+              }}
+              className="rounded-xl border px-2 py-1.5 text-xs capitalize"
+            >
+              <option value="founder">Founder</option>
+              <option value="team">Team</option>
+              <option value="contractor">Contractor</option>
+            </select>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TestimonialsSection({ companyId }: { companyId: string }) {
   const [testimonials, setTestimonials] = useState<TestimonialRow[]>([]);
 
@@ -3064,6 +3111,7 @@ function CompanyModal({
           </div>
         </div>
 
+        {companyId && <TeamManagementSection companyId={companyId} />}
         {companyId && <TestimonialsSection companyId={companyId} />}
       </div>
     </Modal>
@@ -3343,11 +3391,13 @@ function Sidebar({
   active,
   onSelect,
   userName,
+  isContractorOnly,
 }: {
   role: Role;
   active: Page;
   onSelect: (p: Page) => void;
   userName: string;
+  isContractorOnly?: boolean;
 }) {
   const founderNav: FounderPage[] = [
     "Today",
@@ -3368,7 +3418,12 @@ function Sidebar({
     "Playbook",
     "Career Path",
   ];
-  const nav = isFounder(role) ? founderNav : teamNav;
+  // Contractors don't get revenue/marketing-adjacent tools, per the roles
+  // matrix -- see fetchIsContractorOnly's doc comment for why this checks
+  // "any elevated role anywhere" rather than a per-company context.
+  const hiddenForContractors = new Set(["Leads", "Marketing"]);
+  const baseNav = isFounder(role) ? founderNav : teamNav;
+  const nav = isContractorOnly ? (baseNav.filter((p) => !hiddenForContractors.has(p)) as typeof baseNav) : baseNav;
 
   return (
     <aside className="w-72 shrink-0 border-r border-neutral-200/70 bg-white sticky top-0 h-screen p-4 flex flex-col">
@@ -5203,6 +5258,11 @@ function CareerPathPage({
 export default function DashboardApp() {
   const session = useSession();
   const { profile } = useProfile();
+  const [isContractorOnly, setIsContractorOnly] = useState(false);
+  useEffect(() => {
+    if (!profile?.id) return;
+    fetchIsContractorOnly(profile.id).then(setIsContractorOnly);
+  }, [profile?.id]);
   const { teamMembers, loading: loadingTeam } = useTeamMembers();
   const {
     tasks,
@@ -5905,6 +5965,7 @@ const [prefillCompanyForCreate, setPrefillCompanyForCreate] = useState<string | 
           active={page}
           onSelect={setPage as any}
           userName={userName}
+          isContractorOnly={isContractorOnly}
         />
         <main className="flex-1 p-4 md:p-6 lg:p-8 pt-0 space-y-6">
           <TopHeader

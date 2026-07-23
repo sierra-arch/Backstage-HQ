@@ -1988,6 +1988,48 @@ export async function fetchComments(params: { taskId?: string; deliverableId?: s
   return data || [];
 }
 
+export interface CompanyMember {
+  id: string;
+  company_id: string;
+  profile_id: string;
+  role: "founder" | "team" | "contractor";
+  profiles: { display_name: string | null } | null;
+}
+
+export async function fetchCompanyMembers(companyId: string): Promise<CompanyMember[]> {
+  const { data, error } = await supabase
+    .from("company_members")
+    .select("id, company_id, profile_id, role, profiles(display_name)")
+    .eq("company_id", companyId);
+  if (error) {
+    console.error("Error fetching company members:", error);
+    return [];
+  }
+  return data as any;
+}
+
+export async function updateCompanyMemberRole(id: string, role: CompanyMember["role"]): Promise<boolean> {
+  const { error } = await supabase.from("company_members").update({ role }).eq("id", id);
+  if (error) {
+    console.error("Error updating company member role:", error);
+    return false;
+  }
+  return true;
+}
+
+// A profile is "contractor-only" if every company_members row they hold is
+// role='contractor' -- no founder/team role anywhere. Used to hide
+// revenue/marketing-adjacent nav per the roles matrix (Contractor: ❌ on
+// email marketing, automations, revenue reporting), without needing a full
+// per-company context switcher -- this app's internal views are cross-
+// company by default, so the only permission check that cleanly fits today
+// is "does this person have any elevated role at all."
+export async function fetchIsContractorOnly(profileId: string): Promise<boolean> {
+  const { data, error } = await supabase.from("company_members").select("role").eq("profile_id", profileId);
+  if (error || !data || data.length === 0) return false;
+  return data.every((m) => m.role === "contractor");
+}
+
 export interface SocialPost {
   id: string;
   company_id: string;
