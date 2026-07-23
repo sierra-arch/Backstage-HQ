@@ -307,6 +307,12 @@ export function useTeamMembers() {
   const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Each hook instance needs its own realtime channel topic -- see the
+  // useTasks channelTopicRef comment above for the failure mode this avoids.
+  const channelTopicRef = useRef(
+    `team-member-changes-${Math.random().toString(36).slice(2)}`
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -321,7 +327,7 @@ export function useTeamMembers() {
     loadTeamMembers();
 
     const subscription = supabase
-      .channel("team-member-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
@@ -759,6 +765,12 @@ export function useClients(companyId?: string) {
     setLoading(false);
   }, [companyId]);
 
+  // Each hook instance needs its own realtime channel topic -- see the
+  // useTasks channelTopicRef comment above for the failure mode this avoids.
+  const channelTopicRef = useRef(
+    `client-changes-${Math.random().toString(36).slice(2)}`
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -767,7 +779,7 @@ export function useClients(companyId?: string) {
     }
 
     const subscription = supabase
-      .channel("client-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
@@ -1145,6 +1157,12 @@ export function useProducts(companyId?: string) {
     setLoading(false);
   }, [companyId]);
 
+  // Each hook instance needs its own realtime channel topic -- see the
+  // useTasks channelTopicRef comment above for the failure mode this avoids.
+  const channelTopicRef = useRef(
+    `product-changes-${Math.random().toString(36).slice(2)}`
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -1153,7 +1171,7 @@ export function useProducts(companyId?: string) {
     }
 
     const subscription = supabase
-      .channel("product-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
@@ -1280,6 +1298,12 @@ export function useSOPs(companyId?: string) {
     setLoading(false);
   }, [companyId]);
 
+  // Each hook instance needs its own realtime channel topic -- see the
+  // useTasks channelTopicRef comment above for the failure mode this avoids.
+  const channelTopicRef = useRef(
+    `sop-changes-${Math.random().toString(36).slice(2)}`
+  );
+
   useEffect(() => {
     let mounted = true;
 
@@ -1288,7 +1312,7 @@ export function useSOPs(companyId?: string) {
     }
 
     const subscription = supabase
-      .channel("sop-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
@@ -1603,12 +1627,18 @@ export function useMessages() {
   const loadMessages = useCallback(async () => {
     const data = await fetchMessages();
     setMessages(data);
-    
+
     const count = await getUnreadMessageCount();
     setUnreadCount(count);
-    
+
     setLoading(false);
   }, []);
+
+  // Each hook instance needs its own realtime channel topic -- see the
+  // useTasks channelTopicRef comment above for the failure mode this avoids.
+  const channelTopicRef = useRef(
+    `message-changes-${Math.random().toString(36).slice(2)}`
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -1618,7 +1648,7 @@ export function useMessages() {
     }
 
     const subscription = supabase
-      .channel("message-changes")
+      .channel(channelTopicRef.current)
       .on(
         "postgres_changes",
         {
